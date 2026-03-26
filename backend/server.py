@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query, status, UploadFile, File, Request, Response, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -14,6 +14,7 @@ import jwt
 import bcrypt
 import json
 import asyncio
+import requests
 from math import radians, sin, cos, sqrt, atan2
 
 ROOT_DIR = Path(__file__).parent
@@ -29,27 +30,194 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'default_secret')
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', 24))
 
+# Storage Config
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+APP_NAME = os.environ.get("APP_NAME", "shramsetu")
+storage_key = None
+
+# Stripe Config
+STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY")
+
+# Job Boost Packages
+BOOST_PACKAGES = {
+    "basic": {"price": 99.00, "days": 7, "name": "Basic Boost"},
+    "premium": {"price": 249.00, "days": 14, "name": "Premium Boost"},
+    "featured": {"price": 499.00, "days": 30, "name": "Featured Listing"}
+}
+
 # Create the main app
-app = FastAPI(title="ShramSetu API", version="1.0.0")
+app = FastAPI(title="ShramSetu API", version="2.0.0")
 
 # Create router with /api prefix
 api_router = APIRouter(prefix="/api")
 
 # Security
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# ==================== TRANSLATIONS ====================
+
+TRANSLATIONS = {
+    "en": {
+        "welcome": "Welcome",
+        "find_jobs": "Find Jobs",
+        "post_job": "Post Job",
+        "my_applications": "My Applications",
+        "profile": "Profile",
+        "settings": "Settings",
+        "logout": "Logout",
+        "apply_now": "Apply Now",
+        "save_job": "Save Job",
+        "match_score": "Match Score",
+        "skills": "Skills",
+        "experience": "Experience",
+        "location": "Location",
+        "daily_rate": "Daily Rate",
+        "contact": "Contact",
+        "rating": "Rating",
+        "verified": "Verified",
+        "available": "Available",
+        "busy": "Busy",
+        "search_jobs": "Search jobs...",
+        "all_categories": "All Categories",
+        "applied": "Applied",
+        "shortlisted": "Shortlisted",
+        "selected": "Selected",
+        "rejected": "Rejected",
+        "boost_job": "Boost Job",
+        "recommended": "Recommended for you",
+        "top_candidates": "Top Candidates",
+        "reliability_score": "Reliability Score",
+        "jobs_completed": "Jobs Completed",
+        "phone_verified": "Phone Verified"
+    },
+    "hi": {
+        "welcome": "स्वागत है",
+        "find_jobs": "नौकरी खोजें",
+        "post_job": "नौकरी पोस्ट करें",
+        "my_applications": "मेरे आवेदन",
+        "profile": "प्रोफ़ाइल",
+        "settings": "सेटिंग्स",
+        "logout": "लॉग आउट",
+        "apply_now": "अभी आवेदन करें",
+        "save_job": "नौकरी सहेजें",
+        "match_score": "मैच स्कोर",
+        "skills": "कौशल",
+        "experience": "अनुभव",
+        "location": "स्थान",
+        "daily_rate": "दैनिक दर",
+        "contact": "संपर्क",
+        "rating": "रेटिंग",
+        "verified": "सत्यापित",
+        "available": "उपलब्ध",
+        "busy": "व्यस्त",
+        "search_jobs": "नौकरी खोजें...",
+        "all_categories": "सभी श्रेणियाँ",
+        "applied": "आवेदन किया",
+        "shortlisted": "शॉर्टलिस्ट",
+        "selected": "चयनित",
+        "rejected": "अस्वीकृत",
+        "boost_job": "नौकरी बूस्ट करें",
+        "recommended": "आपके लिए अनुशंसित",
+        "top_candidates": "शीर्ष उम्मीदवार",
+        "reliability_score": "विश्वसनीयता स्कोर",
+        "jobs_completed": "पूर्ण नौकरियां",
+        "phone_verified": "फ़ोन सत्यापित"
+    },
+    "or": {
+        "welcome": "ସ୍ୱାଗତ",
+        "find_jobs": "ଚାକିରି ଖୋଜନ୍ତୁ",
+        "post_job": "ଚାକିରି ପୋଷ୍ଟ କରନ୍ତୁ",
+        "my_applications": "ମୋର ଆବେଦନ",
+        "profile": "ପ୍ରୋଫାଇଲ୍",
+        "settings": "ସେଟିଂସ୍",
+        "logout": "ଲଗଆଉଟ୍",
+        "apply_now": "ବର୍ତ୍ତମାନ ଆବେଦନ କରନ୍ତୁ",
+        "save_job": "ଚାକିରି ସଞ୍ଚୟ କରନ୍ତୁ",
+        "match_score": "ମ୍ୟାଚ୍ ସ୍କୋର",
+        "skills": "କୌଶଳ",
+        "experience": "ଅଭିଜ୍ଞତା",
+        "location": "ଅବସ୍ଥାନ",
+        "daily_rate": "ଦୈନିକ ହାର",
+        "contact": "ଯୋଗାଯୋଗ",
+        "rating": "ରେଟିଂ",
+        "verified": "ଯାଞ୍ଚ ହୋଇଛି",
+        "available": "ଉପಲବ୍ଧ",
+        "busy": "ବ୍ୟସ୍ତ",
+        "search_jobs": "ଚାକିରି ଖୋଜନ୍ତୁ...",
+        "all_categories": "ସମସ୍ତ ଶ୍ରେଣୀ",
+        "applied": "ଆବେଦନ ହୋଇଛି",
+        "shortlisted": "ସର୍ଟଲିଷ୍ଟ",
+        "selected": "ଚୟନିତ",
+        "rejected": "ପ୍ରତ୍ୟାଖ୍ୟାତ",
+        "boost_job": "ଚାକିରି ବୁଷ୍ଟ କରନ୍ତୁ",
+        "recommended": "ଆପଣଙ୍କ ପାଇଁ ସୁପାରିଶ",
+        "top_candidates": "ଶୀର୍ଷ ପ୍ରାର୍ଥୀ",
+        "reliability_score": "ବିଶ୍ୱସନୀୟତା ସ୍କୋର",
+        "jobs_completed": "ସମ୍ପୂର୍ଣ୍ଣ ଚାକିରି",
+        "phone_verified": "ଫୋନ୍ ଯାଞ୍ଚ ହୋଇଛି"
+    }
+}
+
+# ==================== STORAGE FUNCTIONS ====================
+
+def init_storage():
+    """Initialize storage - call once at startup"""
+    global storage_key
+    if storage_key:
+        return storage_key
+    try:
+        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
+        resp.raise_for_status()
+        storage_key = resp.json()["storage_key"]
+        logger.info("Storage initialized successfully")
+        return storage_key
+    except Exception as e:
+        logger.error(f"Storage init failed: {e}")
+        return None
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    """Upload file to storage"""
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=500, detail="Storage not available")
+    resp = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data, timeout=120
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+def get_object(path: str) -> tuple:
+    """Download file from storage"""
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=500, detail="Storage not available")
+    resp = requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key}, timeout=60
+    )
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+
+MIME_TYPES = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+    "gif": "image/gif", "webp": "image/webp", "pdf": "application/pdf"
+}
+
 # ==================== MODELS ====================
 
-# Base Models
 class UserBase(BaseModel):
     email: EmailStr
     name: str
     phone: Optional[str] = None
-    role: str = Field(..., pattern="^(worker|employer)$")
+    role: str = Field(..., pattern="^(worker|employer|both)$")
 
 class UserCreate(UserBase):
     password: str
@@ -66,17 +234,19 @@ class UserResponse(BaseModel):
     role: str
     created_at: str
     profile_complete: bool = False
+    phone_verified: bool = False
+    profile_photo: Optional[str] = None
+    preferred_language: str = "en"
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
 
-# Worker Profile Models
 class WorkerSkill(BaseModel):
     name: str
     years_experience: int = 0
-    proficiency: str = "intermediate"  # beginner, intermediate, expert
+    proficiency: str = "intermediate"
 
 class WorkerProfileCreate(BaseModel):
     skills: List[WorkerSkill]
@@ -87,7 +257,7 @@ class WorkerProfileCreate(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     bio: Optional[str] = None
-    availability: str = "available"  # available, busy, unavailable
+    availability: str = "available"
     languages: List[str] = ["Hindi"]
     profile_photo: Optional[str] = None
 
@@ -96,10 +266,12 @@ class WorkerProfileResponse(WorkerProfileCreate):
     user_id: str
     rating: float = 0.0
     total_jobs_completed: int = 0
+    reliability_score: float = 0.0
+    acceptance_rate: float = 0.0
+    phone_verified: bool = False
     created_at: str
     updated_at: str
 
-# Employer Profile Models
 class EmployerProfileCreate(BaseModel):
     company_name: str
     business_type: str
@@ -115,17 +287,17 @@ class EmployerProfileResponse(EmployerProfileCreate):
     user_id: str
     rating: float = 0.0
     total_jobs_posted: int = 0
+    total_hires: int = 0
     created_at: str
     updated_at: str
 
-# Job Models
 class JobCreate(BaseModel):
     title: str
     description: str
     category: str
     skills_required: List[str]
     experience_required: int = 0
-    pay_type: str = "daily"  # daily, hourly, fixed
+    pay_type: str = "daily"
     pay_amount: float
     location: str
     latitude: Optional[float] = None
@@ -139,16 +311,19 @@ class JobResponse(JobCreate):
     employer_id: str
     employer_name: str
     company_name: str
-    status: str = "open"  # open, closed, filled
+    status: str = "open"
     applications_count: int = 0
+    is_boosted: bool = False
+    boost_expires: Optional[str] = None
+    boost_type: Optional[str] = None
     created_at: str
     updated_at: str
 
-# Application Models
 class ApplicationCreate(BaseModel):
     job_id: str
     cover_message: Optional[str] = None
     expected_pay: Optional[float] = None
+    quick_apply: bool = False
 
 class ApplicationResponse(BaseModel):
     id: str
@@ -156,15 +331,16 @@ class ApplicationResponse(BaseModel):
     worker_id: str
     worker_name: str
     worker_profile: Optional[Dict] = None
-    status: str = "applied"  # applied, shortlisted, selected, rejected
+    status: str = "applied"
     cover_message: Optional[str] = None
     expected_pay: Optional[float] = None
     match_score: Optional[float] = None
     match_explanation: Optional[str] = None
+    reliability_score: Optional[float] = None
+    ai_recommendation: Optional[str] = None
     created_at: str
     updated_at: str
 
-# Message Models
 class MessageCreate(BaseModel):
     receiver_id: str
     content: str
@@ -186,7 +362,6 @@ class ConversationResponse(BaseModel):
     last_message_time: str
     unread_count: int = 0
 
-# Rating Models
 class RatingCreate(BaseModel):
     rated_user_id: str
     job_id: str
@@ -199,7 +374,6 @@ class RatingResponse(RatingCreate):
     rater_name: str
     created_at: str
 
-# Notification Models
 class NotificationResponse(BaseModel):
     id: str
     user_id: str
@@ -210,11 +384,32 @@ class NotificationResponse(BaseModel):
     read: bool = False
     created_at: str
 
-# Match Score Models
 class MatchScoreResponse(BaseModel):
     score: float
     explanation: str
     factors: Dict[str, Any]
+    ai_recommendation: Optional[str] = None
+
+class SavedJobCreate(BaseModel):
+    job_id: str
+
+class WorkHistoryResponse(BaseModel):
+    id: str
+    job_id: str
+    job_title: str
+    employer_name: str
+    status: str
+    rating_received: Optional[int] = None
+    review_received: Optional[str] = None
+    completed_at: Optional[str] = None
+
+class BoostJobRequest(BaseModel):
+    job_id: str
+    package_id: str
+    origin_url: str
+
+class CheckoutStatusRequest(BaseModel):
+    session_id: str
 
 # ==================== HELPER FUNCTIONS ====================
 
@@ -245,12 +440,19 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(optional_security)) -> Optional[dict]:
+    if not credentials:
+        return None
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
+    except:
+        return None
+
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Calculate distance in km using Haversine formula"""
     if not all([lat1, lon1, lat2, lon2]):
-        return 999  # Return large distance if coordinates missing
-    
-    R = 6371  # Earth's radius in km
+        return 999
+    R = 6371
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
@@ -272,22 +474,47 @@ async def create_notification(user_id: str, type: str, title: str, message: str,
     await db.notifications.insert_one(notification)
     return notification
 
+async def calculate_reliability_score(worker_id: str) -> float:
+    """Calculate reliability score based on work history"""
+    applications = await db.applications.find({"worker_id": worker_id}).to_list(100)
+    
+    if not applications:
+        return 50.0  # Default for new workers
+    
+    total = len(applications)
+    completed = sum(1 for a in applications if a.get("status") == "completed")
+    selected = sum(1 for a in applications if a.get("status") in ["selected", "completed"])
+    rejected = sum(1 for a in applications if a.get("status") == "rejected")
+    
+    # Calculate components
+    completion_rate = (completed / max(selected, 1)) * 100 if selected > 0 else 50
+    acceptance_rate = ((total - rejected) / total) * 100 if total > 0 else 50
+    
+    # Get average rating
+    ratings = await db.ratings.find({"rated_user_id": worker_id}, {"_id": 0}).to_list(100)
+    avg_rating = sum(r["rating"] for r in ratings) / len(ratings) if ratings else 3.0
+    rating_score = (avg_rating / 5) * 100
+    
+    # Weighted average
+    reliability = (completion_rate * 0.4) + (acceptance_rate * 0.3) + (rating_score * 0.3)
+    
+    return min(100, max(0, round(reliability, 1)))
+
 # ==================== AI MATCHING SYSTEM ====================
 
 async def calculate_match_score(worker_profile: dict, job: dict) -> MatchScoreResponse:
-    """Calculate AI-powered match score between worker and job"""
+    """Calculate AI-powered match score with enhanced features"""
     
-    # Extract data
     worker_skills = [s.get("name", "").lower() for s in worker_profile.get("skills", [])]
     required_skills = [s.lower() for s in job.get("skills_required", [])]
     worker_experience = worker_profile.get("experience_years", 0)
     required_experience = job.get("experience_required", 0)
     
-    # Calculate skill match
+    # Skill match
     matching_skills = set(worker_skills) & set(required_skills)
     skill_match = len(matching_skills) / max(len(required_skills), 1) * 100
     
-    # Calculate experience match
+    # Experience match
     if required_experience == 0:
         experience_match = 100
     elif worker_experience >= required_experience:
@@ -295,13 +522,12 @@ async def calculate_match_score(worker_profile: dict, job: dict) -> MatchScoreRe
     else:
         experience_match = (worker_experience / required_experience) * 100
     
-    # Calculate distance
+    # Distance
     distance = calculate_distance(
         worker_profile.get("latitude"), worker_profile.get("longitude"),
         job.get("latitude"), job.get("longitude")
     )
     
-    # Distance scoring (closer is better)
     if distance < 5:
         distance_score = 100
     elif distance < 10:
@@ -313,20 +539,26 @@ async def calculate_match_score(worker_profile: dict, job: dict) -> MatchScoreRe
     else:
         distance_score = 20
     
-    # Calculate overall score (weighted)
-    overall_score = (skill_match * 0.5) + (experience_match * 0.3) + (distance_score * 0.2)
+    # Reliability score
+    reliability = worker_profile.get("reliability_score", 50)
+    reliability_score = reliability
     
-    # Generate explanation using AI
+    # Overall score with reliability
+    overall_score = (skill_match * 0.4) + (experience_match * 0.25) + (distance_score * 0.2) + (reliability_score * 0.15)
+    
+    # Generate AI explanation
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
         
         chat = LlmChat(
             api_key=os.environ.get('EMERGENT_LLM_KEY'),
             session_id=f"match_{uuid.uuid4()}",
-            system_message="You are a job matching assistant. Provide brief, helpful explanations for match scores."
+            system_message="You are a job matching assistant for ShramSetu, a labor marketplace in India. Provide brief, helpful explanations in a friendly tone."
         ).with_model("openai", "gpt-5.2")
         
-        prompt = f"""Analyze this job match and provide a brief 1-2 sentence explanation:
+        prompt = f"""Analyze this job match and provide:
+1. A brief 1-2 sentence explanation
+2. A recommendation (Highly Recommended / Recommended / Consider / Not Recommended)
 
 Worker Skills: {', '.join(worker_skills)}
 Required Skills: {', '.join(required_skills)}
@@ -334,23 +566,40 @@ Matching Skills: {', '.join(matching_skills)}
 Worker Experience: {worker_experience} years
 Required Experience: {required_experience} years
 Distance: {distance:.1f} km
-Overall Match Score: {overall_score:.0f}%
+Reliability Score: {reliability}%
+Overall Match: {overall_score:.0f}%
 
-Provide a friendly, concise explanation of why this is a good or poor match."""
+Format response as:
+EXPLANATION: [your explanation]
+RECOMMENDATION: [your recommendation]"""
 
         user_message = UserMessage(text=prompt)
-        explanation = await chat.send_message(user_message)
+        response = await chat.send_message(user_message)
+        
+        # Parse response
+        explanation = response
+        recommendation = "Recommended" if overall_score >= 70 else "Consider"
+        
+        if "EXPLANATION:" in response:
+            parts = response.split("RECOMMENDATION:")
+            explanation = parts[0].replace("EXPLANATION:", "").strip()
+            if len(parts) > 1:
+                recommendation = parts[1].strip()
+                
     except Exception as e:
         logger.error(f"AI explanation failed: {e}")
-        # Fallback explanation
         if overall_score >= 80:
-            explanation = f"Excellent match! {len(matching_skills)} of {len(required_skills)} required skills match and you're only {distance:.1f}km away."
+            explanation = f"Excellent match! {len(matching_skills)} skills match and you're only {distance:.1f}km away."
+            recommendation = "Highly Recommended"
         elif overall_score >= 60:
-            explanation = f"Good match with {len(matching_skills)} matching skills. Consider this opportunity!"
+            explanation = f"Good match with {len(matching_skills)} matching skills."
+            recommendation = "Recommended"
         elif overall_score >= 40:
-            explanation = f"Partial match. Some skills align but you may need additional experience."
+            explanation = f"Partial match. Some skills align."
+            recommendation = "Consider"
         else:
-            explanation = f"Limited match. Focus on jobs that better align with your skills."
+            explanation = f"Limited match. Focus on better aligned jobs."
+            recommendation = "Not Recommended"
     
     return MatchScoreResponse(
         score=round(overall_score, 1),
@@ -359,22 +608,24 @@ Provide a friendly, concise explanation of why this is a good or poor match."""
             "skill_match": round(skill_match, 1),
             "experience_match": round(experience_match, 1),
             "distance_score": round(distance_score, 1),
+            "reliability_score": round(reliability_score, 1),
             "distance_km": round(distance, 1),
             "matching_skills": list(matching_skills)
-        }
+        },
+        ai_recommendation=recommendation
     )
 
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
-    # Check if user exists
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Create user
     user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
     user = {
         "id": user_id,
         "email": user_data.email,
@@ -383,12 +634,14 @@ async def register(user_data: UserCreate):
         "role": user_data.role,
         "password_hash": hash_password(user_data.password),
         "profile_complete": False,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "phone_verified": False,
+        "profile_photo": None,
+        "preferred_language": "en",
+        "created_at": now,
+        "updated_at": now
     }
     
     await db.users.insert_one(user)
-    
     token = create_token(user_id, user_data.role)
     
     return TokenResponse(
@@ -399,8 +652,10 @@ async def register(user_data: UserCreate):
             name=user_data.name,
             phone=user_data.phone,
             role=user_data.role,
-            created_at=user["created_at"],
-            profile_complete=False
+            created_at=now,
+            profile_complete=False,
+            phone_verified=False,
+            preferred_language="en"
         )
     )
 
@@ -421,7 +676,10 @@ async def login(credentials: UserLogin):
             phone=user.get("phone"),
             role=user["role"],
             created_at=user["created_at"],
-            profile_complete=user.get("profile_complete", False)
+            profile_complete=user.get("profile_complete", False),
+            phone_verified=user.get("phone_verified", False),
+            profile_photo=user.get("profile_photo"),
+            preferred_language=user.get("preferred_language", "en")
         )
     )
 
@@ -434,19 +692,101 @@ async def get_me(user: dict = Depends(get_current_user)):
         phone=user.get("phone"),
         role=user["role"],
         created_at=user["created_at"],
-        profile_complete=user.get("profile_complete", False)
+        profile_complete=user.get("profile_complete", False),
+        phone_verified=user.get("phone_verified", False),
+        profile_photo=user.get("profile_photo"),
+        preferred_language=user.get("preferred_language", "en")
     )
+
+@api_router.patch("/auth/language")
+async def update_language(language: str = Query(..., pattern="^(en|hi|or)$"), user: dict = Depends(get_current_user)):
+    await db.users.update_one({"id": user["id"]}, {"$set": {"preferred_language": language}})
+    return {"message": "Language updated", "language": language}
+
+# ==================== TRANSLATIONS ROUTE ====================
+
+@api_router.get("/translations/{language}")
+async def get_translations(language: str):
+    if language not in TRANSLATIONS:
+        language = "en"
+    return TRANSLATIONS[language]
+
+# ==================== FILE UPLOAD ROUTES ====================
+
+@api_router.post("/upload/profile-photo")
+async def upload_profile_photo(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    # Validate file type
+    ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
+    if ext not in ["jpg", "jpeg", "png", "webp"]:
+        raise HTTPException(status_code=400, detail="Only JPG, PNG, WEBP allowed")
+    
+    # Read file
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:  # 5MB limit
+        raise HTTPException(status_code=400, detail="File too large (max 5MB)")
+    
+    # Upload to storage
+    path = f"{APP_NAME}/profiles/{user['id']}/{uuid.uuid4()}.{ext}"
+    content_type = MIME_TYPES.get(ext, "application/octet-stream")
+    
+    try:
+        result = put_object(path, data, content_type)
+        
+        # Store reference in DB
+        file_record = {
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "storage_path": result["path"],
+            "original_filename": file.filename,
+            "content_type": content_type,
+            "size": result.get("size", len(data)),
+            "type": "profile_photo",
+            "is_deleted": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.files.insert_one(file_record)
+        
+        # Update user profile photo
+        await db.users.update_one({"id": user["id"]}, {"$set": {"profile_photo": result["path"]}})
+        
+        # Update worker/employer profile if exists
+        if user["role"] == "worker":
+            await db.worker_profiles.update_one({"user_id": user["id"]}, {"$set": {"profile_photo": result["path"]}})
+        else:
+            await db.employer_profiles.update_one({"user_id": user["id"]}, {"$set": {"company_logo": result["path"]}})
+        
+        return {"path": result["path"], "message": "Photo uploaded successfully"}
+    except Exception as e:
+        logger.error(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Upload failed")
+
+@api_router.get("/files/{path:path}")
+async def get_file(path: str, authorization: str = Header(None), auth: str = Query(None)):
+    # Support query param auth for img tags
+    if not authorization and auth:
+        authorization = f"Bearer {auth}"
+    
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        data, content_type = get_object(path)
+        return Response(content=data, media_type=record.get("content_type", content_type))
+    except Exception as e:
+        logger.error(f"File download failed: {e}")
+        raise HTTPException(status_code=404, detail="File not found")
 
 # ==================== WORKER PROFILE ROUTES ====================
 
 @api_router.post("/worker/profile", response_model=WorkerProfileResponse)
 async def create_worker_profile(profile_data: WorkerProfileCreate, user: dict = Depends(get_current_user)):
-    if user["role"] != "worker":
+    if user["role"] not in ["worker", "both"]:
         raise HTTPException(status_code=403, detail="Only workers can create worker profiles")
     
     existing = await db.worker_profiles.find_one({"user_id": user["id"]})
     if existing:
-        raise HTTPException(status_code=400, detail="Profile already exists. Use PUT to update.")
+        raise HTTPException(status_code=400, detail="Profile already exists")
     
     profile_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -458,6 +798,9 @@ async def create_worker_profile(profile_data: WorkerProfileCreate, user: dict = 
         "skills": [s.model_dump() for s in profile_data.skills],
         "rating": 0.0,
         "total_jobs_completed": 0,
+        "reliability_score": 50.0,
+        "acceptance_rate": 100.0,
+        "phone_verified": user.get("phone_verified", False),
         "created_at": now,
         "updated_at": now
     }
@@ -472,11 +815,18 @@ async def get_worker_profile(user: dict = Depends(get_current_user)):
     profile = await db.worker_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
+    
+    # Update reliability score
+    reliability = await calculate_reliability_score(user["id"])
+    if reliability != profile.get("reliability_score"):
+        await db.worker_profiles.update_one({"user_id": user["id"]}, {"$set": {"reliability_score": reliability}})
+        profile["reliability_score"] = reliability
+    
     return WorkerProfileResponse(**profile)
 
 @api_router.put("/worker/profile", response_model=WorkerProfileResponse)
 async def update_worker_profile(profile_data: WorkerProfileCreate, user: dict = Depends(get_current_user)):
-    if user["role"] != "worker":
+    if user["role"] not in ["worker", "both"]:
         raise HTTPException(status_code=403, detail="Only workers can update worker profiles")
     
     existing = await db.worker_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
@@ -488,11 +838,7 @@ async def update_worker_profile(profile_data: WorkerProfileCreate, user: dict = 
     update_data["skills"] = [s.model_dump() for s in profile_data.skills]
     update_data["updated_at"] = now
     
-    await db.worker_profiles.update_one(
-        {"user_id": user["id"]},
-        {"$set": update_data}
-    )
-    
+    await db.worker_profiles.update_one({"user_id": user["id"]}, {"$set": update_data})
     updated = await db.worker_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
     return WorkerProfileResponse(**updated)
 
@@ -503,16 +849,45 @@ async def get_worker_profile_by_id(worker_id: str, user: dict = Depends(get_curr
         raise HTTPException(status_code=404, detail="Worker profile not found")
     return WorkerProfileResponse(**profile)
 
+@api_router.get("/worker/history", response_model=List[WorkHistoryResponse])
+async def get_work_history(user: dict = Depends(get_current_user)):
+    """Get worker's work history with ratings"""
+    applications = await db.applications.find(
+        {"worker_id": user["id"], "status": {"$in": ["selected", "completed"]}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    history = []
+    for app in applications:
+        job = await db.jobs.find_one({"id": app["job_id"]}, {"_id": 0})
+        if job:
+            rating = await db.ratings.find_one(
+                {"rated_user_id": user["id"], "job_id": app["job_id"]},
+                {"_id": 0}
+            )
+            history.append(WorkHistoryResponse(
+                id=app["id"],
+                job_id=app["job_id"],
+                job_title=job["title"],
+                employer_name=job["employer_name"],
+                status=app["status"],
+                rating_received=rating["rating"] if rating else None,
+                review_received=rating.get("review") if rating else None,
+                completed_at=app.get("updated_at")
+            ))
+    
+    return history
+
 # ==================== EMPLOYER PROFILE ROUTES ====================
 
 @api_router.post("/employer/profile", response_model=EmployerProfileResponse)
 async def create_employer_profile(profile_data: EmployerProfileCreate, user: dict = Depends(get_current_user)):
-    if user["role"] != "employer":
+    if user["role"] not in ["employer", "both"]:
         raise HTTPException(status_code=403, detail="Only employers can create employer profiles")
     
     existing = await db.employer_profiles.find_one({"user_id": user["id"]})
     if existing:
-        raise HTTPException(status_code=400, detail="Profile already exists. Use PUT to update.")
+        raise HTTPException(status_code=400, detail="Profile already exists")
     
     profile_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -523,6 +898,7 @@ async def create_employer_profile(profile_data: EmployerProfileCreate, user: dic
         **profile_data.model_dump(),
         "rating": 0.0,
         "total_jobs_posted": 0,
+        "total_hires": 0,
         "created_at": now,
         "updated_at": now
     }
@@ -541,7 +917,7 @@ async def get_employer_profile(user: dict = Depends(get_current_user)):
 
 @api_router.put("/employer/profile", response_model=EmployerProfileResponse)
 async def update_employer_profile(profile_data: EmployerProfileCreate, user: dict = Depends(get_current_user)):
-    if user["role"] != "employer":
+    if user["role"] not in ["employer", "both"]:
         raise HTTPException(status_code=403, detail="Only employers can update employer profiles")
     
     existing = await db.employer_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
@@ -552,11 +928,7 @@ async def update_employer_profile(profile_data: EmployerProfileCreate, user: dic
     update_data = profile_data.model_dump()
     update_data["updated_at"] = now
     
-    await db.employer_profiles.update_one(
-        {"user_id": user["id"]},
-        {"$set": update_data}
-    )
-    
+    await db.employer_profiles.update_one({"user_id": user["id"]}, {"$set": update_data})
     updated = await db.employer_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
     return EmployerProfileResponse(**updated)
 
@@ -564,7 +936,7 @@ async def update_employer_profile(profile_data: EmployerProfileCreate, user: dic
 
 @api_router.post("/jobs", response_model=JobResponse)
 async def create_job(job_data: JobCreate, user: dict = Depends(get_current_user)):
-    if user["role"] != "employer":
+    if user["role"] not in ["employer", "both"]:
         raise HTTPException(status_code=403, detail="Only employers can create jobs")
     
     employer_profile = await db.employer_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
@@ -582,15 +954,15 @@ async def create_job(job_data: JobCreate, user: dict = Depends(get_current_user)
         **job_data.model_dump(),
         "status": "open",
         "applications_count": 0,
+        "is_boosted": False,
+        "boost_expires": None,
+        "boost_type": None,
         "created_at": now,
         "updated_at": now
     }
     
     await db.jobs.insert_one(job)
-    await db.employer_profiles.update_one(
-        {"user_id": user["id"]},
-        {"$inc": {"total_jobs_posted": 1}}
-    )
+    await db.employer_profiles.update_one({"user_id": user["id"]}, {"$inc": {"total_jobs_posted": 1}})
     
     return JobResponse(**{k: v for k, v in job.items() if k != "_id"})
 
@@ -600,6 +972,8 @@ async def get_jobs(
     location: Optional[str] = None,
     skills: Optional[str] = None,
     status: str = "open",
+    min_pay: Optional[float] = None,
+    max_distance: Optional[float] = None,
     limit: int = Query(default=50, le=100),
     skip: int = 0,
     user: dict = Depends(get_current_user)
@@ -613,13 +987,56 @@ async def get_jobs(
     if skills:
         skill_list = [s.strip() for s in skills.split(",")]
         query["skills_required"] = {"$in": skill_list}
+    if min_pay:
+        query["pay_amount"] = {"$gte": min_pay}
     
-    jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    # Sort: boosted jobs first, then by date
+    jobs = await db.jobs.find(query, {"_id": 0}).sort([
+        ("is_boosted", -1),
+        ("created_at", -1)
+    ]).skip(skip).limit(limit).to_list(limit)
+    
+    # Check and expire old boosts
+    now = datetime.now(timezone.utc)
+    for job in jobs:
+        if job.get("is_boosted") and job.get("boost_expires"):
+            expires = datetime.fromisoformat(job["boost_expires"].replace("Z", "+00:00"))
+            if expires < now:
+                await db.jobs.update_one(
+                    {"id": job["id"]},
+                    {"$set": {"is_boosted": False, "boost_expires": None, "boost_type": None}}
+                )
+                job["is_boosted"] = False
+    
     return [JobResponse(**job) for job in jobs]
+
+@api_router.get("/jobs/recommended", response_model=List[JobResponse])
+async def get_recommended_jobs(limit: int = 10, user: dict = Depends(get_current_user)):
+    """Get AI-recommended jobs for worker"""
+    if user["role"] not in ["worker", "both"]:
+        raise HTTPException(status_code=403, detail="Only workers can get recommendations")
+    
+    worker_profile = await db.worker_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not worker_profile:
+        raise HTTPException(status_code=400, detail="Complete your profile first")
+    
+    # Get open jobs
+    jobs = await db.jobs.find({"status": "open"}, {"_id": 0}).limit(50).to_list(50)
+    
+    # Calculate match scores
+    scored_jobs = []
+    for job in jobs:
+        match = await calculate_match_score(worker_profile, job)
+        scored_jobs.append((job, match.score))
+    
+    # Sort by score
+    scored_jobs.sort(key=lambda x: x[1], reverse=True)
+    
+    return [JobResponse(**job) for job, _ in scored_jobs[:limit]]
 
 @api_router.get("/jobs/employer", response_model=List[JobResponse])
 async def get_employer_jobs(user: dict = Depends(get_current_user)):
-    if user["role"] != "employer":
+    if user["role"] not in ["employer", "both"]:
         raise HTTPException(status_code=403, detail="Only employers can view their jobs")
     
     jobs = await db.jobs.find({"employer_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
@@ -638,13 +1055,12 @@ async def update_job(job_id: str, job_data: JobCreate, user: dict = Depends(get_
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     if job["employer_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Not authorized to update this job")
+        raise HTTPException(status_code=403, detail="Not authorized")
     
     update_data = job_data.model_dump()
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     await db.jobs.update_one({"id": job_id}, {"$set": update_data})
-    
     updated = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     return JobResponse(**updated)
 
@@ -660,17 +1076,44 @@ async def update_job_status(job_id: str, status: str = Query(...), user: dict = 
         {"id": job_id},
         {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
-    
     return {"message": f"Job status updated to {status}"}
+
+# ==================== SAVED JOBS ROUTES ====================
+
+@api_router.post("/jobs/save")
+async def save_job(data: SavedJobCreate, user: dict = Depends(get_current_user)):
+    existing = await db.saved_jobs.find_one({"user_id": user["id"], "job_id": data.job_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Job already saved")
+    
+    saved = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "job_id": data.job_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.saved_jobs.insert_one(saved)
+    return {"message": "Job saved"}
+
+@api_router.delete("/jobs/save/{job_id}")
+async def unsave_job(job_id: str, user: dict = Depends(get_current_user)):
+    await db.saved_jobs.delete_one({"user_id": user["id"], "job_id": job_id})
+    return {"message": "Job unsaved"}
+
+@api_router.get("/jobs/saved", response_model=List[JobResponse])
+async def get_saved_jobs(user: dict = Depends(get_current_user)):
+    saved = await db.saved_jobs.find({"user_id": user["id"]}, {"_id": 0}).to_list(100)
+    job_ids = [s["job_id"] for s in saved]
+    jobs = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(100)
+    return [JobResponse(**job) for job in jobs]
 
 # ==================== APPLICATION ROUTES ====================
 
 @api_router.post("/applications", response_model=ApplicationResponse)
 async def apply_to_job(application_data: ApplicationCreate, user: dict = Depends(get_current_user)):
-    if user["role"] != "worker":
+    if user["role"] not in ["worker", "both"]:
         raise HTTPException(status_code=403, detail="Only workers can apply to jobs")
     
-    # Check if already applied
     existing = await db.applications.find_one({
         "job_id": application_data.job_id,
         "worker_id": user["id"]
@@ -678,14 +1121,12 @@ async def apply_to_job(application_data: ApplicationCreate, user: dict = Depends
     if existing:
         raise HTTPException(status_code=400, detail="Already applied to this job")
     
-    # Get job
     job = await db.jobs.find_one({"id": application_data.job_id}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     if job["status"] != "open":
         raise HTTPException(status_code=400, detail="Job is not accepting applications")
     
-    # Get worker profile
     worker_profile = await db.worker_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
     if not worker_profile:
         raise HTTPException(status_code=400, detail="Complete your profile before applying")
@@ -702,10 +1143,12 @@ async def apply_to_job(application_data: ApplicationCreate, user: dict = Depends
         "worker_id": user["id"],
         "worker_name": user["name"],
         "status": "applied",
-        "cover_message": application_data.cover_message,
+        "cover_message": application_data.cover_message if not application_data.quick_apply else "Quick Apply",
         "expected_pay": application_data.expected_pay,
         "match_score": match_result.score,
         "match_explanation": match_result.explanation,
+        "reliability_score": worker_profile.get("reliability_score", 50),
+        "ai_recommendation": match_result.ai_recommendation,
         "match_factors": match_result.factors,
         "created_at": now,
         "updated_at": now
@@ -720,7 +1163,7 @@ async def apply_to_job(application_data: ApplicationCreate, user: dict = Depends
         type="new_application",
         title="New Application",
         message=f"{user['name']} applied to your job: {job['title']}",
-        data={"job_id": job["id"], "application_id": app_id}
+        data={"job_id": job["id"], "application_id": app_id, "match_score": match_result.score}
     )
     
     return ApplicationResponse(
@@ -730,17 +1173,19 @@ async def apply_to_job(application_data: ApplicationCreate, user: dict = Depends
         worker_name=user["name"],
         worker_profile=worker_profile,
         status="applied",
-        cover_message=application_data.cover_message,
+        cover_message=application["cover_message"],
         expected_pay=application_data.expected_pay,
         match_score=match_result.score,
         match_explanation=match_result.explanation,
+        reliability_score=worker_profile.get("reliability_score", 50),
+        ai_recommendation=match_result.ai_recommendation,
         created_at=now,
         updated_at=now
     )
 
 @api_router.get("/applications/worker", response_model=List[ApplicationResponse])
 async def get_worker_applications(user: dict = Depends(get_current_user)):
-    if user["role"] != "worker":
+    if user["role"] not in ["worker", "both"]:
         raise HTTPException(status_code=403, detail="Only workers can view their applications")
     
     applications = await db.applications.find({"worker_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
@@ -761,7 +1206,12 @@ async def get_job_applications(job_id: str, user: dict = Depends(get_current_use
     if job["employer_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    applications = await db.applications.find({"job_id": job_id}, {"_id": 0}).sort([("match_score", -1), ("created_at", -1)]).to_list(100)
+    # Sort by match score (top candidates first)
+    applications = await db.applications.find({"job_id": job_id}, {"_id": 0}).sort([
+        ("match_score", -1),
+        ("reliability_score", -1),
+        ("created_at", -1)
+    ]).to_list(100)
     
     result = []
     for app in applications:
@@ -770,6 +1220,32 @@ async def get_job_applications(job_id: str, user: dict = Depends(get_current_use
         result.append(ApplicationResponse(**app))
     
     return result
+
+@api_router.get("/applications/top-candidates/{job_id}")
+async def get_top_candidates(job_id: str, limit: int = 5, user: dict = Depends(get_current_user)):
+    """Get AI-ranked top candidates for a job"""
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job["employer_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    applications = await db.applications.find({"job_id": job_id}, {"_id": 0}).sort([
+        ("match_score", -1),
+        ("reliability_score", -1)
+    ]).limit(limit).to_list(limit)
+    
+    result = []
+    for i, app in enumerate(applications):
+        worker_profile = await db.worker_profiles.find_one({"user_id": app["worker_id"]}, {"_id": 0})
+        result.append({
+            "rank": i + 1,
+            "application": app,
+            "worker_profile": worker_profile,
+            "ai_insight": app.get("ai_recommendation", "Good candidate")
+        })
+    
+    return {"top_candidates": result}
 
 @api_router.patch("/applications/{app_id}/status")
 async def update_application_status(app_id: str, status: str = Query(...), user: dict = Depends(get_current_user)):
@@ -786,8 +1262,16 @@ async def update_application_status(app_id: str, status: str = Query(...), user:
         {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
+    # Update employer hires count if selected
+    if status == "selected":
+        await db.employer_profiles.update_one(
+            {"user_id": user["id"]},
+            {"$inc": {"total_hires": 1}}
+        )
+    
     # Notify worker
     status_messages = {
+        "viewed": f"Your application for {job['title']} has been viewed",
         "shortlisted": f"Good news! You've been shortlisted for: {job['title']}",
         "selected": f"Congratulations! You've been selected for: {job['title']}",
         "rejected": f"Your application for {job['title']} was not selected"
@@ -808,7 +1292,7 @@ async def update_application_status(app_id: str, status: str = Query(...), user:
 
 @api_router.get("/match-score/{job_id}", response_model=MatchScoreResponse)
 async def get_match_score(job_id: str, user: dict = Depends(get_current_user)):
-    if user["role"] != "worker":
+    if user["role"] not in ["worker", "both"]:
         raise HTTPException(status_code=403, detail="Only workers can check match scores")
     
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
@@ -820,6 +1304,165 @@ async def get_match_score(job_id: str, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Complete your profile first")
     
     return await calculate_match_score(worker_profile, job)
+
+# ==================== STRIPE PAYMENT ROUTES ====================
+
+@api_router.get("/boost/packages")
+async def get_boost_packages():
+    """Get available job boost packages"""
+    return {"packages": BOOST_PACKAGES}
+
+@api_router.post("/boost/checkout")
+async def create_boost_checkout(data: BoostJobRequest, user: dict = Depends(get_current_user)):
+    """Create Stripe checkout session for job boost"""
+    if user["role"] not in ["employer", "both"]:
+        raise HTTPException(status_code=403, detail="Only employers can boost jobs")
+    
+    # Validate job
+    job = await db.jobs.find_one({"id": data.job_id, "employer_id": user["id"]}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Validate package
+    if data.package_id not in BOOST_PACKAGES:
+        raise HTTPException(status_code=400, detail="Invalid package")
+    
+    package = BOOST_PACKAGES[data.package_id]
+    
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+        
+        # Build URLs from origin
+        success_url = f"{data.origin_url}/employer/boost/success?session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{data.origin_url}/employer"
+        
+        stripe_checkout = StripeCheckout(
+            api_key=STRIPE_API_KEY,
+            webhook_url=f"{data.origin_url}/api/webhook/stripe"
+        )
+        
+        checkout_request = CheckoutSessionRequest(
+            amount=package["price"],
+            currency="inr",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "user_id": user["id"],
+                "job_id": data.job_id,
+                "package_id": data.package_id,
+                "type": "job_boost"
+            }
+        )
+        
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create payment transaction record
+        transaction = {
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "user_id": user["id"],
+            "job_id": data.job_id,
+            "package_id": data.package_id,
+            "amount": package["price"],
+            "currency": "inr",
+            "payment_status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.payment_transactions.insert_one(transaction)
+        
+        return {"url": session.url, "session_id": session.session_id}
+        
+    except Exception as e:
+        logger.error(f"Stripe checkout failed: {e}")
+        raise HTTPException(status_code=500, detail="Payment initialization failed")
+
+@api_router.get("/boost/status/{session_id}")
+async def check_boost_status(session_id: str, user: dict = Depends(get_current_user)):
+    """Check payment status and activate boost"""
+    transaction = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    if transaction["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # If already processed, return status
+    if transaction["payment_status"] == "paid":
+        return {"status": "paid", "message": "Boost already activated"}
+    
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        if status.payment_status == "paid":
+            # Activate boost
+            package = BOOST_PACKAGES[transaction["package_id"]]
+            boost_expires = datetime.now(timezone.utc) + timedelta(days=package["days"])
+            
+            await db.jobs.update_one(
+                {"id": transaction["job_id"]},
+                {"$set": {
+                    "is_boosted": True,
+                    "boost_expires": boost_expires.isoformat(),
+                    "boost_type": transaction["package_id"]
+                }}
+            )
+            
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {"payment_status": "paid", "paid_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            
+            return {"status": "paid", "message": f"Boost activated for {package['days']} days"}
+        
+        return {"status": status.payment_status, "message": "Payment pending"}
+        
+    except Exception as e:
+        logger.error(f"Status check failed: {e}")
+        raise HTTPException(status_code=500, detail="Status check failed")
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhooks"""
+    try:
+        body = await request.body()
+        signature = request.headers.get("Stripe-Signature")
+        
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+        
+        event = await stripe_checkout.handle_webhook(body, signature)
+        
+        if event.payment_status == "paid":
+            transaction = await db.payment_transactions.find_one(
+                {"session_id": event.session_id},
+                {"_id": 0}
+            )
+            
+            if transaction and transaction["payment_status"] != "paid":
+                package = BOOST_PACKAGES.get(transaction.get("package_id", "basic"))
+                boost_expires = datetime.now(timezone.utc) + timedelta(days=package["days"])
+                
+                await db.jobs.update_one(
+                    {"id": transaction["job_id"]},
+                    {"$set": {
+                        "is_boosted": True,
+                        "boost_expires": boost_expires.isoformat(),
+                        "boost_type": transaction.get("package_id")
+                    }}
+                )
+                
+                await db.payment_transactions.update_one(
+                    {"session_id": event.session_id},
+                    {"$set": {"payment_status": "paid", "paid_at": datetime.now(timezone.utc).isoformat()}}
+                )
+        
+        return {"received": True}
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return {"received": True}
 
 # ==================== CHAT/MESSAGING ROUTES ====================
 
@@ -844,7 +1487,6 @@ async def send_message(message_data: MessageCreate, user: dict = Depends(get_cur
     
     await db.messages.insert_one(message)
     
-    # Notify receiver
     await create_notification(
         user_id=message_data.receiver_id,
         type="new_message",
@@ -864,7 +1506,6 @@ async def get_conversation(other_user_id: str, user: dict = Depends(get_current_
         ]
     }, {"_id": 0}).sort("created_at", 1).to_list(500)
     
-    # Mark messages as read
     await db.messages.update_many(
         {"sender_id": other_user_id, "receiver_id": user["id"], "read": False},
         {"$set": {"read": True}}
@@ -874,44 +1515,18 @@ async def get_conversation(other_user_id: str, user: dict = Depends(get_current_
 
 @api_router.get("/conversations", response_model=List[ConversationResponse])
 async def get_conversations(user: dict = Depends(get_current_user)):
-    # Get all users I've had conversations with
     pipeline = [
-        {
-            "$match": {
-                "$or": [
-                    {"sender_id": user["id"]},
-                    {"receiver_id": user["id"]}
-                ]
-            }
-        },
-        {
-            "$sort": {"created_at": -1}
-        },
-        {
-            "$group": {
-                "_id": {
-                    "$cond": [
-                        {"$eq": ["$sender_id", user["id"]]},
-                        "$receiver_id",
-                        "$sender_id"
-                    ]
-                },
-                "last_message": {"$first": "$content"},
-                "last_message_time": {"$first": "$created_at"},
-                "unread_count": {
-                    "$sum": {
-                        "$cond": [
-                            {"$and": [
-                                {"$eq": ["$receiver_id", user["id"]]},
-                                {"$eq": ["$read", False]}
-                            ]},
-                            1,
-                            0
-                        ]
-                    }
-                }
-            }
-        }
+        {"$match": {"$or": [{"sender_id": user["id"]}, {"receiver_id": user["id"]}]}},
+        {"$sort": {"created_at": -1}},
+        {"$group": {
+            "_id": {"$cond": [{"$eq": ["$sender_id", user["id"]]}, "$receiver_id", "$sender_id"]},
+            "last_message": {"$first": "$content"},
+            "last_message_time": {"$first": "$created_at"},
+            "unread_count": {"$sum": {"$cond": [
+                {"$and": [{"$eq": ["$receiver_id", user["id"]]}, {"$eq": ["$read", False]}]},
+                1, 0
+            ]}}
+        }}
     ]
     
     conversations = await db.messages.aggregate(pipeline).to_list(50)
@@ -935,12 +1550,10 @@ async def get_conversations(user: dict = Depends(get_current_user)):
 
 @api_router.post("/ratings", response_model=RatingResponse)
 async def create_rating(rating_data: RatingCreate, user: dict = Depends(get_current_user)):
-    # Verify the job exists and is associated with both users
     job = await db.jobs.find_one({"id": rating_data.job_id}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    # Check if already rated
     existing = await db.ratings.find_one({
         "rater_id": user["id"],
         "rated_user_id": rating_data.rated_user_id,
@@ -1014,11 +1627,12 @@ async def mark_all_notifications_read(user: dict = Depends(get_current_user)):
 
 @api_router.get("/stats/worker")
 async def get_worker_stats(user: dict = Depends(get_current_user)):
-    if user["role"] != "worker":
+    if user["role"] not in ["worker", "both"]:
         raise HTTPException(status_code=403, detail="Only workers can access this")
     
     applications = await db.applications.find({"worker_id": user["id"]}, {"_id": 0}).to_list(100)
     profile = await db.worker_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
+    saved_jobs = await db.saved_jobs.count_documents({"user_id": user["id"]})
     
     return {
         "total_applications": len(applications),
@@ -1026,12 +1640,14 @@ async def get_worker_stats(user: dict = Depends(get_current_user)):
         "selected": sum(1 for a in applications if a["status"] == "selected"),
         "rejected": sum(1 for a in applications if a["status"] == "rejected"),
         "rating": profile.get("rating", 0) if profile else 0,
-        "jobs_completed": profile.get("total_jobs_completed", 0) if profile else 0
+        "jobs_completed": profile.get("total_jobs_completed", 0) if profile else 0,
+        "reliability_score": profile.get("reliability_score", 50) if profile else 50,
+        "saved_jobs": saved_jobs
     }
 
 @api_router.get("/stats/employer")
 async def get_employer_stats(user: dict = Depends(get_current_user)):
-    if user["role"] != "employer":
+    if user["role"] not in ["employer", "both"]:
         raise HTTPException(status_code=403, detail="Only employers can access this")
     
     jobs = await db.jobs.find({"employer_id": user["id"]}, {"_id": 0}).to_list(100)
@@ -1042,11 +1658,15 @@ async def get_employer_stats(user: dict = Depends(get_current_user)):
         apps = await db.applications.count_documents({"job_id": job["id"]})
         total_applications += apps
     
+    boosted_jobs = sum(1 for j in jobs if j.get("is_boosted"))
+    
     return {
         "total_jobs_posted": len(jobs),
         "open_jobs": sum(1 for j in jobs if j["status"] == "open"),
         "filled_jobs": sum(1 for j in jobs if j["status"] == "filled"),
+        "boosted_jobs": boosted_jobs,
         "total_applications": total_applications,
+        "total_hires": profile.get("total_hires", 0) if profile else 0,
         "rating": profile.get("rating", 0) if profile else 0
     }
 
@@ -1056,18 +1676,18 @@ async def get_employer_stats(user: dict = Depends(get_current_user)):
 async def get_categories():
     return {
         "categories": [
-            {"id": "construction", "name": "Construction", "icon": "building"},
-            {"id": "electrician", "name": "Electrician", "icon": "zap"},
-            {"id": "plumber", "name": "Plumber", "icon": "droplet"},
-            {"id": "carpenter", "name": "Carpenter", "icon": "hammer"},
-            {"id": "painter", "name": "Painter", "icon": "paintbrush"},
-            {"id": "mason", "name": "Mason", "icon": "layers"},
-            {"id": "welder", "name": "Welder", "icon": "flame"},
-            {"id": "driver", "name": "Driver", "icon": "truck"},
-            {"id": "security", "name": "Security", "icon": "shield"},
-            {"id": "cleaning", "name": "Cleaning", "icon": "sparkles"},
-            {"id": "gardener", "name": "Gardener", "icon": "flower"},
-            {"id": "helper", "name": "Helper/Labour", "icon": "users"}
+            {"id": "construction", "name": "Construction", "name_hi": "निर्माण", "name_or": "ନିର୍ମାଣ", "icon": "building"},
+            {"id": "electrician", "name": "Electrician", "name_hi": "इलेक्ट्रीशियन", "name_or": "ଇଲେକ୍ଟ୍ରିସିଆନ୍", "icon": "zap"},
+            {"id": "plumber", "name": "Plumber", "name_hi": "प्लंबर", "name_or": "ପ୍ଲମ୍ବର୍", "icon": "droplet"},
+            {"id": "carpenter", "name": "Carpenter", "name_hi": "बढ़ई", "name_or": "ବଢ଼େଇ", "icon": "hammer"},
+            {"id": "painter", "name": "Painter", "name_hi": "पेंटर", "name_or": "ପେଣ୍ଟର୍", "icon": "paintbrush"},
+            {"id": "mason", "name": "Mason", "name_hi": "राजमिस्त्री", "name_or": "ରାଜମିସ୍ତ୍ରୀ", "icon": "layers"},
+            {"id": "welder", "name": "Welder", "name_hi": "वेल्डर", "name_or": "ୱେଲ୍ଡର୍", "icon": "flame"},
+            {"id": "driver", "name": "Driver", "name_hi": "ड्राइवर", "name_or": "ଡ୍ରାଇଭର୍", "icon": "truck"},
+            {"id": "security", "name": "Security", "name_hi": "सुरक्षा", "name_or": "ସୁରକ୍ଷା", "icon": "shield"},
+            {"id": "cleaning", "name": "Cleaning", "name_hi": "सफाई", "name_or": "ସଫାଇ", "icon": "sparkles"},
+            {"id": "gardener", "name": "Gardener", "name_hi": "माली", "name_or": "ମାଳୀ", "icon": "flower"},
+            {"id": "helper", "name": "Helper/Labour", "name_hi": "हेल्पर/मजदूर", "name_or": "ହେଲ୍ପର୍/ମଜୁର", "icon": "users"}
         ]
     }
 
@@ -1077,21 +1697,16 @@ async def get_categories():
 async def seed_database():
     """Seed database with demo data"""
     
-    # Create demo workers
     workers = [
         {"email": "ramesh@demo.com", "name": "Ramesh Kumar", "phone": "9876543210", "role": "worker"},
         {"email": "suresh@demo.com", "name": "Suresh Singh", "phone": "9876543211", "role": "worker"},
         {"email": "mohan@demo.com", "name": "Mohan Sharma", "phone": "9876543212", "role": "worker"},
     ]
     
-    # Create demo employers
     employers = [
         {"email": "abc@contractor.com", "name": "ABC Constructions", "phone": "9876543220", "role": "employer"},
         {"email": "xyz@builder.com", "name": "XYZ Builders", "phone": "9876543221", "role": "employer"},
     ]
-    
-    created_workers = []
-    created_employers = []
     
     for w in workers:
         existing = await db.users.find_one({"email": w["email"]})
@@ -1103,12 +1718,13 @@ async def seed_database():
                 **w,
                 "password_hash": hash_password("demo123"),
                 "profile_complete": True,
+                "phone_verified": True,
+                "preferred_language": "hi",
                 "created_at": now,
                 "updated_at": now
             }
             await db.users.insert_one(user)
             
-            # Create worker profile
             profile = {
                 "id": str(uuid.uuid4()),
                 "user_id": user_id,
@@ -1122,16 +1738,18 @@ async def seed_database():
                 "location": "Mumbai, Maharashtra",
                 "latitude": 19.076,
                 "longitude": 72.8777,
-                "bio": "Experienced worker with 5+ years in construction",
+                "bio": "Experienced construction worker with 5+ years",
                 "availability": "available",
                 "languages": ["Hindi", "Marathi"],
                 "rating": 4.5,
                 "total_jobs_completed": 25,
+                "reliability_score": 92,
+                "acceptance_rate": 95,
+                "phone_verified": True,
                 "created_at": now,
                 "updated_at": now
             }
             await db.worker_profiles.insert_one(profile)
-            created_workers.append(user_id)
     
     for e in employers:
         existing = await db.users.find_one({"email": e["email"]})
@@ -1143,12 +1761,13 @@ async def seed_database():
                 **e,
                 "password_hash": hash_password("demo123"),
                 "profile_complete": True,
+                "phone_verified": True,
+                "preferred_language": "en",
                 "created_at": now,
                 "updated_at": now
             }
             await db.users.insert_one(user)
             
-            # Create employer profile
             profile = {
                 "id": str(uuid.uuid4()),
                 "user_id": user_id,
@@ -1161,17 +1780,16 @@ async def seed_database():
                 "verified": True,
                 "rating": 4.8,
                 "total_jobs_posted": 10,
+                "total_hires": 45,
                 "created_at": now,
                 "updated_at": now
             }
             await db.employer_profiles.insert_one(profile)
-            created_employers.append(user_id)
             
-            # Create some jobs
             jobs_data = [
                 {
                     "title": "Construction Worker Needed",
-                    "description": "Looking for experienced construction workers for a residential project",
+                    "description": "Looking for experienced construction workers for a residential project in Andheri. Must have at least 2 years experience.",
                     "category": "construction",
                     "skills_required": ["Construction", "Mason"],
                     "experience_required": 2,
@@ -1185,7 +1803,7 @@ async def seed_database():
                 },
                 {
                     "title": "Electrician Required Urgently",
-                    "description": "Need skilled electrician for commercial building wiring",
+                    "description": "Need skilled electrician for commercial building wiring. Must know industrial wiring.",
                     "category": "electrician",
                     "skills_required": ["Electrician", "Wiring"],
                     "experience_required": 3,
@@ -1196,6 +1814,20 @@ async def seed_database():
                     "longitude": 72.8295,
                     "duration": "1 month",
                     "vacancies": 2
+                },
+                {
+                    "title": "Plumber for New Apartment",
+                    "description": "Experienced plumber needed for new apartment complex. Multiple bathrooms and kitchen fitting work.",
+                    "category": "plumber",
+                    "skills_required": ["Plumber", "Pipe Fitting"],
+                    "experience_required": 2,
+                    "pay_type": "daily",
+                    "pay_amount": 900,
+                    "location": "Powai, Mumbai",
+                    "latitude": 19.1176,
+                    "longitude": 72.9060,
+                    "duration": "2 months",
+                    "vacancies": 3
                 }
             ]
             
@@ -1209,6 +1841,9 @@ async def seed_database():
                     **job_data,
                     "status": "open",
                     "applications_count": 0,
+                    "is_boosted": False,
+                    "boost_expires": None,
+                    "boost_type": None,
                     "created_at": now,
                     "updated_at": now
                 }
@@ -1226,9 +1861,12 @@ async def seed_database():
 
 @api_router.get("/")
 async def root():
-    return {"message": "ShramSetu API v1.0", "status": "running"}
+    return {"message": "ShramSetu API v2.0", "status": "running", "features": [
+        "AI Match Scoring", "Real-time Chat", "Job Boost", "Multi-language",
+        "Reliability Scoring", "Smart Recommendations", "Profile Photos"
+    ]}
 
-# ==================== WEBSOCKET FOR REAL-TIME CHAT ====================
+# ==================== WEBSOCKET ====================
 
 class ConnectionManager:
     def __init__(self):
@@ -1267,7 +1905,6 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
             data = await websocket.receive_json()
             
             if data.get("type") == "message":
-                # Save message to database
                 msg_id = str(uuid.uuid4())
                 now = datetime.now(timezone.utc).isoformat()
                 
@@ -1283,13 +1920,11 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                 
                 await db.messages.insert_one(message)
                 
-                # Send to receiver if online
                 await manager.send_personal_message({
                     "type": "new_message",
                     "message": {k: v for k, v in message.items() if k != "_id"}
                 }, data["receiver_id"])
                 
-                # Confirm to sender
                 await websocket.send_json({
                     "type": "message_sent",
                     "message": {k: v for k, v in message.items() if k != "_id"}
@@ -1309,6 +1944,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    try:
+        init_storage()
+    except Exception as e:
+        logger.warning(f"Storage init on startup failed: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

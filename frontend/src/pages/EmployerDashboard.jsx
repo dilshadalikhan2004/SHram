@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from '../context/TranslationContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -11,14 +13,18 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { 
   Briefcase, Sun, Moon, LogOut, Plus, MapPin, IndianRupee, 
   Users, Clock, Star, Bell, MessageSquare, Building2, 
-  CheckCircle, XCircle, Eye, TrendingUp, MoreVertical
+  CheckCircle, XCircle, Eye, TrendingUp, Zap, Rocket,
+  Crown, Trophy, Shield, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatPanel from '../components/ChatPanel';
+import LanguageSelector from '../components/LanguageSelector';
+import JobBoostModal from '../components/JobBoostModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -31,6 +37,7 @@ const EmployerDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
   
   const [jobs, setJobs] = useState([]);
   const [stats, setStats] = useState(null);
@@ -38,6 +45,7 @@ const EmployerDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
+  const [topCandidates, setTopCandidates] = useState([]);
   
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('jobs');
@@ -84,8 +92,12 @@ const EmployerDashboard = () => {
 
   const fetchApplicants = async (jobId) => {
     try {
-      const response = await axios.get(`${API_URL}/api/applications/job/${jobId}`);
-      setApplicants(response.data);
+      const [appsRes, topRes] = await Promise.all([
+        axios.get(`${API_URL}/api/applications/job/${jobId}`),
+        axios.get(`${API_URL}/api/applications/top-candidates/${jobId}`).catch(() => ({ data: { top_candidates: [] } }))
+      ]);
+      setApplicants(appsRes.data);
+      setTopCandidates(topRes.data.top_candidates || []);
     } catch (error) {
       toast.error('Failed to fetch applicants');
     }
@@ -125,6 +137,7 @@ const EmployerDashboard = () => {
       await axios.patch(`${API_URL}/api/applications/${appId}/status?status=${status}`);
       toast.success(`Application ${status}!`);
       if (selectedJob) fetchApplicants(selectedJob.id);
+      fetchData();
     } catch (error) {
       toast.error('Failed to update status');
     }
@@ -159,7 +172,20 @@ const EmployerDashboard = () => {
     }
   };
 
+  const getPhotoUrl = (path) => {
+    if (!path) return null;
+    const token = localStorage.getItem('token');
+    return `${API_URL}/api/files/${path}?auth=${token}`;
+  };
+
   const unreadNotifications = notifications.filter(n => !n.read).length;
+
+  const getRecommendationColor = (rec) => {
+    if (rec?.includes('Highly')) return 'bg-green-500';
+    if (rec?.includes('Recommended')) return 'bg-blue-500';
+    if (rec?.includes('Consider')) return 'bg-amber-500';
+    return 'bg-gray-500';
+  };
 
   return (
     <div className="min-h-screen bg-background employer-theme">
@@ -173,17 +199,14 @@ const EmployerDashboard = () => {
               </div>
               <div className="hidden sm:block">
                 <h1 className="font-bold text-lg font-['Outfit']">ShramSetu</h1>
-                <p className="text-xs text-muted-foreground">Employer Dashboard</p>
+                <p className="text-xs text-muted-foreground">Employer Portal</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowChat(!showChat)}
-                data-testid="chat-btn"
-              >
+            <div className="flex items-center gap-2 sm:gap-3">
+              <LanguageSelector variant="ghost" />
+              
+              <Button variant="ghost" size="icon" onClick={() => setShowChat(!showChat)} data-testid="chat-btn">
                 <MessageSquare className="w-5 h-5" />
               </Button>
               
@@ -211,19 +234,27 @@ const EmployerDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Welcome Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold font-['Outfit']">
-              Welcome, {profile?.company_name || user?.name}!
-            </h2>
-            <p className="text-muted-foreground mt-1">Manage your jobs and find workers</p>
+          <div className="flex items-center gap-4">
+            <Avatar className="w-14 h-14 border-2 border-[#059669]">
+              <AvatarImage src={getPhotoUrl(profile?.company_logo)} />
+              <AvatarFallback className="bg-[#059669]/10 text-[#059669] text-xl">
+                {profile?.company_name?.charAt(0) || user?.name?.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold font-['Outfit']">
+                {t('welcome')}, {profile?.company_name || user?.name}!
+              </h2>
+              <p className="text-muted-foreground mt-1">Manage jobs & find workers</p>
+            </div>
           </div>
           <Button onClick={() => setShowCreateJob(true)} className="btn-employer" data-testid="post-job-btn">
-            <Plus className="w-4 h-4 mr-2" /> Post New Job
+            <Plus className="w-4 h-4 mr-2" /> {t('post_job')}
           </Button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <Card className="card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -270,14 +301,25 @@ const EmployerDashboard = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Rating</p>
-                  <p className="text-2xl font-bold flex items-center gap-1">
-                    {stats?.rating?.toFixed(1) || '0.0'}
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                  </p>
+                  <p className="text-sm text-muted-foreground">Total Hires</p>
+                  <p className="text-2xl font-bold">{stats?.total_hires || 0}</p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                  <Trophy className="w-5 h-5 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="card-hover">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Boosted Jobs</p>
+                  <p className="text-2xl font-bold">{stats?.boosted_jobs || 0}</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                  <Rocket className="w-5 h-5 text-orange-600" />
                 </div>
               </div>
             </CardContent>
@@ -294,7 +336,7 @@ const EmployerDashboard = () => {
               <Users className="w-4 h-4 mr-2" /> Applicants
             </TabsTrigger>
             <TabsTrigger value="profile" className="text-base" data-testid="profile-tab">
-              <Building2 className="w-4 h-4 mr-2" /> Profile
+              <Building2 className="w-4 h-4 mr-2" /> {t('profile')}
             </TabsTrigger>
           </TabsList>
 
@@ -309,63 +351,85 @@ const EmployerDashboard = () => {
                   <p className="text-lg font-medium mb-2">No jobs posted yet</p>
                   <p className="text-muted-foreground mb-4">Post your first job to find workers</p>
                   <Button onClick={() => setShowCreateJob(true)} className="btn-employer">
-                    <Plus className="w-4 h-4 mr-2" /> Post Job
+                    <Plus className="w-4 h-4 mr-2" /> {t('post_job')}
                   </Button>
                 </CardContent>
               </Card>
             ) : (
-              jobs.map((job) => (
-                <Card key={job.id} className="card-hover" data-testid={`job-card-${job.id}`}>
-                  <CardContent className="p-5">
-                    <div className="flex flex-col sm:flex-row justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-lg">{job.title}</h3>
-                          <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
-                            {job.status}
-                          </Badge>
+              jobs.map((job, index) => (
+                <motion.div
+                  key={job.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card 
+                    className={`card-hover ${job.is_boosted ? 'border-amber-500/50 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-900/10' : ''}`}
+                    data-testid={`job-card-${job.id}`}
+                  >
+                    <CardContent className="p-5">
+                      <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <h3 className="font-semibold text-lg">{job.title}</h3>
+                            <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
+                              {job.status}
+                            </Badge>
+                            {job.is_boosted && (
+                              <Badge className="bg-gradient-to-r from-amber-500 to-orange-500">
+                                <Zap className="w-3 h-3 mr-1" /> Boosted
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                            {job.description}
+                          </p>
+                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" /> {job.location}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <IndianRupee className="w-3 h-3" /> {job.pay_amount}/{job.pay_type}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" /> {job.applications_count} applicants
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                          {job.description}
-                        </p>
-                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" /> {job.location}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <IndianRupee className="w-3 h-3" /> {job.pay_amount}/{job.pay_type}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="w-3 h-3" /> {job.applications_count} applicants
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex sm:flex-col gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedJob(job);
-                            fetchApplicants(job.id);
-                            setActiveTab('applicants');
-                          }}
-                          data-testid={`view-applicants-${job.id}`}
-                        >
-                          <Eye className="w-4 h-4 mr-1" /> View
-                        </Button>
-                        {job.status === 'open' && (
+                        <div className="flex sm:flex-col gap-2">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            onClick={() => updateJobStatus(job.id, 'closed')}
+                            onClick={() => {
+                              setSelectedJob(job);
+                              fetchApplicants(job.id);
+                              setActiveTab('applicants');
+                            }}
+                            data-testid={`view-applicants-${job.id}`}
                           >
-                            Close Job
+                            <Eye className="w-4 h-4 mr-1" /> View
                           </Button>
-                        )}
+                          {job.status === 'open' && !job.is_boosted && (
+                            <JobBoostModal
+                              jobId={job.id}
+                              jobTitle={job.title}
+                              onSuccess={fetchData}
+                            />
+                          )}
+                          {job.status === 'open' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateJobStatus(job.id, 'closed')}
+                            >
+                              Close Job
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))
             )}
           </TabsContent>
@@ -384,6 +448,76 @@ const EmployerDashboard = () => {
                   </Button>
                 </div>
 
+                {/* Top Candidates Section */}
+                {topCandidates.length > 0 && (
+                  <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Crown className="w-5 h-5 text-amber-500" />
+                        {t('top_candidates')} - AI Ranked
+                      </CardTitle>
+                      <CardDescription>Best matches based on skills, experience & reliability</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {topCandidates.slice(0, 3).map((candidate, i) => (
+                          <motion.div
+                            key={candidate.application.id}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.1 }}
+                          >
+                            <Card className={`relative ${i === 0 ? 'border-amber-500' : ''}`}>
+                              {i === 0 && (
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                                  <Badge className="bg-amber-500">
+                                    <Trophy className="w-3 h-3 mr-1" /> #1 Match
+                                  </Badge>
+                                </div>
+                              )}
+                              <CardContent className="p-4 pt-6">
+                                <div className="text-center mb-3">
+                                  <Avatar className="w-16 h-16 mx-auto mb-2 border-2 border-primary">
+                                    <AvatarImage src={getPhotoUrl(candidate.worker_profile?.profile_photo)} />
+                                    <AvatarFallback className="text-xl">
+                                      {candidate.application.worker_name?.charAt(0)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <p className="font-semibold">{candidate.application.worker_name}</p>
+                                  <div className="flex items-center justify-center gap-1 text-sm">
+                                    <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                    {candidate.worker_profile?.rating?.toFixed(1) || 'New'}
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('match_score')}</span>
+                                    <Badge className={candidate.application.match_score >= 70 ? 'bg-green-500' : 'bg-amber-500'}>
+                                      {candidate.application.match_score}%
+                                    </Badge>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('reliability_score')}</span>
+                                    <span className="font-medium">{candidate.application.reliability_score}%</span>
+                                  </div>
+                                </div>
+
+                                <Badge 
+                                  className={`w-full mt-3 justify-center ${getRecommendationColor(candidate.ai_insight)}`}
+                                >
+                                  {candidate.ai_insight}
+                                </Badge>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* All Applicants */}
                 {applicants.length === 0 ? (
                   <Card>
                     <CardContent className="py-12 text-center">
@@ -393,53 +527,68 @@ const EmployerDashboard = () => {
                     </CardContent>
                   </Card>
                 ) : (
-                  applicants.map((app) => (
-                    <Card key={app.id} className="card-hover" data-testid={`applicant-${app.id}`}>
-                      <CardContent className="p-5">
-                        <div className="flex flex-col sm:flex-row justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                                <span className="text-lg font-semibold">
-                                  {app.worker_name?.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <h4 className="font-semibold">{app.worker_name}</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Applied {new Date(app.created_at).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-
-                            {app.worker_profile && (
-                              <div className="space-y-2 mb-3">
-                                <div className="flex flex-wrap gap-2">
-                                  {app.worker_profile.skills?.map((skill) => (
-                                    <Badge key={skill.name} variant="outline" className="text-xs">
-                                      {skill.name} ({skill.years_experience}y)
-                                    </Badge>
-                                  ))}
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" /> {app.worker_profile.location}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <IndianRupee className="w-3 h-3" /> {app.worker_profile.daily_rate}/day
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Star className="w-3 h-3 text-amber-500" /> {app.worker_profile.rating?.toFixed(1) || 'New'}
-                                  </span>
+                  applicants.map((app, index) => (
+                    <motion.div
+                      key={app.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                    >
+                      <Card className="card-hover" data-testid={`applicant-${app.id}`}>
+                        <CardContent className="p-5">
+                          <div className="flex flex-col sm:flex-row justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                <Avatar className="w-12 h-12 border-2 border-muted">
+                                  <AvatarImage src={getPhotoUrl(app.worker_profile?.profile_photo)} />
+                                  <AvatarFallback>
+                                    {app.worker_name?.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <h4 className="font-semibold flex items-center gap-2">
+                                    {app.worker_name}
+                                    {app.worker_profile?.phone_verified && (
+                                      <CheckCircle className="w-4 h-4 text-green-500" />
+                                    )}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    Applied {new Date(app.created_at).toLocaleDateString()}
+                                  </p>
                                 </div>
                               </div>
-                            )}
 
-                            {/* Match Score */}
-                            {app.match_score && (
-                              <div className="p-3 bg-muted rounded-lg">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-sm font-medium">AI Match Score:</span>
+                              {app.worker_profile && (
+                                <div className="space-y-2 mb-3">
+                                  <div className="flex flex-wrap gap-2">
+                                    {app.worker_profile.skills?.slice(0, 4).map((skill) => (
+                                      <Badge key={skill.name} variant="outline" className="text-xs">
+                                        {skill.name} ({skill.years_experience}y)
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" /> {app.worker_profile.location}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <IndianRupee className="w-3 h-3" /> {app.worker_profile.daily_rate}/day
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Star className="w-3 h-3 text-amber-500" /> {app.worker_profile.rating?.toFixed(1) || 'New'}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Shield className="w-3 h-3 text-purple-500" /> {app.reliability_score}%
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Match Score & AI Recommendation */}
+                              <div className="p-3 bg-muted rounded-lg flex flex-wrap items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                  <Sparkles className="w-4 h-4 text-primary" />
+                                  <span className="text-sm font-medium">AI {t('match_score')}:</span>
                                   <Badge className={
                                     app.match_score >= 70 ? 'bg-green-500' : 
                                     app.match_score >= 50 ? 'bg-amber-500' : 'bg-red-500'
@@ -447,61 +596,86 @@ const EmployerDashboard = () => {
                                     {app.match_score}%
                                   </Badge>
                                 </div>
-                                <p className="text-xs text-muted-foreground">{app.match_explanation}</p>
+                                {app.ai_recommendation && (
+                                  <Badge variant="outline" className={getRecommendationColor(app.ai_recommendation).replace('bg-', 'text-').replace('-500', '-600')}>
+                                    {app.ai_recommendation}
+                                  </Badge>
+                                )}
+                                <p className="w-full text-xs text-muted-foreground mt-1">{app.match_explanation}</p>
                               </div>
-                            )}
-                          </div>
+                            </div>
 
-                          <div className="flex sm:flex-col gap-2">
-                            <Badge className={`
-                              ${app.status === 'applied' ? 'status-applied' : ''}
-                              ${app.status === 'shortlisted' ? 'status-shortlisted' : ''}
-                              ${app.status === 'selected' ? 'status-selected' : ''}
-                              ${app.status === 'rejected' ? 'status-rejected' : ''}
-                            `}>
-                              {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                            </Badge>
-                            
-                            {app.status === 'applied' && (
-                              <>
+                            <div className="flex sm:flex-col gap-2 flex-shrink-0">
+                              <Badge className={`
+                                ${app.status === 'applied' ? 'status-applied' : ''}
+                                ${app.status === 'viewed' ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700' : ''}
+                                ${app.status === 'shortlisted' ? 'status-shortlisted' : ''}
+                                ${app.status === 'selected' ? 'status-selected' : ''}
+                                ${app.status === 'rejected' ? 'status-rejected' : ''}
+                              `}>
+                                {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                              </Badge>
+                              
+                              {app.status === 'applied' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => updateApplicationStatus(app.id, 'viewed')}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" /> Mark Viewed
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="btn-employer"
+                                    onClick={() => updateApplicationStatus(app.id, 'shortlisted')}
+                                    data-testid={`shortlist-${app.id}`}
+                                  >
+                                    Shortlist
+                                  </Button>
+                                </>
+                              )}
+                              {app.status === 'viewed' && (
                                 <Button
                                   size="sm"
                                   className="btn-employer"
                                   onClick={() => updateApplicationStatus(app.id, 'shortlisted')}
-                                  data-testid={`shortlist-${app.id}`}
                                 >
                                   Shortlist
                                 </Button>
+                              )}
+                              {app.status === 'shortlisted' && (
                                 <Button
                                   size="sm"
-                                  variant="outline"
+                                  className="btn-employer"
+                                  onClick={() => updateApplicationStatus(app.id, 'selected')}
+                                  data-testid={`select-${app.id}`}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-1" /> Select
+                                </Button>
+                              )}
+                              {['applied', 'viewed', 'shortlisted'].includes(app.status) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive"
                                   onClick={() => updateApplicationStatus(app.id, 'rejected')}
                                 >
-                                  Reject
+                                  <XCircle className="w-4 h-4 mr-1" /> Reject
                                 </Button>
-                              </>
-                            )}
-                            {app.status === 'shortlisted' && (
+                              )}
                               <Button
                                 size="sm"
-                                className="btn-employer"
-                                onClick={() => updateApplicationStatus(app.id, 'selected')}
-                                data-testid={`select-${app.id}`}
+                                variant="ghost"
+                                onClick={() => setShowChat(true)}
                               >
-                                Select
+                                <MessageSquare className="w-4 h-4" />
                               </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setShowChat(true)}
-                            >
-                              <MessageSquare className="w-4 h-4" />
-                            </Button>
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))
                 )}
               </>
@@ -535,27 +709,29 @@ const EmployerDashboard = () => {
                       <p className="font-medium">{profile.business_type}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Location</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t('location')}</p>
                       <p className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" /> {profile.location}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Verification</p>
-                      <Badge variant={profile.verified ? 'default' : 'secondary'}>
-                        {profile.verified ? 'Verified' : 'Pending'}
+                      <Badge variant={profile.verified ? 'default' : 'secondary'} className={profile.verified ? 'bg-green-500' : ''}>
+                        {profile.verified ? (
+                          <><CheckCircle className="w-3 h-3 mr-1" /> Verified</>
+                        ) : 'Pending'}
                       </Badge>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Rating</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t('rating')}</p>
                       <p className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                         {profile.rating?.toFixed(1) || '0.0'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Jobs Posted</p>
-                      <p className="font-medium">{profile.total_jobs_posted}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Total Hires</p>
+                      <p className="font-medium">{profile.total_hires || 0}</p>
                     </div>
                   </div>
                   {profile.description && (
@@ -589,7 +765,7 @@ const EmployerDashboard = () => {
       <Dialog open={showCreateJob} onOpenChange={setShowCreateJob}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Post New Job</DialogTitle>
+            <DialogTitle>{t('post_job')}</DialogTitle>
             <DialogDescription>Fill in the details to create a new job posting</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateJob} className="space-y-4">
@@ -637,7 +813,7 @@ const EmployerDashboard = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Skills Required *</Label>
+              <Label>{t('skills')} Required *</Label>
               <div className="flex flex-wrap gap-2">
                 {SKILL_OPTIONS.map((skill) => (
                   <Button
@@ -683,7 +859,7 @@ const EmployerDashboard = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Experience Required</Label>
+                <Label>{t('experience')} Required</Label>
                 <Input
                   type="number"
                   placeholder="0"
@@ -695,7 +871,7 @@ const EmployerDashboard = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Location *</Label>
+                <Label>{t('location')} *</Label>
                 <Input
                   placeholder="e.g., Mumbai"
                   value={newJob.location}
@@ -728,7 +904,7 @@ const EmployerDashboard = () => {
                 Cancel
               </Button>
               <Button type="submit" className="btn-employer" data-testid="submit-job-btn">
-                Post Job
+                {t('post_job')}
               </Button>
             </div>
           </form>
@@ -736,7 +912,9 @@ const EmployerDashboard = () => {
       </Dialog>
 
       {/* Chat Panel */}
-      {showChat && <ChatPanel onClose={() => setShowChat(false)} />}
+      <AnimatePresence>
+        {showChat && <ChatPanel onClose={() => setShowChat(false)} />}
+      </AnimatePresence>
     </div>
   );
 };

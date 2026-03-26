@@ -4,6 +4,7 @@ import { Toaster } from './components/ui/sonner';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { WebSocketProvider } from './context/WebSocketContext';
+import { TranslationProvider } from './context/TranslationContext';
 
 // Pages
 import AuthPage from './pages/AuthPage';
@@ -11,6 +12,7 @@ import WorkerDashboard from './pages/WorkerDashboard';
 import EmployerDashboard from './pages/EmployerDashboard';
 import WorkerProfileSetup from './pages/WorkerProfileSetup';
 import EmployerProfileSetup from './pages/EmployerProfileSetup';
+import BoostSuccessPage from './pages/BoostSuccessPage';
 
 import './App.css';
 
@@ -33,7 +35,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.includes(user.role) && user.role !== 'both') {
     return <Navigate to={user.role === 'worker' ? '/worker' : '/employer'} replace />;
   }
 
@@ -58,8 +60,11 @@ const HomeRedirect = () => {
 
   if (user.role === 'worker') {
     return <Navigate to="/worker" replace />;
-  } else {
+  } else if (user.role === 'employer') {
     return <Navigate to="/employer" replace />;
+  } else {
+    // For 'both' role, default to worker dashboard
+    return <Navigate to="/worker" replace />;
   }
 };
 
@@ -76,7 +81,13 @@ const AuthRedirect = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to={user.role === 'worker' ? '/worker' : '/employer'} replace />;
+    if (user.role === 'worker') {
+      return <Navigate to="/worker" replace />;
+    } else if (user.role === 'employer') {
+      return <Navigate to="/employer" replace />;
+    } else {
+      return <Navigate to="/worker" replace />;
+    }
   }
 
   return children;
@@ -102,7 +113,7 @@ function AppRoutes() {
       <Route
         path="/worker"
         element={
-          <ProtectedRoute allowedRoles={['worker']}>
+          <ProtectedRoute allowedRoles={['worker', 'both']}>
             <WorkerDashboard />
           </ProtectedRoute>
         }
@@ -110,7 +121,7 @@ function AppRoutes() {
       <Route
         path="/worker/profile/setup"
         element={
-          <ProtectedRoute allowedRoles={['worker']}>
+          <ProtectedRoute allowedRoles={['worker', 'both']}>
             <WorkerProfileSetup />
           </ProtectedRoute>
         }
@@ -118,7 +129,7 @@ function AppRoutes() {
       <Route
         path="/worker/profile/edit"
         element={
-          <ProtectedRoute allowedRoles={['worker']}>
+          <ProtectedRoute allowedRoles={['worker', 'both']}>
             <WorkerProfileSetup />
           </ProtectedRoute>
         }
@@ -128,7 +139,7 @@ function AppRoutes() {
       <Route
         path="/employer"
         element={
-          <ProtectedRoute allowedRoles={['employer']}>
+          <ProtectedRoute allowedRoles={['employer', 'both']}>
             <EmployerDashboard />
           </ProtectedRoute>
         }
@@ -136,7 +147,7 @@ function AppRoutes() {
       <Route
         path="/employer/profile/setup"
         element={
-          <ProtectedRoute allowedRoles={['employer']}>
+          <ProtectedRoute allowedRoles={['employer', 'both']}>
             <EmployerProfileSetup />
           </ProtectedRoute>
         }
@@ -144,8 +155,16 @@ function AppRoutes() {
       <Route
         path="/employer/profile/edit"
         element={
-          <ProtectedRoute allowedRoles={['employer']}>
+          <ProtectedRoute allowedRoles={['employer', 'both']}>
             <EmployerProfileSetup />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/employer/boost/success"
+        element={
+          <ProtectedRoute allowedRoles={['employer', 'both']}>
+            <BoostSuccessPage />
           </ProtectedRoute>
         }
       />
@@ -159,16 +178,18 @@ function AppRoutes() {
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <WebSocketProvider>
-          <BrowserRouter>
-            <div className="App">
-              <AppRoutes />
-              <Toaster position="top-right" richColors />
-            </div>
-          </BrowserRouter>
-        </WebSocketProvider>
-      </AuthProvider>
+      <TranslationProvider>
+        <AuthProvider>
+          <WebSocketProvider>
+            <BrowserRouter>
+              <div className="App">
+                <AppRoutes />
+                <Toaster position="top-right" richColors />
+              </div>
+            </BrowserRouter>
+          </WebSocketProvider>
+        </AuthProvider>
+      </TranslationProvider>
     </ThemeProvider>
   );
 }

@@ -75,7 +75,14 @@ class ShramSetuAPITester:
             "api/",
             200
         )
-        return success and response.get('message') == 'ShramSetu API v1.0'
+        # Check for v2.0 and enhanced features
+        if success:
+            message = response.get('message', '')
+            features = response.get('features', [])
+            print(f"   API Message: {message}")
+            print(f"   Features: {features}")
+            return 'v2.0' in message and 'Multi-language' in features
+        return False
 
     def test_worker_login(self):
         """Test worker login with demo credentials"""
@@ -333,6 +340,92 @@ class ShramSetuAPITester:
         )
         return success and isinstance(response, list)
 
+    def test_translations(self):
+        """Test translation endpoints"""
+        # Test Hindi translations
+        success, response = self.run_test(
+            "Get Hindi Translations",
+            "GET",
+            "api/translations/hi",
+            200
+        )
+        if success and 'welcome' in response:
+            print(f"   Hindi welcome: {response['welcome']}")
+            return True
+        return False
+
+    def test_boost_packages(self):
+        """Test boost packages endpoint"""
+        success, response = self.run_test(
+            "Get Boost Packages",
+            "GET",
+            "api/boost/packages",
+            200
+        )
+        if success and 'packages' in response:
+            packages = response['packages']
+            print(f"   Available packages: {list(packages.keys())}")
+            return 'basic' in packages and 'premium' in packages
+        return False
+
+    def test_recommended_jobs(self):
+        """Test AI recommended jobs"""
+        if not self.worker_token:
+            print("❌ Worker token not available")
+            return False
+
+        success, response = self.run_test(
+            "Get Recommended Jobs",
+            "GET",
+            "api/jobs/recommended",
+            200,
+            token=self.worker_token
+        )
+        return success and isinstance(response, list)
+
+    def test_saved_jobs(self):
+        """Test job saving functionality"""
+        if not self.worker_token or not hasattr(self, 'test_job_id'):
+            print("❌ Worker token or test job not available")
+            return False
+
+        # Save a job
+        success, response = self.run_test(
+            "Save Job",
+            "POST",
+            "api/jobs/save",
+            200,
+            data={"job_id": self.test_job_id},
+            token=self.worker_token
+        )
+        
+        if success:
+            # Get saved jobs
+            success2, response2 = self.run_test(
+                "Get Saved Jobs",
+                "GET",
+                "api/jobs/saved",
+                200,
+                token=self.worker_token
+            )
+            return success2 and isinstance(response2, list)
+        return False
+
+    def test_top_candidates(self):
+        """Test AI top candidates ranking"""
+        if not self.employer_token or not hasattr(self, 'test_job_id'):
+            print("❌ Employer token or test job not available")
+            return False
+
+        success, response = self.run_test(
+            "Get Top Candidates",
+            "GET",
+            f"api/applications/top-candidates/{self.test_job_id}",
+            200,
+            token=self.employer_token
+        )
+        return success and 'top_candidates' in response
+
 def main():
     print("🚀 Starting ShramSetu API Testing...")
     print("=" * 50)
@@ -351,12 +444,17 @@ def main():
         ("Jobs Listing", tester.test_jobs_listing),
         ("Employer Jobs", tester.test_employer_jobs),
         ("Categories", tester.test_categories),
+        ("Translations", tester.test_translations),
+        ("Boost Packages", tester.test_boost_packages),
         ("Worker Stats", tester.test_worker_stats),
         ("Employer Stats", tester.test_employer_stats),
         ("Notifications", tester.test_notifications),
+        ("Recommended Jobs", tester.test_recommended_jobs),
         ("Job Creation", tester.test_job_creation),
         ("Job Application", tester.test_job_application),
         ("Worker Applications", tester.test_worker_applications),
+        ("Saved Jobs", tester.test_saved_jobs),
+        ("Top Candidates", tester.test_top_candidates),
     ]
     
     print(f"\n📋 Running {len(tests)} test suites...")
