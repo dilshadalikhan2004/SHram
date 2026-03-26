@@ -1012,22 +1012,43 @@ async def get_jobs(
 
 @api_router.get("/jobs/recommended", response_model=List[JobResponse])
 async def get_recommended_jobs(limit: int = 10, user: dict = Depends(get_current_user)):
-    """Get AI-recommended jobs for worker"""
+    """Get AI-recommended jobs for worker - uses fast scoring without AI explanation"""
     if user["role"] not in ["worker", "both"]:
         raise HTTPException(status_code=403, detail="Only workers can get recommendations")
     
     worker_profile = await db.worker_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
     if not worker_profile:
-        raise HTTPException(status_code=400, detail="Complete your profile first")
+        # Return all jobs if no profile
+        jobs = await db.jobs.find({"status": "open"}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+        return [JobResponse(**job) for job in jobs]
     
     # Get open jobs
     jobs = await db.jobs.find({"status": "open"}, {"_id": 0}).limit(50).to_list(50)
     
-    # Calculate match scores
+    if not jobs:
+        return []
+    
+    # Fast scoring without AI (no LLM call)
+    worker_skills = [s.get("name", "").lower() for s in worker_profile.get("skills", [])]
+    worker_experience = worker_profile.get("experience_years", 0)
+    
     scored_jobs = []
     for job in jobs:
-        match = await calculate_match_score(worker_profile, job)
-        scored_jobs.append((job, match.score))
+        required_skills = [s.lower() for s in job.get("skills_required", [])]
+        matching_skills = set(worker_skills) & set(required_skills)
+        skill_score = len(matching_skills) / max(len(required_skills), 1) * 50
+        
+        required_exp = job.get("experience_required", 0)
+        exp_score = 30 if worker_experience >= required_exp else (worker_experience / max(required_exp, 1)) * 30
+        
+        distance = calculate_distance(
+            worker_profile.get("latitude"), worker_profile.get("longitude"),
+            job.get("latitude"), job.get("longitude")
+        )
+        dist_score = 20 if distance < 10 else (10 if distance < 25 else 5)
+        
+        total_score = skill_score + exp_score + dist_score
+        scored_jobs.append((job, total_score))
     
     # Sort by score
     scored_jobs.sort(key=lambda x: x[1], reverse=True)
@@ -1103,7 +1124,11 @@ async def unsave_job(job_id: str, user: dict = Depends(get_current_user)):
 @api_router.get("/jobs/saved", response_model=List[JobResponse])
 async def get_saved_jobs(user: dict = Depends(get_current_user)):
     saved = await db.saved_jobs.find({"user_id": user["id"]}, {"_id": 0}).to_list(100)
+    if not saved:
+        return []  # Return empty list instead of querying with empty list
     job_ids = [s["job_id"] for s in saved]
+    if not job_ids:
+        return []
     jobs = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(100)
     return [JobResponse(**job) for job in jobs]
 
