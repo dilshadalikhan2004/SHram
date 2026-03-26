@@ -1,0 +1,158 @@
+{
+  "theme_and_archetype": {
+    "domain": "Labor Marketplace & SaaS",
+    "theme": "dark_and_light_toggle",
+    "archetype": "Archetype 4 (Swiss & High-Contrast)",
+    "description": "Premium SaaS design (Stripe/Linear inspired) with a stark high-contrast base, functional monochrome structures, and precise use of vibrant primary colors based on user role."
+  },
+  "typography": {
+    "heading_font": "Outfit",
+    "body_font": "Manrope",
+    "rules": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-none font-semibold",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-none font-medium",
+      "h3": "text-xl sm:text-2xl tracking-tight leading-snug font-medium",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed text-muted-foreground",
+      "labels": "text-xs tracking-[0.2em] uppercase font-bold text-muted-foreground",
+      "anti_patterns": ["Inter", "Roboto", "Open Sans", "Lato", "Syne"]
+    }
+  },
+  "colors": {
+    "worker": {
+      "primary": "#0066FF",
+      "primary_hover": "#3385FF",
+      "primary_foreground": "#FFFFFF"
+    },
+    "employer": {
+      "primary": "#059669",
+      "primary_hover": "#05B27C",
+      "primary_foreground": "#FFFFFF"
+    },
+    "dark_mode": {
+      "background": "#0A0A0B",
+      "foreground": "#FAFAFA",
+      "card": "#121214",
+      "card_foreground": "#FAFAFA",
+      "popover": "#121214",
+      "popover_foreground": "#FAFAFA",
+      "muted": "#1F1F24",
+      "muted_foreground": "#A1A1AA",
+      "border": "#27272A",
+      "input": "#27272A",
+      "ring": "rgba(255, 255, 255, 0.2)"
+    },
+    "light_mode": {
+      "background": "#FFFFFF",
+      "foreground": "#09090B",
+      "card": "#F8F9FA",
+      "card_foreground": "#09090B",
+      "popover": "#FFFFFF",
+      "popover_foreground": "#09090B",
+      "muted": "#F1F5F9",
+      "muted_foreground": "#64748B",
+      "border": "#E2E8F0",
+      "input": "#E2E8F0",
+      "ring": "rgba(0, 0, 0, 0.1)"
+    },
+    "system": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444"
+    }
+  },
+  "surface_strategies": {
+    "headers_and_nav": {
+      "style": "Glassmorphism",
+      "dark_classes": "bg-black/60 backdrop-blur-xl border-b border-white/10",
+      "light_classes": "bg-white/70 backdrop-blur-xl border-b border-black/5",
+      "notes": "Always sticky with z-50."
+    },
+    "dashboard_cards": {
+      "style": "Grid Borders & Flat",
+      "dark_classes": "bg-[#121214] border border-white/10 shadow-sm",
+      "light_classes": "bg-[#F8F9FA] border border-black/5 shadow-sm",
+      "hover": "hover:-translate-y-1 hover:shadow-lg transition-all duration-300 ease-out"
+    },
+    "featured_components": {
+      "style": "The Tracing Beam",
+      "description": "Use framer-motion to create a 1px glowing line tracing the border of premium cards (like AI Match Score) in dark mode."
+    }
+  },
+  "layout_and_grids": {
+    "spacing_system": "Generous Spacing Philosophy (Tailwind Scale)",
+    "container_padding": "p-6 md:p-8",
+    "dashboard_grid": {
+      "type": "The 'Control Room' Grid",
+      "classes": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6",
+      "spans": {
+        "summary_widget": "col-span-1",
+        "primary_chart_or_feed": "col-span-2 row-span-2 md:col-span-3",
+        "side_list": "col-span-1 row-span-2"
+      }
+    },
+    "marketing_grid": {
+      "type": "The 'Tetris' Grid",
+      "classes": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8 lg:gap-12"
+    }
+  },
+  "components": {
+    "strategy": "Shadcn UI base, heavily customized for Linear/Stripe look. Strip default styles.",
+    "buttons": "Flat, sharp or slight radius (rounded-md), distinct hover states (hover:bg-[primary_hover]).",
+    "inputs": "Shadcn input with strict borders, subtle focus rings.",
+    "tables": "Dense, clean lines, no alternating row colors, prominent column headers.",
+    "charts": "Shadcn/Recharts, minimalist tooltips, matching primary colors (Blue/Green).",
+    "tabs": "Override default h-9, make them h-10 or h-12 with distinct active states.",
+    "badges": "Pill-shaped (rounded-full) for statuses, subtle background colors with high-contrast text."
+  },
+  "interactions_and_motion": {
+    "libraries": ["framer-motion", "lucide-react"],
+    "hover_states": "Always explicit. e.g., hover:bg-slate-900 hover:text-white. Active state color must be lighter hue.",
+    "page_transitions": "Framer motion initial={opacity: 0, y: 10} animate={opacity: 1, y: 0}.",
+    "accessibility": "respect prefers-reduced-motion."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "strategy": "Minimalist, 1.5px stroke width, scale appropriately with text (e.g., w-4 h-4 for text-sm)."
+  },
+  "media": {
+    "hero_backgrounds": [
+      {
+        "url": "https://images.pexels.com/photos/3612930/pexels-photo-3612930.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Dark abstract textured metallic surface for dark mode hero"
+      }
+    ],
+    "portraits_worker": [
+      {
+        "url": "https://images.pexels.com/photos/4981775/pexels-photo-4981775.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Indian construction worker portrait for worker profile mockups"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1606384682764-c3065dbcaf85?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwyfHxpbmRpYW4lMjBjb25zdHJ1Y3Rpb24lMjB3b3JrZXIlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzQ1NDM5OTh8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Worker portrait 2"
+      }
+    ],
+    "portraits_employer": [
+      {
+        "url": "https://images.pexels.com/photos/6285155/pexels-photo-6285155.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Contractor/Employer portrait in office"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1758874385949-cec80d549f67?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHNlYXJjaHwyfHxjb250cmFjdG9yJTIwbW9kZXJuJTIwb2ZmaWNlfGVufDB8fHx8MTc3NDU0Mzk5OHww&ixlib=rb-4.1.0&q=85",
+        "description": "Contractor working on laptop"
+      }
+    ]
+  },
+  "testing": {
+    "attributes": "All interactive and key informational elements MUST include data-testid attribute in kebab-case."
+  },
+  "instructions_to_main_agent": [
+    "Strictly adhere to the dark/light mode toggle requirement. Use standard Tailwind 'dark:' prefix approach.",
+    "Implement separate dashboards for Worker and Employer, routing based on role.",
+    "Use Color #0066FF for Worker context and #059669 for Employer context. Contextualize buttons and charts.",
+    "Ensure 'Outfit' font is used for headings and 'Manrope' for body text. Verify they are loaded via Google Fonts or similar.",
+    "Use Shadcn UI components for complex interactive pieces (Select, Calendar, Tables, Dialogs) but strip default Vercel-like padding if it feels too cramped. Apply generous spacing (p-6, p-8).",
+    "For the AI Match Score Display, use an animated circular progress or a 'Tracing Beam' card style using framer-motion to make it feel premium.",
+    "Ensure the WebSocket chat interface is dense and clean (like Linear), not bubbly and cartoonish."
+  ]
+}
