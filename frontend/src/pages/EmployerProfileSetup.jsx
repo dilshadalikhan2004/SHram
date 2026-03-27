@@ -8,8 +8,9 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Briefcase, MapPin, Building2, ArrowRight } from 'lucide-react';
+import { Briefcase, Building2, ArrowRight, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import LocationPicker from '../components/LocationPicker';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -32,22 +33,6 @@ const EmployerProfileSetup = () => {
     description: '',
     company_logo: '',
   });
-
-  const getLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setProfile({
-            ...profile,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          toast.success('Location detected!');
-        },
-        () => toast.error('Could not detect location')
-      );
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -123,21 +108,14 @@ const EmployerProfileSetup = () => {
 
               <div className="space-y-2">
                 <Label>Location *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g., Mumbai, Maharashtra"
-                    value={profile.location}
-                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    className="flex-1"
-                    required
-                    data-testid="location-input"
-                  />
-                  <Button type="button" variant="outline" onClick={getLocation}>
-                    <MapPin className="w-4 h-4" />
-                  </Button>
-                </div>
+                <LocationPicker
+                  value={profile.location}
+                  onChange={(loc) => setProfile({ ...profile, location: loc })}
+                  onCoordinatesChange={(lat, lon) => setProfile({ ...profile, latitude: lat, longitude: lon })}
+                />
                 {profile.latitude && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-green-500" />
                     GPS: {profile.latitude.toFixed(4)}, {profile.longitude.toFixed(4)}
                   </p>
                 )}

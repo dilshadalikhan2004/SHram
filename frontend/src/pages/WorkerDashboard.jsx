@@ -23,6 +23,8 @@ import MatchScoreCard from '../components/MatchScoreCard';
 import ChatPanel from '../components/ChatPanel';
 import LanguageSelector from '../components/LanguageSelector';
 import ReliabilityScore from '../components/ReliabilityScore';
+import PhoneVerification from '../components/PhoneVerification';
+import VideoIntroUpload from '../components/VideoIntroUpload';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -643,11 +645,22 @@ const WorkerDashboard = () => {
           <TabsContent value="profile">
             {profile ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>{t('profile')}</CardTitle>
-                      <CardDescription>Your worker profile information</CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>{t('profile')}</CardTitle>
+                          <CardDescription>Your worker profile information</CardDescription>
+                        </div>
+                        <PhoneVerification
+                          isVerified={profile.phone_verified}
+                          onVerified={() => {
+                            setProfile({ ...profile, phone_verified: true });
+                            fetchData();
+                          }}
+                        />
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -702,6 +715,18 @@ const WorkerDashboard = () => {
                       </Button>
                     </CardContent>
                   </Card>
+
+                  {/* Video Introduction Section */}
+                  <VideoIntroUpload
+                    currentVideo={profile.video_intro}
+                    onUploadSuccess={(videoUrl) => {
+                      setProfile({ ...profile, video_intro: videoUrl });
+                      toast.success('Video intro uploaded!');
+                    }}
+                    onDelete={() => {
+                      setProfile({ ...profile, video_intro: null });
+                    }}
+                  />
                 </div>
 
                 <div>

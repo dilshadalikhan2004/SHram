@@ -9,8 +9,10 @@ import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
-import { HardHat, MapPin, Plus, X, ArrowRight, IndianRupee } from 'lucide-react';
+import { HardHat, MapPin, Plus, X, ArrowRight, IndianRupee, Phone, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import LocationPicker from '../components/LocationPicker';
+import PhoneVerification from '../components/PhoneVerification';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -260,20 +262,14 @@ const WorkerProfileSetup = () => {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Location</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g., Andheri, Mumbai"
-                    value={profile.location}
-                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    className="flex-1"
-                    data-testid="location-input"
-                  />
-                  <Button type="button" variant="outline" onClick={getLocation}>
-                    <MapPin className="w-4 h-4" />
-                  </Button>
-                </div>
+                <LocationPicker
+                  value={profile.location}
+                  onChange={(loc) => setProfile({ ...profile, location: loc })}
+                  onCoordinatesChange={(lat, lon) => setProfile({ ...profile, latitude: lat, longitude: lon })}
+                />
                 {profile.latitude && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-green-500" />
                     GPS: {profile.latitude.toFixed(4)}, {profile.longitude.toFixed(4)}
                   </p>
                 )}

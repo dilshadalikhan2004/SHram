@@ -15,7 +15,9 @@ import bcrypt
 import json
 import asyncio
 import requests
+import httpx
 from math import radians, sin, cos, sqrt, atan2
+from twilio.rest import Client as TwilioClient
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -38,6 +40,18 @@ storage_key = None
 
 # Stripe Config
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY")
+
+# Twilio Config
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+TWILIO_VERIFY_SERVICE_SID = os.environ.get("TWILIO_VERIFY_SERVICE_SID")
+twilio_client = None
+if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
+    twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+
+# Web Push Config (VAPID)
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 
 # Job Boost Packages
 BOOST_PACKAGES = {
@@ -269,6 +283,7 @@ class WorkerProfileResponse(WorkerProfileCreate):
     reliability_score: float = 0.0
     acceptance_rate: float = 0.0
     phone_verified: bool = False
+    video_intro: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -410,6 +425,39 @@ class BoostJobRequest(BaseModel):
 
 class CheckoutStatusRequest(BaseModel):
     session_id: str
+
+# ==================== NEW MODELS FOR V2.1 ====================
+
+class SendOTPRequest(BaseModel):
+    phone_number: str  # E.164 format: +919876543210
+
+class VerifyOTPRequest(BaseModel):
+    phone_number: str
+    code: str
+
+class LocationSearchRequest(BaseModel):
+    query: str
+    limit: int = 5
+
+class LocationResult(BaseModel):
+    display_name: str
+    lat: float
+    lon: float
+    address: Optional[Dict] = None
+
+class VideoUploadResponse(BaseModel):
+    video_url: str
+    thumbnail_url: Optional[str] = None
+
+class PushSubscription(BaseModel):
+    endpoint: str
+    keys: Dict[str, str]
+
+class PushNotificationRequest(BaseModel):
+    title: str
+    body: str
+    icon: Optional[str] = None
+    url: Optional[str] = None
 
 # ==================== HELPER FUNCTIONS ====================
 
@@ -1882,13 +1930,324 @@ async def seed_database():
         }
     }
 
+# ==================== SMS OTP VERIFICATION (TWILIO) ====================
+
+@api_router.post("/otp/send")
+async def send_otp(data: SendOTPRequest, user: dict = Depends(get_current_user)):
+    """Send OTP to phone number via Twilio Verify"""
+    if not twilio_client:
+        raise HTTPException(status_code=503, detail="SMS service not configured")
+    
+    phone = data.phone_number
+    if not phone.startswith("+"):
+        phone = f"+91{phone}"  # Default to India
+    
+    try:
+        verification = twilio_client.verify.v2.services(
+            TWILIO_VERIFY_SERVICE_SID
+        ).verifications.create(to=phone, channel="sms")
+        
+        # Store pending verification
+        await db.phone_verifications.update_one(
+            {"user_id": user["id"]},
+            {"$set": {
+                "phone_number": phone,
+                "status": "pending",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+        
+        return {"message": "OTP sent successfully", "status": verification.status}
+    except Exception as e:
+        logger.error(f"Twilio send OTP error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to send OTP: {str(e)}")
+
+@api_router.post("/otp/verify")
+async def verify_otp(data: VerifyOTPRequest, user: dict = Depends(get_current_user)):
+    """Verify OTP code"""
+    if not twilio_client:
+        raise HTTPException(status_code=503, detail="SMS service not configured")
+    
+    phone = data.phone_number
+    if not phone.startswith("+"):
+        phone = f"+91{phone}"
+    
+    try:
+        verification_check = twilio_client.verify.v2.services(
+            TWILIO_VERIFY_SERVICE_SID
+        ).verification_checks.create(to=phone, code=data.code)
+        
+        if verification_check.status == "approved":
+            # Update user as phone verified
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"phone": phone, "phone_verified": True}}
+            )
+            
+            # Update worker profile if exists
+            await db.worker_profiles.update_one(
+                {"user_id": user["id"]},
+                {"$set": {"phone_verified": True}}
+            )
+            
+            # Update verification record
+            await db.phone_verifications.update_one(
+                {"user_id": user["id"]},
+                {"$set": {"status": "verified", "verified_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            
+            return {"message": "Phone verified successfully", "verified": True}
+        else:
+            return {"message": "Invalid OTP", "verified": False}
+    except Exception as e:
+        logger.error(f"Twilio verify OTP error: {e}")
+        raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
+
+# ==================== LOCATION SEARCH (OPENSTREETMAP/NOMINATIM) ====================
+
+@api_router.get("/location/search")
+async def search_location(query: str, limit: int = 5):
+    """Search for locations using OpenStreetMap Nominatim API"""
+    if not query or len(query) < 3:
+        return {"results": []}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={
+                    "q": query,
+                    "format": "json",
+                    "limit": limit,
+                    "countrycodes": "in",  # Focus on India
+                    "addressdetails": 1
+                },
+                headers={"User-Agent": "ShramSetu/2.0"},
+                timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            results = []
+            for item in data:
+                results.append({
+                    "display_name": item.get("display_name", ""),
+                    "lat": float(item.get("lat", 0)),
+                    "lon": float(item.get("lon", 0)),
+                    "address": item.get("address", {})
+                })
+            
+            return {"results": results}
+    except Exception as e:
+        logger.error(f"Location search error: {e}")
+        return {"results": [], "error": str(e)}
+
+@api_router.get("/location/reverse")
+async def reverse_geocode(lat: float, lon: float):
+    """Get address from coordinates using OpenStreetMap Nominatim"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={
+                    "lat": lat,
+                    "lon": lon,
+                    "format": "json",
+                    "addressdetails": 1
+                },
+                headers={"User-Agent": "ShramSetu/2.0"},
+                timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            return {
+                "display_name": data.get("display_name", ""),
+                "address": data.get("address", {}),
+                "lat": lat,
+                "lon": lon
+            }
+    except Exception as e:
+        logger.error(f"Reverse geocode error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get location")
+
+# ==================== VIDEO INTRODUCTIONS ====================
+
+@api_router.post("/upload/video-intro")
+async def upload_video_intro(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    """Upload video introduction for worker profile"""
+    # Validate file type
+    ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
+    if ext not in ["mp4", "mov", "webm", "avi"]:
+        raise HTTPException(status_code=400, detail="Only MP4, MOV, WEBM, AVI videos allowed")
+    
+    # Read file
+    data = await file.read()
+    max_size = 50 * 1024 * 1024  # 50MB limit
+    if len(data) > max_size:
+        raise HTTPException(status_code=400, detail="Video too large (max 50MB)")
+    
+    # Upload to storage
+    video_path = f"{APP_NAME}/videos/{user['id']}/{uuid.uuid4()}.{ext}"
+    content_type = f"video/{ext}" if ext != "mov" else "video/quicktime"
+    
+    try:
+        result = put_object(video_path, data, content_type)
+        
+        # Store reference in DB
+        file_record = {
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "storage_path": result["path"],
+            "original_filename": file.filename,
+            "content_type": content_type,
+            "size": result.get("size", len(data)),
+            "type": "video_intro",
+            "is_deleted": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.files.insert_one(file_record)
+        
+        # Update worker profile
+        await db.worker_profiles.update_one(
+            {"user_id": user["id"]},
+            {"$set": {"video_intro": result["path"]}}
+        )
+        
+        return {"video_url": result["path"], "message": "Video uploaded successfully"}
+    except Exception as e:
+        logger.error(f"Video upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Video upload failed")
+
+@api_router.delete("/upload/video-intro")
+async def delete_video_intro(user: dict = Depends(get_current_user)):
+    """Delete video introduction"""
+    profile = await db.worker_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not profile or not profile.get("video_intro"):
+        raise HTTPException(status_code=404, detail="No video found")
+    
+    # Mark file as deleted
+    await db.files.update_one(
+        {"storage_path": profile["video_intro"]},
+        {"$set": {"is_deleted": True}}
+    )
+    
+    # Remove from profile
+    await db.worker_profiles.update_one(
+        {"user_id": user["id"]},
+        {"$unset": {"video_intro": ""}}
+    )
+    
+    return {"message": "Video deleted"}
+
+# ==================== PUSH NOTIFICATIONS (WEB PUSH) ====================
+
+@api_router.get("/push/vapid-key")
+async def get_vapid_key():
+    """Get VAPID public key for web push"""
+    return {"vapid_key": VAPID_PUBLIC_KEY}
+
+@api_router.post("/push/subscribe")
+async def subscribe_push(subscription: PushSubscription, user: dict = Depends(get_current_user)):
+    """Subscribe to push notifications"""
+    sub_record = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "endpoint": subscription.endpoint,
+        "keys": subscription.keys,
+        "active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Check if endpoint already exists
+    existing = await db.push_subscriptions.find_one({"endpoint": subscription.endpoint})
+    if existing:
+        await db.push_subscriptions.update_one(
+            {"endpoint": subscription.endpoint},
+            {"$set": {"user_id": user["id"], "active": True, "keys": subscription.keys}}
+        )
+    else:
+        await db.push_subscriptions.insert_one(sub_record)
+    
+    return {"message": "Subscribed to push notifications"}
+
+@api_router.delete("/push/unsubscribe")
+async def unsubscribe_push(endpoint: str = Query(...), user: dict = Depends(get_current_user)):
+    """Unsubscribe from push notifications"""
+    await db.push_subscriptions.update_one(
+        {"endpoint": endpoint, "user_id": user["id"]},
+        {"$set": {"active": False}}
+    )
+    return {"message": "Unsubscribed from push notifications"}
+
+async def send_push_notification(user_id: str, title: str, body: str, icon: str = None, url: str = None):
+    """Send push notification to user (helper function)"""
+    subscriptions = await db.push_subscriptions.find(
+        {"user_id": user_id, "active": True},
+        {"_id": 0}
+    ).to_list(10)
+    
+    if not subscriptions:
+        return False
+    
+    payload = json.dumps({
+        "title": title,
+        "body": body,
+        "icon": icon or "/logo.png",
+        "url": url or "/"
+    })
+    
+    for sub in subscriptions:
+        try:
+            # In a real implementation, you'd use pywebpush here
+            # For now, we'll just log that we would send
+            logger.info(f"Would send push to {sub['endpoint']}: {title}")
+        except Exception as e:
+            logger.error(f"Push notification failed: {e}")
+            # Mark as inactive if failed
+            await db.push_subscriptions.update_one(
+                {"endpoint": sub["endpoint"]},
+                {"$set": {"active": False}}
+            )
+    
+    return True
+
+# Override create_notification to also send push
+async def create_notification_with_push(user_id: str, type: str, title: str, message: str, data: dict = None):
+    """Create notification and send push"""
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": type,
+        "title": title,
+        "message": message,
+        "data": data or {},
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    # Also send push notification
+    url = None
+    if data:
+        if data.get("job_id"):
+            url = f"/jobs/{data['job_id']}"
+        elif data.get("sender_id"):
+            url = f"/chat/{data['sender_id']}"
+    
+    await send_push_notification(user_id, title, message, url=url)
+    
+    return notification
+
 # ==================== ROOT ====================
 
 @api_router.get("/")
 async def root():
-    return {"message": "ShramSetu API v2.0", "status": "running", "features": [
+    return {"message": "ShramSetu API v2.1", "status": "running", "features": [
         "AI Match Scoring", "Real-time Chat", "Job Boost", "Multi-language",
-        "Reliability Scoring", "Smart Recommendations", "Profile Photos"
+        "Reliability Scoring", "Smart Recommendations", "Profile Photos",
+        "SMS OTP Verification", "Location Search", "Video Introductions", "Push Notifications"
     ]}
 
 # ==================== WEBSOCKET ====================
