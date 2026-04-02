@@ -52,10 +52,13 @@ const JobBoostModal = ({ jobId, jobTitle, onSuccess }) => {
   const handleBoost = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const response = await axios.post(`${API_URL}/api/boost/checkout`, {
         job_id: jobId,
         package_id: selectedPackage,
         origin_url: window.location.origin
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       // Redirect to Stripe checkout

@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Shield, CheckCircle, Clock, TrendingUp, Award } from 'lucide-react';
+import { useTranslation } from '../context/TranslationContext';
 
 const ReliabilityScore = ({ score, jobsCompleted, acceptanceRate, phoneVerified }) => {
+  const { t } = useTranslation();
+
   const getScoreColor = (s) => {
     if (s >= 90) return 'text-green-500';
     if (s >= 70) return 'text-blue-500';
@@ -21,10 +24,10 @@ const ReliabilityScore = ({ score, jobsCompleted, acceptanceRate, phoneVerified 
   };
 
   const getScoreLabel = (s) => {
-    if (s >= 90) return 'Excellent';
-    if (s >= 70) return 'Good';
-    if (s >= 50) return 'Average';
-    return 'Needs Improvement';
+    if (s >= 90) return t('excellent');
+    if (s >= 70) return t('good');
+    if (s >= 50) return t('average');
+    return t('needs_improvement');
   };
 
   return (
@@ -34,7 +37,7 @@ const ReliabilityScore = ({ score, jobsCompleted, acceptanceRate, phoneVerified 
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Shield className="w-5 h-5 text-primary" />
-          Reliability Score
+          {t('reliability_score')}
         </CardTitle>
       </CardHeader>
       
@@ -59,7 +62,7 @@ const ReliabilityScore = ({ score, jobsCompleted, acceptanceRate, phoneVerified 
               {getScoreLabel(score)}
             </p>
             <p className="text-sm text-muted-foreground">
-              Based on work history and ratings
+              {t('reliability_desc')}
             </p>
           </div>
         </div>
@@ -78,12 +81,12 @@ const ReliabilityScore = ({ score, jobsCompleted, acceptanceRate, phoneVerified 
           <div className="text-center p-2 bg-muted rounded-lg">
             <Award className="w-4 h-4 mx-auto mb-1 text-amber-500" />
             <p className="text-lg font-semibold">{jobsCompleted}</p>
-            <p className="text-xs text-muted-foreground">Jobs Done</p>
+            <p className="text-xs text-muted-foreground">{t('jobs_done')}</p>
           </div>
           <div className="text-center p-2 bg-muted rounded-lg">
             <TrendingUp className="w-4 h-4 mx-auto mb-1 text-green-500" />
             <p className="text-lg font-semibold">{acceptanceRate}%</p>
-            <p className="text-xs text-muted-foreground">Acceptance</p>
+            <p className="text-xs text-muted-foreground">{t('acceptance')}</p>
           </div>
           <div className="text-center p-2 bg-muted rounded-lg">
             <Clock className="w-4 h-4 mx-auto mb-1 text-blue-500" />
@@ -94,14 +97,14 @@ const ReliabilityScore = ({ score, jobsCompleted, acceptanceRate, phoneVerified 
                 '—'
               )}
             </p>
-            <p className="text-xs text-muted-foreground">Verified</p>
+            <p className="text-xs text-muted-foreground">{t('verified_label')}</p>
           </div>
         </div>
 
         {phoneVerified && (
           <Badge variant="outline" className="w-full justify-center gap-1 text-green-600 border-green-200">
             <CheckCircle className="w-3 h-3" />
-            Phone Verified
+            {t('phone_verified')}
           </Badge>
         )}
       </CardContent>

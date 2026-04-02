@@ -39,17 +39,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
-    const response = await axios.post(`${API_URL}/api/auth/login`, {
-      email,
-      password,
-    });
+  // Accepts a clean payload object — caller decides what fields to include
+  const login = async (payload) => {
+    const response = await axios.post(`${API_URL}/api/auth/login`, payload);
     const { access_token, user: userData } = response.data;
     localStorage.setItem('token', access_token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     setToken(access_token);
     setUser(userData);
     return userData;
+  };
+
+  const sendOtp = async (phone) => {
+    await axios.post(`${API_URL}/api/auth/otp/send`, { phone });
+    return true;
   };
 
   const register = async (userData) => {
@@ -74,18 +77,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        login,
-        register,
-        logout,
-        updateUser,
-        isAuthenticated: !!user,
-      }}
-    >
+    <AuthContext.Provider value={{ user, token, loading, login, sendOtp, register, logout, updateUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

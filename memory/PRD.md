@@ -131,9 +131,9 @@ Build a COMPLETE, production-grade full-stack application for ShramSetu - an AI-
 ## Tech Stack
 - **Backend**: FastAPI, MongoDB, Motor, JWT, bcrypt
 - **Frontend**: React, Tailwind CSS, Shadcn UI, Framer Motion
-- **AI**: OpenAI GPT-5.2 via Emergent integrations
+- **AI**: OpenAI GPT-5.2 direct integration
 - **Real-time**: WebSocket
-- **Storage**: Emergent Object Storage
+- **Storage**: Cloud Object Storage / Local Storage
 - **Payments**: Stripe Checkout
 - **Fonts**: Outfit (headings), Manrope (body)
 

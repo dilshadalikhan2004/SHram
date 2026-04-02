@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -13,6 +14,8 @@ import EmployerDashboard from './pages/EmployerDashboard';
 import WorkerProfileSetup from './pages/WorkerProfileSetup';
 import EmployerProfileSetup from './pages/EmployerProfileSetup';
 import BoostSuccessPage from './pages/BoostSuccessPage';
+import SkillsAssessmentPage from './pages/SkillsAssessmentPage';
+import axios from 'axios';
 
 import './App.css';
 
@@ -93,89 +96,196 @@ const AuthRedirect = ({ children }) => {
   return children;
 };
 
-function AppRoutes() {
+const PageWrapper = ({ children }) => {
   return (
-    <Routes>
-      {/* Home - redirect based on auth status */}
-      <Route path="/" element={<HomeRedirect />} />
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.3 }}
+      className="min-h-screen bg-background"
+    >
+      {children}
+    </motion.div>
+  );
+};
 
-      {/* Auth */}
-      <Route
-        path="/auth"
-        element={
-          <AuthRedirect>
-            <AuthPage />
-          </AuthRedirect>
-        }
-      />
+function AppRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        {/* Home - redirect based on auth status */}
+        <Route path="/" element={<PageWrapper><HomeRedirect /></PageWrapper>} />
 
-      {/* Worker Routes */}
-      <Route
-        path="/worker"
-        element={
-          <ProtectedRoute allowedRoles={['worker', 'both']}>
-            <WorkerDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/worker/profile/setup"
-        element={
-          <ProtectedRoute allowedRoles={['worker', 'both']}>
-            <WorkerProfileSetup />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/worker/profile/edit"
-        element={
-          <ProtectedRoute allowedRoles={['worker', 'both']}>
-            <WorkerProfileSetup />
-          </ProtectedRoute>
-        }
-      />
+        {/* Auth */}
+        <Route
+          path="/auth"
+          element={
+            <PageWrapper>
+              <AuthRedirect>
+                <AuthPage />
+              </AuthRedirect>
+            </PageWrapper>
+          }
+        />
 
-      {/* Employer Routes */}
-      <Route
-        path="/employer"
-        element={
-          <ProtectedRoute allowedRoles={['employer', 'both']}>
-            <EmployerDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/employer/profile/setup"
-        element={
-          <ProtectedRoute allowedRoles={['employer', 'both']}>
-            <EmployerProfileSetup />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/employer/profile/edit"
-        element={
-          <ProtectedRoute allowedRoles={['employer', 'both']}>
-            <EmployerProfileSetup />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/employer/boost/success"
-        element={
-          <ProtectedRoute allowedRoles={['employer', 'both']}>
-            <BoostSuccessPage />
-          </ProtectedRoute>
-        }
-      />
+        {/* Worker Routes */}
+        <Route
+          path="/worker"
+          element={
+            <PageWrapper>
+              <ProtectedRoute allowedRoles={['worker', 'both']}>
+                <WorkerDashboard />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/worker/profile/setup"
+          element={
+            <PageWrapper>
+              <ProtectedRoute allowedRoles={['worker', 'both']}>
+                <WorkerProfileSetup />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/worker/profile/edit"
+          element={
+            <PageWrapper>
+              <ProtectedRoute allowedRoles={['worker', 'both']}>
+                <WorkerProfileSetup />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
 
-      {/* Catch all - redirect to home */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Employer Routes */}
+        <Route
+          path="/employer"
+          element={
+            <PageWrapper>
+              <ProtectedRoute allowedRoles={['employer', 'both']}>
+                <EmployerDashboard />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/employer/profile/setup"
+          element={
+            <PageWrapper>
+              <ProtectedRoute allowedRoles={['employer', 'both']}>
+                <EmployerProfileSetup />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/employer/profile/edit"
+          element={
+            <PageWrapper>
+              <ProtectedRoute allowedRoles={['employer', 'both']}>
+                <EmployerProfileSetup />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/employer/boost/success"
+          element={
+            <PageWrapper>
+              <ProtectedRoute allowedRoles={['employer', 'both']}>
+                <BoostSuccessPage />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/worker/skills-assessment"
+          element={
+            <PageWrapper>
+              <ProtectedRoute allowedRoles={['worker', 'both']}>
+                <SkillsAssessmentPage />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
+
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 
 function App() {
+  React.useEffect(() => {
+    // Register Service Worker for Push Notifications
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(async (registration) => {
+          console.log('SW Registered');
+          
+          // Check for existing subscription
+          let subscription = await registration.pushManager.getSubscription();
+          
+          if (!subscription && Notification.permission === 'granted') {
+            // Subscribe if permission is already granted but no subscription exists
+            subscribeUser(registration);
+          }
+        })
+        .catch(err => console.error('SW Registration Failed', err));
+    }
+  }, []);
+
+  async function subscribeUser(registration) {
+    try {
+      const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+      
+      if (!vapidPublicKey || vapidPublicKey === 'BCxxx_YOUR_PUBLIC_VAPID_KEY') {
+        console.warn('VAPID public key not fully configured. Skipping push registration.');
+        return;
+      }
+
+      const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+      
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
+
+      // Save to backend
+      const API_URL = process.env.REACT_APP_BACKEND_URL;
+      const token = localStorage.getItem('token');
+      if (token) {
+        await axios.post(`${API_URL}/api/notifications/subscribe`, subscription, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log('Push Subscribed');
+      }
+    } catch (err) {
+      console.error('Push Subscription Failed', err);
+    }
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
   return (
     <ThemeProvider>
       <TranslationProvider>

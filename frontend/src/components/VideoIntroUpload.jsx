@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+import { parseApiError } from '../utils/errorUtils';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Progress } from './ui/progress';
 import { Video, Upload, Trash2, Play, Pause, Loader2, CheckCircle, X } from 'lucide-react';
-import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -66,7 +67,7 @@ const VideoIntroUpload = ({ currentVideo, onUploadSuccess, onDelete }) => {
       onUploadSuccess?.(response.data.video_url);
       setShowUploadDialog(false);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Upload failed');
+      toast.error(parseApiError(error, 'Upload failed'));
       setPreviewUrl(null);
     } finally {
       setUploading(false);
@@ -84,7 +85,7 @@ const VideoIntroUpload = ({ currentVideo, onUploadSuccess, onDelete }) => {
       toast.success('Video deleted');
       onDelete?.();
     } catch (error) {
-      toast.error('Failed to delete video');
+      toast.error(parseApiError(error, 'Failed to delete video'));
     }
   };
 
