@@ -92,7 +92,7 @@ const LocationPicker = ({ value, onChange, onCoordinatesChange, initialCoords })
 
   const placeMarker = (lat, lng) => {
     const L = window.L;
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || isNaN(lat) || isNaN(lng) || lat == null || lng == null) return;
 
     if (markerRef.current) {
       markerRef.current.setLatLng([lat, lng]);
@@ -288,14 +288,14 @@ const LocationPicker = ({ value, onChange, onCoordinatesChange, initialCoords })
       </div>
       
       <AnimatePresence>
-        {markerPos && (
+        {markerPos && markerPos.lat != null && !isNaN(markerPos.lat) && (
           <motion.div 
             initial={{ opacity: 0, x: -10 }} 
             animate={{ opacity: 1, x: 0 }} 
             className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 border border-primary/20 text-xs font-bold font-['Space_Grotesk'] text-primary uppercase tracking-widest shadow-lg shadow-primary/5 shadow-inner"
           >
             <Check className="w-5 h-5" /> 
-            Satellite Lock Verified: {markerPos.lat.toFixed(4)}°N, {markerPos.lng.toFixed(4)}°E
+            Satellite Lock Verified: {Number(markerPos.lat).toFixed(4)}°N, {Number(markerPos.lng).toFixed(4)}°E
           </motion.div>
         )}
       </AnimatePresence>

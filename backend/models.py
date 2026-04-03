@@ -20,7 +20,7 @@ class LoginSchema(BaseModel):
 
 class UserCreate(BaseModel):
     email: Optional[str] = None
-    phone: str
+    phone: Optional[str] = None
     name: Optional[str] = None
     full_name: Optional[str] = None
     role: str # "worker" or "employer"
@@ -62,6 +62,13 @@ class Job(BaseModel):
     posted_at: datetime = Field(default_factory=datetime.utcnow)
     requirements: List[str] = []
     is_boosted: bool = False
+    is_urgent: bool = False
+    team_size: int = 1
+    hire_type: str = "individual" # "individual", "squad", "bulk"
+    start_date: Optional[datetime] = None
+    estimated_duration: str = ""
+    escrow_amount_paise: int = 0
+    escrow_status: str = "none" # "none", "locked", "released", "disputed"
 
 class JobCreate(BaseModel):
     title: str
@@ -71,6 +78,11 @@ class JobCreate(BaseModel):
     salary_paise: int
     salary_type: str = "daily"
     requirements: List[str] = []
+    is_urgent: bool = False
+    team_size: int = 1
+    hire_type: str = "individual"
+    start_date: Optional[datetime] = None
+    estimated_duration: str = ""
 
 # --- APPLICATION MODELS ---
 class Application(BaseModel):
@@ -81,6 +93,14 @@ class Application(BaseModel):
     applied_at: datetime = Field(default_factory=datetime.utcnow)
     match_score: float = 0.0
     quick_apply: bool = False
+    ai_insights: Optional[str] = None
+    counter_offer_paise: Optional[int] = None
+    offer_status: str = "pending" # "pending", "offered", "countered", "accepted", "rejected"
+    contract_preview_url: Optional[str] = None
+    handshake_code: Optional[str] = None
+    checkin_time: Optional[datetime] = None
+    checkout_time: Optional[datetime] = None
+    progress_updates: List[Dict[str, Any]] = []
 
 class ApplicationUpdate(BaseModel):
     status: str

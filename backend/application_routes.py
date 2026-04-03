@@ -23,25 +23,84 @@ async def create_application(payload: dict, request: Request):
     if existing:
          raise HTTPException(status_code=400, detail="Already applied")
          
+    # Fetch job and worker profile for AI Matching
+    job = await db.jobs.find_one({"id": job_id})
+    worker = await db.worker_profiles.find_one({"user_id": user_id})
+    
+    match_score = 0.5 # Default
+    ai_insights = "Manual review recommended."
+    
+    # --- AI MATCHING: Gemini Fit Analysis ---
+    if job and worker:
+        try:
+            import google.generativeai as genai
+            import os
+            import json
+            
+            GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+            if GEMINI_KEY:
+                genai.configure(api_key=GEMINI_KEY)
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                
+                prompt = f"""
+                Compare this Worker Profile with the Job Description.
+                Worker: {worker.get('skills', [])}, Experience: {worker.get('experience_years')}yr, Bio: {worker.get('bio')}
+                Job: {job.get('title')}, Description: {job.get('description')}, Requirements: {job.get('requirements', [])}
+                
+                Return ONLY a JSON object with:
+                "score": 0.0 to 1.0 (float reflecting fit),
+                "insight": "One concise sentence explaining why they match or what they miss."
+                """
+                response = model.generate_content(prompt)
+                clean_text = response.text.strip()
+                if "```json" in clean_text:
+                    clean_text = clean_text.split("```json")[1].split("```")[0].strip()
+                elif "```" in clean_text:
+                    clean_text = clean_text.split("```")[1].split("```")[0].strip()
+                
+                ai_data = json.loads(clean_text)
+                match_score = ai_data.get("score", 0.5)
+                ai_insights = ai_data.get("insight", ai_insights)
+        except Exception as e:
+            print(f"AI Matching Error: {str(e)}")
+
     new_app = Application(
         job_id=job_id,
         worker_id=user_id,
+        match_score=match_score,
+        ai_insights=ai_insights,
+        counter_offer_paise=payload.get("counter_offer_paise"),
+        offer_status="countered" if payload.get("counter_offer_paise") else "pending",
         quick_apply=payload.get("quick_apply", False)
     )
     
     await db.applications.insert_one(new_app.dict())
     
     # --- NOTIFICATION: Tell employer about new applicant ---
-    job = await db.jobs.find_one({"id": job_id})
     if job:
         await send_user_notification(
             user_id=job["employer_id"],
-            title="New Job Application",
-            message=f"Someone just applied for '{job['title']}'. Review their profile now!",
-            action_url=f"/employer/jobs/{job_id}"
+            title="Mission Transmission Detected",
+            message=f"A new candidate has applied for '{job['title']}'. AI Match: {int(match_score*100)}%.",
+            action_url=f"/employer/dashboard"
         )
         
     return new_app
+
+@app_router.post("/{app_id}/counter")
+async def submit_counter_offer(app_id: str, payload: dict, request: Request):
+    user_id = await get_current_user_id(request)
+    amount_paise = payload.get("amount_paise")
+    if not amount_paise:
+        raise HTTPException(status_code=400, detail="amount_paise required")
+    
+    db = get_db()
+    # Ensure this is the worker
+    await db.applications.update_one(
+        {"id": app_id, "worker_id": user_id},
+        {"$set": {"counter_offer_paise": amount_paise, "offer_status": "countered"}}
+    )
+    return {"success": True}
 
 @app_router.get("/worker", response_model=List[dict])
 async def get_worker_applications(request: Request):

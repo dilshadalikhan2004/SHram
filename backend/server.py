@@ -31,6 +31,8 @@ from payment_routes import payment_api_router
 from squad_routes import squad_router
 from earnings_routes import earnings_router
 from chat_routes import chat_router
+from handshake_routes import handshake_router
+from tracking_routes import tracking_router
 from cloudinary_utils import upload_to_cloudinary
 import google.generativeai as genai
 
@@ -354,6 +356,8 @@ api_router.include_router(payment_api_router)
 api_router.include_router(squad_router)
 api_router.include_router(earnings_router)
 api_router.include_router(chat_router)
+api_router.include_router(handshake_router, prefix="/handshake")
+api_router.include_router(tracking_router, prefix="/tracking")
 
 # WebSocket Connection Manager
 class ConnectionManager:

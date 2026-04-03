@@ -8,6 +8,18 @@ from database import get_db
 from models import UserCreate, LoginSchema, Token, OTPRequest
 from auth_utils import create_access_token, get_password_hash, verify_password, get_current_user_id
 import logging
+import re
+
+def normalize_phone(phone: str) -> str:
+    if not phone:
+        return phone
+    cleaned = re.sub(r'[^\d+]', '', phone)
+    if not cleaned.startswith('+'):
+        if len(cleaned) == 10:
+            cleaned = f'+91{cleaned}'
+        elif len(cleaned) > 10:
+            cleaned = f'+{cleaned}'
+    return cleaned
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -27,31 +39,33 @@ mock_otp_storage = {}
 @auth_router.post("/otp/send")
 async def send_otp(otp_req: OTPRequest):
     db = get_db()
-    # Check if user exists
-    user = await db.users.find_one({"phone": otp_req.phone})
-    if not user:
-        # For security, we might not want to reveal if a phone is registered
-        # But for this UX, we'll confirm
-        raise HTTPException(status_code=404, detail="Phone number not registered. Please sign up.")
+    
+    target_phone = normalize_phone(otp_req.phone)
+    if not target_phone or len(target_phone) < 10:
+        raise HTTPException(status_code=400, detail="Invalid phone number format")
+
+    # Allow sending OTP to any number (enables Quick Sign Up)
+    # Check if user exists for internal tracking (optional)
+    user = await db.users.find_one({"phone": target_phone})
     
     if twilio_client and TWILIO_VERIFY_SERVICE_SID:
         try:
-            verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verifications.create(to=otp_req.phone, channel='sms')
-            print(f"\n[TWILIO SMS] Verification sent to {otp_req.phone}, status: {verification.status}\n")
+            verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verifications.create(to=target_phone, channel='sms')
+            print(f"\n[TWILIO SMS] Verification sent to {target_phone}, status: {verification.status}\n")
         except Exception as e:
             print(f"\n[TWILIO ERROR] {str(e)}\n")
-            raise HTTPException(status_code=500, detail="Failed to send SMS via Twilio")
+            raise HTTPException(status_code=400, detail=f"Failed to send SMS via Twilio: {str(e)}")
     else:
         # Fallback to mock
         import random
         otp = str(random.randint(100000, 999999))
-        mock_otp_storage[otp_req.phone] = {
+        mock_otp_storage[target_phone] = {
             "code": otp,
             "expires": datetime.utcnow() + timedelta(minutes=5)
         }
-        print(f"\n[MOCK SMS] Signal sent to {otp_req.phone}: {otp}\n")
+        print(f"\n[MOCK SMS] Signal sent to {target_phone}: {otp}\n")
     
-    return {"message": "OTP sent successfully", "phone": otp_req.phone}
+    return {"message": "OTP sent successfully", "phone": target_phone}
 
 @auth_router.post("/register", response_model=Token)
 async def register(user: UserCreate):
@@ -59,10 +73,12 @@ async def register(user: UserCreate):
     if db is None:
          raise HTTPException(status_code=503, detail="Database connection failed")
     
-    # Check if user exists
-    existing = await db.users.find_one({"phone": user.phone})
-    if existing:
-        raise HTTPException(status_code=400, detail="Phone number already registered")
+    # Check if user exists (only if phone is provided)
+    if user.phone and user.phone.strip():
+        user.phone = normalize_phone(user.phone)
+        existing = await db.users.find_one({"phone": user.phone})
+        if existing:
+            raise HTTPException(status_code=400, detail="Phone number already registered")
     
     # Hash password if provided
     hashed_password = None
@@ -70,7 +86,7 @@ async def register(user: UserCreate):
         hashed_password = get_password_hash(user.password)
     
     # Handle name/full_name
-    display_name = user.name or user.full_name or user.phone
+    display_name = user.name or user.full_name or user.phone or user.email or "New User"
     
     new_user = {
         "phone": user.phone,
@@ -117,6 +133,8 @@ async def login(user_login: LoginSchema):
     
     # Normalize empty strings to None
     phone = user_login.phone.strip() if user_login.phone else None
+    if phone:
+        phone = normalize_phone(phone)
     email = user_login.email.strip() if user_login.email else None
     password = user_login.password if user_login.password else None
     otp = user_login.otp.strip() if user_login.otp else None
@@ -138,36 +156,59 @@ async def login(user_login: LoginSchema):
         else:
             user = await db.users.find_one({"phone": identifier})
 
-    if not user:
+    if not user and not otp:
+        # No user found and no OTP provided for potential registration
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # --- OTP-based login ---
     if otp:
-        user_phone = user.get("phone")
-        if not user_phone:
-             raise HTTPException(status_code=400, detail="No registered phone number for this user")
+        # If user is None, we use the phone from input for verification
+        target_phone = user.get("phone") if user else phone
+        if not target_phone:
+             raise HTTPException(status_code=400, detail="Phone number required for OTP")
              
         if twilio_client and TWILIO_VERIFY_SERVICE_SID:
             try:
-                verification_check = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verification_checks.create(to=user_phone, code=otp)
+                verification_check = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verification_checks.create(to=target_phone, code=otp)
                 if verification_check.status != "approved":
                     raise HTTPException(status_code=401, detail="Invalid or expired OTP")
             except Exception as e:
                 print(f"[TWILIO VERIFY ERROR] {str(e)}")
                 raise HTTPException(status_code=401, detail="Invalid OTP")
         else:
-            if user_phone not in mock_otp_storage:
+            if target_phone not in mock_otp_storage:
                  raise HTTPException(status_code=401, detail="OTP expired or not requested")
             
-            stored = mock_otp_storage[user_phone]
+            stored = mock_otp_storage[target_phone]
             if datetime.utcnow() > stored["expires"]:
-                 del mock_otp_storage[user_phone]
+                 del mock_otp_storage[target_phone]
                  raise HTTPException(status_code=401, detail="OTP expired")
                  
             if otp != stored["code"]:
                  raise HTTPException(status_code=401, detail="Invalid OTP")
                  
-            del mock_otp_storage[user_phone]
+            del mock_otp_storage[target_phone]
+        
+        # If we reach here, OTP is valid. If user is None, create them.
+        if not user:
+            from models import WorkerProfile
+            new_user = {
+                "phone": target_phone,
+                "role": "worker",
+                "created_at": datetime.utcnow(),
+                "profile_complete": False,
+                "full_name": target_phone,
+                "phone_verified": True,
+                "preferred_language": "en"
+            }
+            result = await db.users.insert_one(new_user)
+            user_id = str(result.inserted_id)
+            user = new_user
+            user["_id"] = result.inserted_id # Keep as ObjectId or add id string later
+            
+            # Auto-create worker profile for new phone-only accounts
+            profile = WorkerProfile(user_id=user_id, full_name=target_phone)
+            await db.worker_profiles.insert_one(profile.dict())
     
     # --- Password-based login ---
     elif password:

@@ -7,7 +7,47 @@ from models import Job, JobCreate
 
 from auth_utils import get_current_user_id
  
+import google.generativeai as genai
+import os
+import json
+
 job_router = APIRouter(tags=["jobs"])
+
+# Configure Gemini for Job Drafting
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+if GEMINI_KEY:
+    genai.configure(api_key=GEMINI_KEY)
+
+@job_router.post("/draft")
+async def draft_job_ai(payload: dict):
+    user_query = payload.get("query")
+    if not user_query:
+        raise HTTPException(status_code=400, detail="Query required")
+    
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        prompt = f"""
+        Extract job details from this description for a worker marketplace: "{user_query}"
+        Return ONLY a JSON object with:
+        "title", "description", "category" (e.g. construction, plumbing, cleaning, etc), 
+        "location", "salary_paise", "salary_type" (daily/fixed), 
+        "team_size" (int), "hire_type" (individual/squad), "estimated_duration" (e.g. "3 days").
+        If values are missing, provide best guesses or null.
+        """
+        response = model.generate_content(prompt)
+        # Extract JSON from potential markdown backticks
+        clean_text = response.text.strip()
+        if "```json" in clean_text:
+            clean_text = clean_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean_text:
+            clean_text = clean_text.split("```")[1].split("```")[0].strip()
+            
+        return json.loads(clean_text)
+    except Exception as e:
+        print(f"Draft AI Error: {str(e)}")
+        # Fallback to empty draft
+        return {"title": "", "description": user_query, "category": "other"}
+
 
 @job_router.get("/", response_model=List[Job])
 async def list_jobs(category: Optional[str] = None):
@@ -38,8 +78,12 @@ async def create_job(job_in: JobCreate, request: Request):
         **job_in.dict()
     )
     
+    # Calculate estimated escrow (100% of budget for simple demo)
+    new_job.escrow_amount_paise = new_job.salary_paise * (new_job.team_size or 1)
+    
     await db.jobs.insert_one(new_job.dict())
     return new_job
+
 
 @job_router.get("/recommended", response_model=List[Job])
 async def get_recommended_jobs(request: Request):

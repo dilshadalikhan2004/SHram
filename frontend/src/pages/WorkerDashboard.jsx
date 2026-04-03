@@ -17,7 +17,7 @@ import {
   Filter, Building2, CheckCircle, XCircle, AlertCircle, TrendingUp,
   Bookmark, BookmarkCheck, Zap, Sparkles, Shield, History, Rocket,
   Users, Wallet, Award, Video, Trash2, Wifi, Settings, LayoutDashboard,
-  ArrowRightLeft, Mic, Plus, Activity, Target, ShieldCheck, Terminal
+  Mic, Plus, Activity, Target, ShieldCheck, Terminal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseApiError } from '../utils/errorUtils';
@@ -32,6 +32,12 @@ import KYCPanel from '../components/KYCPanel';
 import BidSuggestion from '../components/BidSuggestion';
 import VideoIntroRecorder from '../components/VideoIntroRecorder';
 import VoiceSearchButton from '../components/VoiceSearchButton';
+
+import HandshakeControl from '../components/HandshakeControl';
+import LiveMissionTracker from '../components/LiveMissionTracker';
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
+} from '../components/ui/dialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -81,6 +87,8 @@ const WorkerDashboard = () => {
     return cached ? JSON.parse(cached) : false;
   });
   const [sidebarTab, setSidebarTab] = useState('dashboard');
+  const [activeHandshakeJobId, setActiveHandshakeJobId] = useState(null);
+  const [showHandshakeModal, setShowHandshakeModal] = useState(false);
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -315,410 +323,417 @@ const WorkerDashboard = () => {
           ))}
         </nav>
 
-        <div className="pt-8 border-t border-white/5">
-          <button 
-            onClick={() => navigate('/employer')} 
-            className="w-full px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-between group bg-muted/20 border border-white/5 text-muted-foreground font-['Space_Grotesk'] hover:border-primary/30 hover:text-primary transition-all duration-500 shadow-xl"
-          >
-            <span>{t('switch_role')}</span>
-            <ArrowRightLeft className="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
-          </button>
-        </div>
       </aside>
 
       {/* ─── MAIN CONTENT ─── */}
       <main className="lg:ml-72 pt-28 pb-32 px-8 xl:px-16 max-w-[1600px] relative z-10">
         {/* ═══ DASHBOARD VIEW ═══ */}
-        {sidebarTab === 'dashboard' && (<>
-          {/* Hero / Pulse Monitor */}
-          <motion.section 
-            initial={{ opacity: 0, scale: 0.98 }} 
-            animate={{ opacity: 1, scale: 1 }} 
-            className="relative mb-12 rounded-[2.5rem] overflow-hidden p-10 xl:p-14 min-h-[350px] flex flex-col justify-end border border-white/10 glass-card shadow-3xl group"
-          >
-            {/* Animated Background Pulse */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent z-0 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
-            <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 blur-[120px] -mr-48 -mt-48 rounded-full opacity-30 animate-pulse-glow" />
-            
-            <div className="relative z-10 flex flex-col xl:flex-row xl:items-end justify-between gap-12">
-              <div className="max-w-3xl space-y-4">
-                <motion.div 
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-[10px] font-black uppercase tracking-[0.2em] text-primary"
-                >
-                  <Rocket className="w-3.5 h-3.5" /> {t('high_pulse')}
-                </motion.div>
-                <h1 className="text-5xl xl:text-7xl font-black tracking-tighter leading-[0.85] font-['Space_Grotesk'] text-foreground uppercase">
-                  {t('welcome_back')},<br />
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-cyan-500">{user?.name?.split(' ')[0]}</span>
-                </h1>
-                <p className="text-xl text-muted-foreground/60 font-['Space_Grotesk'] font-medium lowercase tracking-tight">
-                  {t('deployment_matrix_init') || 'Deployment Matrix initialized.'} <span className="text-primary font-bold">{filteredJobs.length} {t('active_nodes') || 'active nodes'}</span> {t('detected_in_range') || 'detected in range.'}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-6 p-5 rounded-[2rem] glass border border-white/5 shadow-2xl backdrop-blur-2xl">
-                <div className="relative">
-                  <div className={`absolute -inset-1 rounded-full blur-md bg-primary opacity-20 ${isOnline ? 'animate-pulse' : 'hidden'}`} />
-                  <Avatar className="w-16 h-16 border-2 border-white/10 ring-4 ring-primary/20 ring-offset-4 ring-offset-background/50">
-                    <AvatarImage src={getPhotoUrl(profile?.profile_photo)} />
-                    <AvatarFallback className="bg-primary/5 text-primary text-2xl font-black font-['Space_Grotesk']">{user?.name?.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  {isOnline && <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-[#0D1117] shadow-[0_0_15px_rgba(34,197,94,0.8)]" />}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground font-['Space_Grotesk'] opacity-50">{t('signal_status')}</p>
-                  <p className={`text-lg font-black font-['Space_Grotesk'] uppercase tracking-tight ${isOnline ? 'text-green-500' : 'text-muted-foreground'}`}>
-                    {isOnline ? t('active_pulse') : t('signal_offline')}
+        {sidebarTab === 'dashboard' && (
+          <>
+            {/* Hero / Pulse Monitor */}
+            <motion.section 
+              initial={{ opacity: 0, scale: 0.98 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              className="relative mb-12 rounded-[2.5rem] overflow-hidden p-10 xl:p-14 min-h-[350px] flex flex-col justify-end border border-white/10 glass-card shadow-3xl group"
+            >
+              {/* Animated Background Pulse */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent z-0 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+              <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 blur-[120px] -mr-48 -mt-48 rounded-full opacity-30 animate-pulse-glow" />
+              
+              <div className="relative z-10 flex flex-col xl:flex-row xl:items-end justify-between gap-12">
+                <div className="max-w-3xl space-y-4">
+                  <motion.div 
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-[10px] font-black uppercase tracking-[0.2em] text-primary"
+                  >
+                    <Rocket className="w-3.5 h-3.5" /> {t('high_pulse')}
+                  </motion.div>
+                  <h1 className="text-5xl xl:text-7xl font-black tracking-tighter leading-[0.85] font-['Space_Grotesk'] text-foreground uppercase">
+                    {t('welcome_back')},<br />
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-cyan-500">{user?.name?.split(' ')[0]}</span>
+                  </h1>
+                  <p className="text-xl text-muted-foreground/60 font-['Space_Grotesk'] font-medium lowercase tracking-tight">
+                    {t('deployment_matrix_init') || 'Deployment Matrix initialized.'} <span className="text-primary font-bold">{filteredJobs.length} {t('active_nodes') || 'active nodes'}</span> {t('detected_in_range') || 'detected in range.'}
                   </p>
-                  <button 
-                    onClick={handleToggleOnline} 
-                    className={`mt-2 w-14 h-7 rounded-full relative flex items-center px-1.5 transition-all duration-500 shadow-inner ${isOnline ? 'bg-primary' : 'bg-muted/40'}`}
-                  >
-                    <motion.div 
-                      layout 
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      className={`w-4 h-4 bg-white rounded-full shadow-lg ${isOnline ? 'ml-auto' : ''}`} 
-                    />
-                  </button>
                 </div>
-              </div>
-            </div>
-          </motion.section>
 
-          {/* 12-column grid: 8 feed + 4 insights */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            <div className="lg:col-span-8 space-y-8">
-              <div className="flex items-center justify-between mb-4">
-                <div className="space-y-1">
-                  <h2 className="text-3xl font-black font-['Space_Grotesk'] text-foreground tracking-tight uppercase">{t('recommended_deployments')}</h2>
-                  <div className="h-1 w-20 bg-primary rounded-full" />
-                </div>
-                <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/20 border border-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                  <Activity className="w-3 h-3 text-primary" /> {t('matrix_filter_active')}
-                </div>
-              </div>
-
-              {/* Search (mobile) */}
-              <div className="lg:hidden flex gap-3">
-                <div className="relative flex-1 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                  <input className="w-full pl-12 pr-4 py-3 rounded-2xl text-sm focus:outline-none bg-muted/20 border border-white/5 text-foreground font-['Space_Grotesk'] font-bold placeholder:text-muted-foreground/40" placeholder="SEARCH DEPLOYMENTS..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                </div>
-              </div>
-
-              {/* Category filter */}
-              {categories.length > 0 && (
-                <div className="flex gap-3 overflow-x-auto pb-4 -mx-2 px-2 no-scrollbar">
-                  <button 
-                    onClick={() => setSelectedCategory('all')} 
-                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all border font-['Space_Grotesk'] ${
-                      selectedCategory === 'all' 
-                      ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' 
-                      : 'bg-muted/20 text-muted-foreground/60 border-white/5 hover:border-primary/30 hover:text-primary'
-                    }`}
-                  >
-                    {t('category_all')}
-                  </button>
-                  {categories.map(cat => (
+                <div className="flex items-center gap-6 p-5 rounded-[2rem] glass border border-white/5 shadow-2xl backdrop-blur-2xl">
+                  <div className="relative">
+                    <div className={`absolute -inset-1 rounded-full blur-md bg-primary opacity-20 ${isOnline ? 'animate-pulse' : 'hidden'}`} />
+                    <Avatar className="w-16 h-16 border-2 border-white/10 ring-4 ring-primary/20 ring-offset-4 ring-offset-background/50">
+                      <AvatarImage src={getPhotoUrl(profile?.profile_photo)} />
+                      <AvatarFallback className="bg-primary/5 text-primary text-2xl font-black font-['Space_Grotesk']">{user?.name?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    {isOnline && <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-[#0D1117] shadow-[0_0_15px_rgba(34,197,94,0.8)]" />}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground font-['Space_Grotesk'] opacity-50">{t('signal_status')}</p>
+                    <p className={`text-lg font-black font-['Space_Grotesk'] uppercase tracking-tight ${isOnline ? 'text-green-500' : 'text-muted-foreground'}`}>
+                      {isOnline ? t('active_pulse') : t('signal_offline')}
+                    </p>
                     <button 
-                      key={cat.id} 
-                      onClick={() => setSelectedCategory(cat.id)} 
+                      onClick={handleToggleOnline} 
+                      className={`mt-2 w-14 h-7 rounded-full relative flex items-center px-1.5 transition-all duration-500 shadow-inner ${isOnline ? 'bg-primary' : 'bg-muted/40'}`}
+                    >
+                      <motion.div 
+                        layout 
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className={`w-4 h-4 bg-white rounded-full shadow-lg ${isOnline ? 'ml-auto' : ''}`} 
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.section>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+              <div className="lg:col-span-8 space-y-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="space-y-1">
+                    <h2 className="text-3xl font-black font-['Space_Grotesk'] text-foreground tracking-tight uppercase">{t('recommended_deployments')}</h2>
+                    <div className="h-1 w-20 bg-primary rounded-full" />
+                  </div>
+                  <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/20 border border-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                    <Activity className="w-3 h-3 text-primary" /> {t('matrix_filter_active')}
+                  </div>
+                </div>
+
+                {/* LIVE MISSION MONITOR */}
+                {applications.some(app => app.status === 'in_progress') && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-8"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]" />
+                      <h3 className="text-[10px] uppercase font-black tracking-[0.3em] text-primary font-['Space_Grotesk']">Active Mission Telemetry</h3>
+                    </div>
+                    {applications.filter(app => app.status === 'in_progress').map(app => (
+                      <LiveMissionTracker key={app.job_id} jobId={app.job_id} role="worker" isActive={true} />
+                    ))}
+                  </motion.div>
+                )}
+
+                {/* Search (mobile) */}
+                <div className="lg:hidden flex gap-3">
+                  <div className="relative flex-1 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                    <input className="w-full pl-12 pr-4 py-3 rounded-2xl text-sm focus:outline-none bg-muted/20 border border-white/5 text-foreground font-['Space_Grotesk'] font-bold placeholder:text-muted-foreground/40" placeholder="SEARCH DEPLOYMENTS..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Category filter */}
+                {categories.length > 0 && (
+                  <div className="flex gap-3 overflow-x-auto pb-4 -mx-2 px-2 no-scrollbar">
+                    <button 
+                      onClick={() => setSelectedCategory('all')} 
                       className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all border font-['Space_Grotesk'] ${
-                        selectedCategory === cat.id 
+                        selectedCategory === 'all' 
                         ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' 
                         : 'bg-muted/20 text-muted-foreground/60 border-white/5 hover:border-primary/30 hover:text-primary'
                       }`}
                     >
-                      {getCategoryName(cat)}
+                      {t('category_all')}
                     </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Job Cards */}
-              {filteredJobs.length === 0 ? (
-                <div className="text-center py-32 glass-card rounded-[2.5rem] border-white/5">
-                  <Briefcase className="w-16 h-16 mx-auto mb-6 text-muted-foreground/20 animate-pulse" />
-                  <p className="font-black text-2xl text-foreground font-['Space_Grotesk'] uppercase tracking-tight">{t('zero_nodes')}</p>
-                  <p className="text-muted-foreground/60 font-['Space_Grotesk'] mt-2">{t('no_jobs_found')}</p>
-                </div>
-              ) : (
-                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
-                  {filteredJobs.map((job, i) => {
-                    const matchScore = calculateMatchScore(job);
-                    return (
-                      <motion.div 
-                        key={job.id} 
-                        variants={itemVariants}
-                        whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                        className="p-8 md:p-10 glass-card rounded-[2.5rem] relative group overflow-hidden cursor-pointer border-white/5 hover:border-primary/20"
-                        onClick={() => setSelectedJob(job)}
+                    {categories.map(cat => (
+                      <button 
+                        key={cat.id} 
+                        onClick={() => setSelectedCategory(cat.id)} 
+                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all border font-['Space_Grotesk'] ${
+                          selectedCategory === cat.id 
+                          ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' 
+                          : 'bg-muted/20 text-muted-foreground/60 border-white/5 hover:border-primary/30 hover:text-primary'
+                        }`}
                       >
-                        {/* High-Precision AI Match Badge */}
-                        {matchScore > 0 && (
-                          <div className="absolute top-0 right-0 p-6 md:p-10">
-                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-xl transition-all duration-500 group-hover:scale-110 shadow-2xl ${
-                              matchScore >= 80 ? 'bg-green-500/10 border-green-500/30 text-green-500' : 
-                              matchScore >= 50 ? 'bg-primary/10 border-primary/30 text-primary' : 
-                              'bg-amber-500/10 border-amber-500/30 text-amber-500'
-                            }`}>
-                              <div className={`w-2 h-2 rounded-full animate-pulse ${
-                                matchScore >= 80 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 
-                                matchScore >= 50 ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]' : 
-                                'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]'
-                              }`} />
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] font-['Space_Grotesk']">{matchScore}% Accuracy</span>
+                        {getCategoryName(cat)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Job Cards */}
+                {filteredJobs.length === 0 ? (
+                  <div className="text-center py-32 glass-card rounded-[2.5rem] border-white/5">
+                    <Briefcase className="w-16 h-16 mx-auto mb-6 text-muted-foreground/20 animate-pulse" />
+                    <p className="font-black text-2xl text-foreground font-['Space_Grotesk'] uppercase tracking-tight">{t('zero_nodes')}</p>
+                    <p className="text-muted-foreground/60 font-['Space_Grotesk'] mt-2">{t('no_jobs_found')}</p>
+                  </div>
+                ) : (
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+                    {filteredJobs.map((job, i) => {
+                      const matchScore = calculateMatchScore(job);
+                      return (
+                        <motion.div 
+                          key={job.id} 
+                          variants={itemVariants}
+                          whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                          className="p-8 md:p-10 glass-card rounded-[2.5rem] relative group overflow-hidden cursor-pointer border-white/5 hover:border-primary/20"
+                          onClick={() => setSelectedJob(job)}
+                        >
+                          {/* High-Precision AI Match Badge */}
+                          {matchScore > 0 && (
+                            <div className="absolute top-0 right-0 p-6 md:p-10">
+                              <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-xl transition-all duration-500 group-hover:scale-110 shadow-2xl ${
+                                matchScore >= 80 ? 'bg-green-500/10 border-green-500/30 text-green-500' : 
+                                matchScore >= 50 ? 'bg-primary/10 border-primary/30 text-primary' : 
+                                'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                              }`}>
+                                <div className={`w-2 h-2 rounded-full animate-pulse ${
+                                  matchScore >= 80 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 
+                                  matchScore >= 50 ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]' : 
+                                  'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]'
+                                }`} />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] font-['Space_Grotesk']">{matchScore}% Accuracy</span>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        <div className="flex items-start gap-6 md:gap-10">
-                          <div className="w-20 h-20 rounded-[1.5rem] flex items-center justify-center shrink-0 bg-muted/20 border border-white/5 group-hover:border-primary/30 transition-all duration-500 shadow-inner overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <Building2 className="w-10 h-10 text-primary group-hover:scale-110 transition-transform duration-500 z-10" />
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-4 mb-2 flex-wrap">
-                              {job.is_boosted && (
-                                <span className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] bg-orange-500/10 text-orange-500 border border-orange-500/20 font-['Space_Grotesk'] flex items-center gap-2">
-                                  <Flame className="w-3 h-3" /> {t('priority_deployment') || 'Priority Deployment'}
-                                </span>
-                              )}
-                              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/40 font-['Space_Grotesk']">{job.company_name || 'Verified Employer'}</span>
-                            </div>
-                            
-                            <h3 className="text-2xl md:text-4xl font-black mb-5 pr-32 text-foreground font-['Space_Grotesk'] tracking-tighter uppercase leading-[0.95] group-hover:text-primary transition-colors">
-                              {job.title}
-                            </h3>
-
-                            <div className="grid grid-cols-2 lg:flex lg:flex-wrap gap-x-8 gap-y-4 mb-8">
-                              <div className="flex items-center gap-2.5">
-                                <IndianRupee className="w-4 h-4 text-primary" />
-                                <div className="flex flex-col">
-                                  <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black font-['Space_Grotesk']">{t('payrate')}</span>
-                                  <span className="text-base font-black text-foreground font-['Space_Grotesk'] tracking-tight">₹{job.salary_paise ? job.salary_paise / 100 : 0}/{job.salary_type || 'daily'}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2.5">
-                                <MapPin className="w-4 h-4 text-primary" />
-                                <div className="flex flex-col">
-                                  <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black font-['Space_Grotesk']">{t('location')}</span>
-                                  <span className="text-base font-black text-foreground font-['Space_Grotesk'] tracking-tight">{job.location}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2.5">
-                                <Clock className="w-4 h-4 text-primary" />
-                                <div className="flex flex-col">
-                                  <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black font-['Space_Grotesk']">{t('timestamp')}</span>
-                                  <span className="text-base font-black text-foreground font-['Space_Grotesk'] tracking-tight">{getTimeAgo(job.posted_at)}</span>
-                                </div>
-                              </div>
-                              {/* Scarcity warning removed as vacancies field is not in schema */}
+                          <div className="flex items-start gap-6 md:gap-10">
+                            <div className="w-20 h-20 rounded-[1.5rem] flex items-center justify-center shrink-0 bg-muted/20 border border-white/5 group-hover:border-primary/30 transition-all duration-500 shadow-inner overflow-hidden relative">
+                              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <Building2 className="w-10 h-10 text-primary group-hover:scale-110 transition-transform duration-500 z-10" />
                             </div>
 
-                            <div className="flex items-center gap-4">
-                              {!hasApplied(job.id) ? (
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-4 mb-2 flex-wrap">
+                                {job.is_boosted && (
+                                  <span className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] bg-orange-500/10 text-orange-500 border border-orange-500/20 font-['Space_Grotesk'] flex items-center gap-2">
+                                    <Flame className="w-3 h-3" /> {t('priority_deployment') || 'Priority Deployment'}
+                                  </span>
+                                )}
+                                <span className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/40 font-['Space_Grotesk']">{job.company_name || 'Verified Employer'}</span>
+                              </div>
+                              
+                              <h3 className="text-2xl md:text-4xl font-black mb-5 pr-32 text-foreground font-['Space_Grotesk'] tracking-tighter uppercase leading-[0.95] group-hover:text-primary transition-colors">
+                                {job.title}
+                              </h3>
+
+                              <div className="grid grid-cols-2 lg:flex lg:flex-wrap gap-x-8 gap-y-4 mb-8">
+                                <div className="flex items-center gap-2.5">
+                                  <IndianRupee className="w-4 h-4 text-primary" />
+                                  <div className="flex flex-col">
+                                    <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black font-['Space_Grotesk']">{t('payrate')}</span>
+                                    <span className="text-base font-black text-foreground font-['Space_Grotesk'] tracking-tight">₹{job.salary_paise ? job.salary_paise / 100 : 0}/{job.salary_type || 'daily'}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2.5">
+                                  <MapPin className="w-4 h-4 text-primary" />
+                                  <div className="flex flex-col">
+                                    <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black font-['Space_Grotesk']">{t('location')}</span>
+                                    <span className="text-base font-black text-foreground font-['Space_Grotesk'] tracking-tight">{job.location}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2.5">
+                                  <Clock className="w-4 h-4 text-primary" />
+                                  <div className="flex flex-col">
+                                    <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black font-['Space_Grotesk']">{t('timestamp')}</span>
+                                    <span className="text-base font-black text-foreground font-['Space_Grotesk'] tracking-tight">{getTimeAgo(job.posted_at)}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-4">
+                                {!hasApplied(job.id) ? (
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); handleApply(job.id, true); }} 
+                                    className="px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-white bg-primary shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all font-['Space_Grotesk'] relative overflow-hidden group/btn"
+                                  >
+                                    <span className="relative z-10">{t('initialize_deployment')}</span>
+                                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+                                  </button>
+                                ) : (
+                                  <div className="px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/30 font-['Space_Grotesk'] flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-primary" /> {t('applied_synced')}
+                                  </div>
+                                )}
                                 <button 
-                                  onClick={(e) => { e.stopPropagation(); handleApply(job.id, true); }} 
-                                  className="px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-white bg-primary shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all font-['Space_Grotesk'] relative overflow-hidden group/btn"
+                                  onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id); }} 
+                                  className="p-4 rounded-2xl bg-muted/20 border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all group/save"
                                 >
-                                  <span className="relative z-10">{t('initialize_deployment')}</span>
-                                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+                                  {isSaved(job.id) ? 
+                                    <BookmarkCheck className="w-6 h-6 text-primary fill-primary/20" /> : 
+                                    <Bookmark className="w-6 h-6 text-muted-foreground/60 transition-colors group-hover/save:text-primary" />
+                                  }
                                 </button>
-                              ) : (
-                                <div className="px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/30 font-['Space_Grotesk'] flex items-center gap-3">
-                                  <div className="w-2 h-2 rounded-full bg-primary" /> {t('applied_synced')}
-                                </div>
-                              )}
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id); }} 
-                                className="p-4 rounded-2xl bg-muted/20 border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all group/save"
-                              >
-                                {isSaved(job.id) ? 
-                                  <BookmarkCheck className="w-6 h-6 text-primary fill-primary/20" /> : 
-                                  <Bookmark className="w-6 h-6 text-muted-foreground/60 transition-colors group-hover/save:text-primary" />
-                                }
-                              </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </div>
-
-            {/* ─── Right: Stats & Insights ─── */}
-            <div className="lg:col-span-4 space-y-10">
-              {/* AI Smart Tips */}
-              <motion.section 
-                initial={{ opacity: 0, x: 20 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                transition={{ delay: 0.4 }} 
-                className="rounded-[2rem] p-8 relative overflow-hidden glass-card border-white/5 group"
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 blur-[100px] -mr-12 -mt-12 bg-primary/20 group-hover:bg-primary/40 transition-colors" />
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="p-2 rounded-lg bg-primary/20 border border-primary/30">
-                    <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-                  </div>
-                  <h3 className="font-black text-xl text-foreground font-['Space_Grotesk'] tracking-tight uppercase">{t('diagnostic_insights')}</h3>
-                </div>
-                
-                <div className="space-y-6">
-                  <div className="flex gap-4 group/tip">
-                    <div className="w-[1px] shrink-0 bg-primary/30 h-auto self-stretch rounded-full group-hover/tip:bg-primary transition-colors" />
-                    <div className="space-y-1">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60 font-['Space_Grotesk']">{t('optimization_01')}</p>
-                      <p className="text-sm leading-relaxed font-['Space_Grotesk'] text-muted-foreground font-medium">
-                        {t('complete_profile_tip') || 'Complete your digital profile to increase match accuracy.'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 group/tip">
-                    <div className="w-[1px] shrink-0 bg-green-500/30 h-auto self-stretch rounded-full group-hover/tip:bg-green-500 transition-colors" />
-                    <div className="space-y-1">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-green-500/60 font-['Space_Grotesk']">{t('status_alert')}</p>
-                      <p className="text-sm leading-relaxed font-['Space_Grotesk'] text-muted-foreground font-medium">
-                        {t('reliability_index') || 'Reliability index'} at <span className="text-foreground font-bold">{stats?.reliability_score || 50}%</span> — {t('top_tier_worker') || 'Top tier worker'}
-                      </p>
-                    </div>
-                  </div>
-                  {!profile?.skills?.length && (
-                    <button 
-                      onClick={() => setSidebarTab('profile')} 
-                      className="w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all duration-500 font-['Space_Grotesk'] shadow-lg"
-                    >
-                      <Plus className="w-4 h-4 inline mr-2" />{t('skill_matrix')}
-                    </button>
-                  )}
-                </div>
-              </motion.section>
-
-              {/* Profile Strength */}
-              <div className="p-8 glass-card rounded-[2rem] border-white/5">
-                <div className="flex justify-between items-center mb-5">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Profile Integrity</p>
-                  <motion.div 
-                    animate={{ rotate: profileStrength === 100 ? [0, 10, -10, 0] : 0 }} 
-                    transition={{ repeat: Infinity, duration: 3 }}
-                  >
-                    <Target className={`w-4 h-4 ${profileStrength >= 80 ? 'text-green-500' : 'text-primary'}`} />
+                        </motion.div>
+                      );
+                    })}
                   </motion.div>
-                </div>
-                <div className="relative">
-                  <div className="w-full h-3 rounded-full mb-3 bg-muted/20 border border-white/5 overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${profileStrength}%` }}
-                      transition={{ duration: 1.5, ease: "easeOut" }}
-                      className={`h-full rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)] ${
-                        profileStrength >= 80 ? 'bg-green-500' : 
-                        profileStrength >= 50 ? 'bg-primary' : 
-                        'bg-amber-500'
-                      }`} 
-                    />
-                  </div>
-                  <div className="flex justify-between items-end">
-                    <span className="text-4xl font-black text-foreground font-['Space_Grotesk'] tracking-tighter">{profileStrength}%</span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk'] mb-1">Operational</span>
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Reliability Score Gauge */}
-              <div className="p-8 glass-card rounded-[2rem] border-white/5 relative group overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="flex justify-between items-center mb-8 relative z-10">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Reliability Grade</p>
-                  <ShieldCheck className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex items-center justify-center py-6 relative z-10">
-                  <div className="relative w-40 h-40 flex items-center justify-center">
-                    {/* Inner Glow */}
-                    <div className="absolute inset-4 rounded-full bg-primary/5 blur-2xl animate-pulse" />
-                    <svg className="w-full h-full -rotate-90 drop-shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]">
-                      <circle cx="80" cy="80" r="72" fill="transparent" stroke="hsl(var(--muted))" strokeWidth="10" strokeOpacity="0.1" />
-                      <motion.circle 
-                        cx="80" cy="80" r="72" 
-                        fill="transparent" 
-                        stroke="hsl(var(--primary))" 
-                        strokeWidth="10" 
-                        strokeDasharray="452.4" 
-                        initial={{ strokeDashoffset: 452.4 }}
-                        animate={{ strokeDashoffset: 452.4 - (452.4 * (stats?.reliability_score || 50) / 100) }}
-                        transition={{ duration: 2, ease: "easeOut" }}
-                        strokeLinecap="round" 
+              {/* ─── Right: Stats & Insights ─── */}
+              <div className="lg:col-span-4 space-y-10">
+                {/* AI Smart Tips */}
+                <motion.section 
+                  initial={{ opacity: 0, x: 20 }} 
+                  animate={{ opacity: 1, x: 0 }} 
+                  transition={{ delay: 0.4 }} 
+                  className="rounded-[2rem] p-8 relative overflow-hidden glass-card border-white/5 group"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 blur-[100px] -mr-12 -mt-12 bg-primary/20 group-hover:bg-primary/40 transition-colors" />
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="p-2 rounded-lg bg-primary/20 border border-primary/30">
+                      <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                    </div>
+                    <h3 className="font-black text-xl text-foreground font-['Space_Grotesk'] tracking-tight uppercase">{t('diagnostic_insights')}</h3>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    <div className="flex gap-4 group/tip">
+                      <div className="w-[1px] shrink-0 bg-primary/30 h-auto self-stretch rounded-full group-hover/tip:bg-primary transition-colors" />
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60 font-['Space_Grotesk']">{t('optimization_01')}</p>
+                        <p className="text-sm leading-relaxed font-['Space_Grotesk'] text-muted-foreground font-medium">
+                          {t('complete_profile_tip') || 'Complete your digital profile to increase match accuracy.'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 group/tip">
+                      <div className="w-[1px] shrink-0 bg-green-500/30 h-auto self-stretch rounded-full group-hover/tip:bg-green-500 transition-colors" />
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-green-500/60 font-['Space_Grotesk']">{t('status_alert')}</p>
+                        <p className="text-sm leading-relaxed font-['Space_Grotesk'] text-muted-foreground font-medium">
+                          {t('reliability_index') || 'Reliability index'} at <span className="text-foreground font-bold">{stats?.reliability_score || 50}%</span> — {t('top_tier_worker') || 'Top tier worker'}
+                        </p>
+                      </div>
+                    </div>
+                    {!profile?.skills?.length && (
+                      <button 
+                        onClick={() => setSidebarTab('profile')} 
+                        className="w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all duration-500 font-['Space_Grotesk'] shadow-lg"
+                      >
+                        <Plus className="w-4 h-4 inline mr-2" />{t('skill_matrix')}
+                      </button>
+                    )}
+                  </div>
+                </motion.section>
+
+                {/* Profile Strength */}
+                <div className="p-8 glass-card rounded-[2rem] border-white/5">
+                  <div className="flex justify-between items-center mb-5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Profile Integrity</p>
+                    <motion.div 
+                      animate={{ rotate: profileStrength === 100 ? [0, 10, -10, 0] : 0 }} 
+                      transition={{ repeat: Infinity, duration: 3 }}
+                    >
+                      <Target className={`w-4 h-4 ${profileStrength >= 80 ? 'text-green-500' : 'text-primary'}`} />
+                    </motion.div>
+                  </div>
+                  <div className="relative">
+                    <div className="w-full h-3 rounded-full mb-3 bg-muted/20 border border-white/5 overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${profileStrength}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className={`h-full rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)] ${
+                          profileStrength >= 80 ? 'bg-green-500' : 
+                          profileStrength >= 50 ? 'bg-primary' : 
+                          'bg-amber-500'
+                        }`} 
                       />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center space-y-0">
-                      <span className="text-5xl font-black text-foreground font-['Space_Grotesk'] tracking-tighter leading-none">{stats?.reliability_score || 50}</span>
-                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 font-['Space_Grotesk'] mt-1">
-                        {(stats?.reliability_score || 50) >= 80 ? 'Grade-A' : (stats?.reliability_score || 50) >= 60 ? 'Grade-B' : (stats?.reliability_score || 50) >= 40 ? 'Grade-C' : 'Grade-D'}
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <span className="text-4xl font-black text-foreground font-['Space_Grotesk'] tracking-tighter">{profileStrength}%</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk'] mb-1">Operational</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reliability Score Gauge */}
+                <div className="p-8 glass-card rounded-[2rem] border-white/5 relative group overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="flex justify-between items-center mb-8 relative z-10">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Reliability Grade</p>
+                    <ShieldCheck className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex items-center justify-center py-6 relative z-10">
+                    <div className="relative w-40 h-40 flex items-center justify-center">
+                      <div className="absolute inset-4 rounded-full bg-primary/5 blur-2xl animate-pulse" />
+                      <svg className="w-full h-full -rotate-90 drop-shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]">
+                        <circle cx="80" cy="80" r="72" fill="transparent" stroke="hsl(var(--muted))" strokeWidth="10" strokeOpacity="0.1" />
+                        <motion.circle 
+                          cx="80" cy="80" r="72" 
+                          fill="transparent" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth="10" 
+                          strokeDasharray="452.4" 
+                          initial={{ strokeDashoffset: 452.4 }}
+                          animate={{ strokeDashoffset: 452.4 - (452.4 * (stats?.reliability_score || 50) / 100) }}
+                          transition={{ duration: 2, ease: "easeOut" }}
+                          strokeLinecap="round" 
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center space-y-0">
+                        <span className="text-5xl font-black text-foreground font-['Space_Grotesk'] tracking-tighter leading-none">{stats?.reliability_score || 50}</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 font-['Space_Grotesk'] mt-1">
+                          {(stats?.reliability_score || 50) >= 80 ? 'Grade-A' : (stats?.reliability_score || 50) >= 60 ? 'Grade-B' : (stats?.reliability_score || 50) >= 40 ? 'Grade-C' : 'Grade-D'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Weekly Earnings Matrix */}
+                <div className="p-8 glass-card rounded-[2rem] border-white/5 group">
+                  <div className="flex justify-between items-center mb-8">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Yield Analytics</p>
+                      <h4 className="text-xl font-black text-foreground font-['Space_Grotesk'] tracking-tight">Earnings Flow</h4>
+                    </div>
+                    <div className={`px-3 py-1 rounded-lg border ${
+                      (stats?.earnings_growth_pct || 0) >= 0 
+                        ? 'bg-green-500/10 border-green-500/20' 
+                        : 'bg-red-500/10 border-red-500/20'
+                    }`}>
+                      <span className={`text-[10px] font-black font-['Space_Grotesk'] tracking-widest ${
+                        (stats?.earnings_growth_pct || 0) >= 0 ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        {(stats?.earnings_growth_pct || 0) >= 0 ? '+' : ''}{stats?.earnings_growth_pct || 0}%
                       </span>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Weekly Earnings Matrix */}
-              <div className="p-8 glass-card rounded-[2rem] border-white/5 group">
-                <div className="flex justify-between items-center mb-8">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Yield Analytics</p>
-                    <h4 className="text-xl font-black text-foreground font-['Space_Grotesk'] tracking-tight">Earnings Flow</h4>
+                  <div className="h-32 flex items-end gap-3 px-1 mb-8">
+                    {(() => {
+                      const daily = stats?.daily_earnings || [0,0,0,0,0,0,0];
+                      const maxVal = Math.max(...daily, 1);
+                      return daily.map((amount, i) => {
+                        const heightPct = (amount / maxVal) * 100;
+                        const isMax = amount === maxVal && amount > 0;
+                        return (
+                          <motion.div 
+                            key={i} 
+                            initial={{ height: 0 }}
+                            animate={{ height: `${Math.max(heightPct, 3)}%` }}
+                            transition={{ delay: i * 0.1, duration: 1, ease: "easeOut" }}
+                            className={`flex-1 rounded-t-xl transition-all duration-500 relative ${
+                              isMax ? 'bg-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]' : amount > 0 ? 'bg-primary/40' : 'bg-muted/20'
+                            }`}
+                          >
+                            {isMax && <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />}
+                          </motion.div>
+                        );
+                      });
+                    })()}
                   </div>
-                  <div className={`px-3 py-1 rounded-lg border ${
-                    (stats?.earnings_growth_pct || 0) >= 0 
-                      ? 'bg-green-500/10 border-green-500/20' 
-                      : 'bg-red-500/10 border-red-500/20'
-                  }`}>
-                    <span className={`text-[10px] font-black font-['Space_Grotesk'] tracking-widest ${
-                      (stats?.earnings_growth_pct || 0) >= 0 ? 'text-green-500' : 'text-red-500'
-                    }`}>
-                      {(stats?.earnings_growth_pct || 0) >= 0 ? '+' : ''}{stats?.earnings_growth_pct || 0}%
-                    </span>
+                  <div className="flex justify-between items-end">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Total Yield (7D)</p>
+                      <span className="text-4xl font-black text-foreground font-['Space_Grotesk'] tracking-tighter">₹{stats?.weekly_earnings || '0'}</span>
+                    </div>
+                    <TrendingUp className="w-8 h-8 text-primary/20" />
                   </div>
-                </div>
-                <div className="h-32 flex items-end gap-3 px-1 mb-8">
-                  {(() => {
-                    const daily = stats?.daily_earnings || [0,0,0,0,0,0,0];
-                    const maxVal = Math.max(...daily, 1); // avoid div-by-zero
-                    return daily.map((amount, i) => {
-                      const heightPct = (amount / maxVal) * 100;
-                      const isMax = amount === maxVal && amount > 0;
-                      return (
-                        <motion.div 
-                          key={i} 
-                          initial={{ height: 0 }}
-                          animate={{ height: `${Math.max(heightPct, 3)}%` }}
-                          transition={{ delay: i * 0.1, duration: 1, ease: "easeOut" }}
-                          className={`flex-1 rounded-t-xl transition-all duration-500 relative ${
-                            isMax ? 'bg-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]' : amount > 0 ? 'bg-primary/40' : 'bg-muted/20'
-                          }`}
-                        >
-                          {isMax && <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />}
-                        </motion.div>
-                      );
-                    });
-                  })()}
-                </div>
-                <div className="flex justify-between items-end">
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Total Yield (7D)</p>
-                    <span className="text-4xl font-black text-foreground font-['Space_Grotesk'] tracking-tighter">₹{stats?.weekly_earnings || '0'}</span>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-primary/20" />
                 </div>
               </div>
             </div>
-          </div>
-        </>)}
+          </>
+        )}
 
         {/* ═══ APPLICATIONS VIEW ═══ */}
         {sidebarTab === 'applications' && (
@@ -813,22 +828,36 @@ const WorkerDashboard = () => {
                             >
                               <MessageSquare className="w-4 h-4 text-primary" /> Open Secure Channel
                             </button>
-                            {app.status === 'selected' && (
-                              <button 
-                                onClick={() => handleRequestRelease(app.job_id)} 
-                                className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-white flex items-center gap-2 bg-primary shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all font-['Space_Grotesk']"
-                              >
-                                <CheckCircle className="w-4 h-4" /> Request Payout
-                              </button>
-                            )}
+                             {app.status === 'selected' && (
+                               <button 
+                                 onClick={() => handleRequestRelease(app.job_id)} 
+                                 className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-white flex items-center gap-2 bg-primary shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all font-['Space_Grotesk']"
+                               >
+                                 <CheckCircle className="w-4 h-4" /> Request Payout
+                               </button>
+                             )}
+                             {(app.status === 'accepted' || app.status === 'selected') && (
+                               <button 
+                                 onClick={() => { setActiveHandshakeJobId(app.job_id); setShowHandshakeModal(true); }} 
+                                 className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-white flex items-center gap-2 bg-emerald-600 shadow-lg shadow-emerald-600/20 hover:brightness-110 active:scale-95 transition-all font-['Space_Grotesk'] border border-emerald-500/30"
+                               >
+                                 <Smartphone className="w-4 h-4" /> Secure Check-In
+                               </button>
+                             )}
                           </div>
                         )}
                       </div>
 
                       <div className="flex md:flex-col items-center md:items-end gap-3 shrink-0">
-                         <div className="w-12 h-12 rounded-2xl bg-muted/20 border border-white/5 flex items-center justify-center text-primary group-hover:border-primary/40 group-hover:bg-primary/5 transition-all">
-                            <Terminal className="w-6 h-6" />
-                         </div>
+                         {app.status === 'in_progress' ? (
+                           <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Mission Active
+                           </div>
+                         ) : (
+                           <div className="w-12 h-12 rounded-2xl bg-muted/20 border border-white/5 flex items-center justify-center text-primary group-hover:border-primary/40 group-hover:bg-primary/5 transition-all">
+                              <Terminal className="w-6 h-6" />
+                           </div>
+                         )}
                       </div>
                     </div>
                   </motion.div>
@@ -1307,6 +1336,23 @@ const WorkerDashboard = () => {
 
       {/* ─── CHAT PANEL ─── */}
       {showChat && <ChatPanel onClose={() => { setShowChat(false); setSelectedChatUserId(null); }} initialUserId={selectedChatUserId} />}
+      {/* ─── HANDSHAKE MODAL ─── */}
+      <Dialog open={showHandshakeModal} onOpenChange={setShowHandshakeModal}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-[#0D1117] border-white/5 rounded-[2.5rem]">
+          <DialogHeader className="p-8 pb-0">
+            <DialogTitle className="hidden">Secure Handshake</DialogTitle>
+            <DialogDescription className="hidden">Verify your presence at the mission site.</DialogDescription>
+          </DialogHeader>
+          <HandshakeControl 
+            role="worker" 
+            jobId={activeHandshakeJobId} 
+            onSuccess={() => {
+              setShowHandshakeModal(false);
+              fetchData();
+            }} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

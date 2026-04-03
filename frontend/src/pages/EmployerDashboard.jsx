@@ -6,15 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from '../context/TranslationContext';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 
   Building2, Sun, Moon, LogOut, Search, MapPin, IndianRupee, 
   Briefcase, Clock, Star, Bell, MessageSquare, User, ChevronRight,
@@ -24,6 +19,7 @@ import {
   PlusSquare, FileText, BarChart3, Settings, Menu, X, ArrowUpRight,
   UserCheck, UserX, UserPlus, Clock4, Trash2
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { parseApiError } from '../utils/errorUtils';
 import SectorIcon from '../components/SectorIcon';
@@ -31,6 +27,12 @@ import ChatPanel from '../components/ChatPanel';
 import LanguageSelector from '../components/LanguageSelector';
 import EmployerAnalytics from '../components/EmployerAnalytics';
 import LocationPicker from '../components/LocationPicker';
+import JobPostingWizard from '../components/JobPostingWizard';
+import HandshakeControl from '../components/HandshakeControl';
+import LiveMissionTracker from '../components/LiveMissionTracker';
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
+} from '../components/ui/dialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -69,6 +71,11 @@ const EmployerDashboard = () => {
   const [selectedChatUserId, setSelectedChatUserId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedApps, setSelectedApps] = useState([]);
+  const [sortMode, setSortMode] = useState('relevance'); // 'relevance', 'rating', 'distance'
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [showHandshakeModal, setShowHandshakeModal] = useState(false);
+  const [activeHandshakeJobId, setActiveHandshakeJobId] = useState(null);
 
   const [newJob, setNewJob] = useState({
     title: '',
@@ -112,30 +119,28 @@ const EmployerDashboard = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleCreateJob = async (e) => {
-    e.preventDefault();
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
+  };
+
+  const handleBulkAction = async (action) => {
+    if (selectedApps.length === 0) return;
     try {
       const token = localStorage.getItem('token');
-      const payload = {
-        title: newJob.title,
-        description: newJob.description || '',
-        category: newJob.category || 'other',
-        location: newJob.location || 'Remote',
-        salary_paise: Math.round(parseFloat(newJob.pay_amount || 0) * 100),
-        salary_type: newJob.pay_type || 'daily',
-        requirements: newJob.skills_required || []
-      };
-      
-      await axios.post(`${API_URL}/api/jobs`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success('Mission Deployed! Broadcast active.');
-      setShowCreateJob(false);
+      await Promise.all(selectedApps.map(id => 
+        axios.patch(`${API_URL}/api/applications/${id}`, { status: action }, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ));
+      toast.success(`Bulk mission update: ${action.toUpperCase()}`);
+      setSelectedApps([]);
+      setIsBulkMode(false);
       fetchData();
-    } catch (error) {
-      toast.error(parseApiError(error, 'Deployment failed'));
+    } catch (err) {
+      toast.error("Bulk update failed");
     }
   };
+
 
   const updateApplicationStatus = async (appId, status) => {
     try {
@@ -320,6 +325,25 @@ const EmployerDashboard = () => {
                     </Button>
                   </div>
 
+                  {/* LIVE MISSIONS PANEL */}
+                  {applicants.some(app => app.status === 'in_progress') && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-10 space-y-4"
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]" />
+                        <h3 className="text-[10px] uppercase font-black tracking-[0.3em] text-primary font-['Space_Grotesk']">Active Mission Telemetry</h3>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                        {jobs.filter(job => applicants.some(app => app.job_id === job._id && app.status === 'in_progress')).map(job => (
+                          <LiveMissionTracker key={job._id} jobId={job._id} role="employer" isActive={true} />
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
                   <div className="space-y-4">
                     {jobs.length > 0 ? (
                       jobs.slice(0, 5).map((job, i) => (
@@ -396,8 +420,8 @@ const EmployerDashboard = () => {
                         ))
                       ) : (
                         <div className="py-20 text-center opacity-30">
-                          <Users className="w-10 h-10 mx-auto mb-4" />
-                          <p className="text-[10px] font-bold uppercase tracking-widest">{t('no_applicants')}</p>
+                           <Users className="w-10 h-10 mx-auto mb-4" />
+                           <p className="text-[10px] font-bold uppercase tracking-widest">{t('no_applicants')}</p>
                         </div>
                       )}
                     </div>
@@ -426,46 +450,46 @@ const EmployerDashboard = () => {
                </div>
                
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {jobs.map((job) => (
-                   <motion.div key={job._id || job.id} variants={itemVariants} className="glass-card p-6 rounded-3xl border border-white/5 hover:border-primary/20 transition-all group flex flex-col">
-                     <div className="flex items-start justify-between mb-4">
-                       <div className="w-12 h-12 rounded-xl bg-muted/30 flex items-center justify-center border border-white/5 group-hover:border-primary/30 transition-all shadow-inner">
-                         <SectorIcon sector={job.category} className="w-6 h-6 text-primary" />
-                       </div>
-                       <Badge variant="outline" className="text-[9px] uppercase tracking-widest border-white/5 bg-white/5 font-bold">
-                         {job.status === 'open' ? <span className="text-emerald-400 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {t('active_status')}</span> : <span className="text-muted-foreground">{job.status === 'closed' ? t('closed_status') : (job.status?.toUpperCase() || t('closed_status'))}</span>}
-                       </Badge>
+                  {jobs.map((job) => (
+                    <motion.div key={job._id || job.id} variants={itemVariants} className="glass-card p-6 rounded-3xl border border-white/5 hover:border-primary/20 transition-all group flex flex-col">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-muted/30 flex items-center justify-center border border-white/5 group-hover:border-primary/30 transition-all shadow-inner">
+                          <SectorIcon sector={job.category} className="w-6 h-6 text-primary" />
+                        </div>
+                        <Badge variant="outline" className="text-[9px] uppercase tracking-widest border-white/5 bg-white/5 font-bold">
+                          {job.status === 'open' ? <span className="text-emerald-400 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {t('active_status')}</span> : <span className="text-muted-foreground">{job.status === 'closed' ? t('closed_status') : (job.status?.toUpperCase() || t('closed_status'))}</span>}
+                        </Badge>
+                      </div>
+                      <h3 className="text-lg font-bold font-['Space_Grotesk'] mb-2 flex-grow">{job.title}</h3>
+                      
+                      <div className="space-y-2 mt-4 mb-6">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                          <IndianRupee className="w-3.5 h-3.5" /> <span className="text-amber-400">{job.pay_amount}/{job.pay_type}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                           <MapPin className="w-3.5 h-3.5" /> {job.location}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                          <Users className="w-3.5 h-3.5" /> {job.vacancies} {t('openings_label')}
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        variant="ghost" 
+                        className="w-full bg-white/5 hover:bg-primary/10 border border-white/5 text-[10px] font-black uppercase tracking-widest"
+                        onClick={() => { setSelectedJob(job); fetchApplicants(job._id || job.id); setSidebarTab('applicants'); }}
+                      >
+                        VIEW APPLICANTS <ChevronRight className="w-3 h-3 ml-2" />
+                      </Button>
+                    </motion.div>
+                  ))}
+                  {jobs.length === 0 && (
+                     <div className="col-span-full py-20 text-center glass-card rounded-[3rem] border border-dashed border-white/10 opacity-40">
+                       <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-6" />
+                       <p className="text-sm font-bold font-['Space_Grotesk'] uppercase tracking-[0.2em]">No Missions Found</p>
+                       <p className="text-[10px] uppercase tracking-widest mt-2">Initialize your first workforce request to see it here</p>
                      </div>
-                     <h3 className="text-lg font-bold font-['Space_Grotesk'] mb-2 flex-grow">{job.title}</h3>
-                     
-                     <div className="space-y-2 mt-4 mb-6">
-                       <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                         <IndianRupee className="w-3.5 h-3.5" /> <span className="text-amber-400">{job.pay_amount}/{job.pay_type}</span>
-                       </div>
-                       <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                         <MapPin className="w-3.5 h-3.5" /> {job.location}
-                       </div>
-                       <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                         <Users className="w-3.5 h-3.5" /> {job.vacancies} {t('openings_label')}
-                       </div>
-                     </div>
-                     
-                     <Button 
-                       variant="ghost" 
-                       className="w-full bg-white/5 hover:bg-primary/10 border border-white/5 text-[10px] font-black uppercase tracking-widest"
-                       onClick={() => { setSelectedJob(job); fetchApplicants(job._id || job.id); setSidebarTab('applicants'); }}
-                     >
-                       VIEW APPLICANTS <ChevronRight className="w-3 h-3 ml-2" />
-                     </Button>
-                   </motion.div>
-                 ))}
-                 {jobs.length === 0 && (
-                    <div className="col-span-full py-20 text-center glass-card rounded-[3rem] border border-dashed border-white/10 opacity-40">
-                      <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-6" />
-                      <p className="text-sm font-bold font-['Space_Grotesk'] uppercase tracking-[0.2em]">No Missions Found</p>
-                      <p className="text-[10px] uppercase tracking-widest mt-2">Initialize your first workforce request to see it here</p>
-                    </div>
-                 )}
+                  )}
                </div>
              </motion.div>
           )}
@@ -479,72 +503,159 @@ const EmployerDashboard = () => {
                      {selectedJob ? `${t('for_mission') || 'For Mission'}: ${selectedJob.title}` : t('all_apps') || 'All incoming applications'}
                    </p>
                  </div>
-                 {selectedJob && (
-                   <Button variant="outline" onClick={() => { setSelectedJob(null); fetchData(); }} className="h-10 rounded-xl border-white/5 text-[10px] uppercase font-bold tracking-widest">
-                     View All
-                   </Button>
-                 )}
+                 <div className="flex gap-3">
+                   {selectedJob && (
+                     <Button variant="outline" onClick={() => { setSelectedJob(null); fetchData(); }} className="h-10 rounded-xl border-white/5 text-[10px] uppercase font-bold tracking-widest">
+                       View All Missions
+                     </Button>
+                   )}
+                 </div>
                </div>
+
+               {/* Sub-Header Actions */}
+               <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-muted/10 p-4 rounded-2xl border border-white/5">
+                  <div className="flex items-center gap-4">
+                     <Select value={sortMode} onValueChange={setSortMode}>
+                       <SelectTrigger className="w-[180px] h-10 rounded-xl bg-background border-white/5 text-[10px] font-bold uppercase tracking-widest">
+                          <div className="flex items-center gap-2"><FilterIcon className="w-3.5 h-3.5" /><SelectValue placeholder="SORT BY" /></div>
+                       </SelectTrigger>
+                       <SelectContent className="glass-card border-white/5">
+                          <SelectItem value="relevance">AI RELEVANCE</SelectItem>
+                          <SelectItem value="rating">HIGHEST RATED</SelectItem>
+                          <SelectItem value="distance">NEAREST (GPS)</SelectItem>
+                       </SelectContent>
+                     </Select>
+                     <Button 
+                       variant="ghost" 
+                       onClick={() => { setIsBulkMode(!isBulkMode); setSelectedApps([]); }}
+                       className={`h-10 rounded-xl text-[10px] font-bold tracking-widest uppercase transition-all ${isBulkMode ? 'bg-primary/20 text-primary border border-primary/30' : 'text-muted-foreground hover:bg-white/5'}`}
+                     >
+                        {isBulkMode ? 'CANCEL SELECT' : 'BULK ACTIONS'}
+                     </Button>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {isBulkMode && selectedApps.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, x: 20 }} 
+                        animate={{ opacity: 1, x: 0 }} 
+                        exit={{ opacity: 0, x: 20 }}
+                        className="flex items-center gap-2"
+                      >
+                         <span className="text-[10px] font-black mr-2 text-primary">{selectedApps.length} SELECTED</span>
+                         <Button onClick={() => handleBulkAction('accepted')} className="h-9 rounded-lg bg-emerald-500 text-white text-[9px] font-black px-4 shadow-lg shadow-emerald-500/20">APPROVE ALL</Button>
+                         <Button onClick={() => handleBulkAction('rejected')} className="h-9 rounded-lg bg-rose-500 text-white text-[9px] font-black px-4 shadow-lg shadow-rose-500/20">REJECT ALL</Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+               </div>
+
                
                <div className="glass-card rounded-[2rem] p-6 border border-white/5">
                   <div className="space-y-4">
                      {applicants.length > 0 ? applicants.map((app) => (
-                       <motion.div key={app._id || app.id} variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl bg-muted/20 border border-white/5 hover:border-primary/20 transition-all gap-4 group">
-                         <div className="flex items-center gap-4">
-                           <Avatar className="w-12 h-12 border-2 border-white/5 cursor-pointer" onClick={() => navigate(`/worker/profile/${app.worker_id}`)}>
-                             <AvatarImage src={app.worker_profile?.avatar_url} />
-                             <AvatarFallback className="bg-primary/10 text-primary font-bold">WK</AvatarFallback>
-                           </Avatar>
-                           <div>
-                             <h4 
-                               className="text-sm font-black font-['Space_Grotesk'] uppercase tracking-tight cursor-pointer hover:text-primary transition-colors"
-                               onClick={() => navigate(`/worker/profile/${app.worker_id}`)}
-                             >
-                               {app.worker_name || app.worker_profile?.name || 'Unknown Candidate'}
-                             </h4>
-                             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate max-w-[200px]">
-                               {app.job?.title || 'Unknown Mission'}
-                             </p>
-                           </div>
-                         </div>
-                         
-                         <div className="flex items-center gap-2">
-                            <Badge variant="outline" className={`text-[9px] uppercase tracking-widest font-bold border-white/5 ${
-                               app.status === 'accepted' ? 'text-emerald-400 bg-emerald-400/10' :
-                               app.status === 'rejected' ? 'text-rose-400 bg-rose-400/10' :
-                               'text-amber-400 bg-amber-400/10'
-                             }`}>
-                               {app.status || 'Pending'}
-                            </Badge>
-                         </div>
-                         
-                         <div className="flex items-center gap-3">
-                           {app.status !== 'accepted' && app.status !== 'rejected' && (
-                             <>
-                               <Button size="sm" onClick={() => updateApplicationStatus(app._id || app.id, 'accepted')} className="h-8 bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-lg px-4 text-[10px] font-bold tracking-widest uppercase items-center gap-1">
-                                 APPROVE
+                        <motion.div key={app._id || app.id} variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl bg-muted/20 border border-white/5 hover:border-primary/20 transition-all gap-4 group">
+                          <div className="flex items-center gap-4 flex-grow">
+                             {isBulkMode && (
+                               <div 
+                                onClick={() => {
+                                  const id = app._id || app.id;
+                                  setSelectedApps(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+                                }}
+                                className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${selectedApps.includes(app._id || app.id) ? 'bg-primary border-primary' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                               >
+                                 {selectedApps.includes(app._id || app.id) && <CheckCircle className="w-5 h-5 text-white" />}
+                               </div>
+                            )}
+                            <Avatar className="w-14 h-14 border-2 border-white/5 cursor-pointer shadow-lg shadow-black/20" onClick={() => navigate(`/worker/profile/${app.worker_id}`)}>
+                              <AvatarImage src={app.worker_profile?.avatar_url} />
+                              <AvatarFallback className="bg-primary/10 text-primary font-bold">WK</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-grow">
+                              <div className="flex items-center gap-3 mb-1">
+                                <h4 
+                                  className="text-base font-black font-['Space_Grotesk'] uppercase tracking-tight cursor-pointer hover:text-primary transition-colors"
+                                  onClick={() => navigate(`/worker/profile/${app.worker_id}`)}
+                                >
+                                  {app.worker_name || app.worker_profile?.name || 'Candidate Matrix'}
+                                </h4>
+                                <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] font-black h-5 uppercase tracking-widest">
+                                   {app.match_score ? `${Math.round(app.match_score * 100)}% Match` : 'Scanning...'}
+                                </Badge>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-3">
+                                {app.job?.title || 'Active Transmission'}
+                              </p>
+                              
+                              <div className="flex items-start gap-3 bg-slate-950/40 p-3 rounded-xl border border-white/5 max-w-lg">
+                                 <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                 <p className="text-[10px] text-muted-foreground/80 font-medium leading-relaxed italic">
+                                    {app.ai_insights || "Gemini 1.5 is cross-referencing worker profile with mission requirements..."}
+                                 </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-3 shrink-0">
+                             <div className="flex items-center gap-2">
+                                <Badge variant="outline" className={`text-[10px] uppercase tracking-widest font-black border-white/5 h-6 px-3 ${
+                                  app.status === 'accepted' ? 'text-emerald-400 bg-emerald-400/10' :
+                                  app.status === 'in_progress' ? 'text-primary bg-primary/10 animate-pulse' :
+                                  app.status === 'rejected' ? 'text-rose-400 bg-rose-400/10' :
+                                  'text-amber-400 bg-amber-400/10 shadow-[0_0_10px_rgba(251,191,36,0.1)]'
+                                }`}>
+                                  {app.status === 'accepted' ? 'ARRIVAL PENDING' : (app.status || 'Pending')}
+                                </Badge>
+                             </div>
+                             
+                             <div className="flex items-center gap-3">
+                               {app.status === 'accepted' && (
+                                 <Button 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setActiveHandshakeJobId(app.job_id);
+                                    setShowHandshakeModal(true);
+                                  }} 
+                                  className="h-10 bg-primary text-white hover:brightness-110 shadow-lg shadow-primary/20 rounded-xl px-4 text-[10px] font-black tracking-widest uppercase flex items-center gap-2"
+                                 >
+                                   <ShieldCheck className="w-3.5 h-3.5" /> VERIFY CHECK-IN
+                                 </Button>
+                               )}
+                               {app.status !== 'accepted' && app.status !== 'rejected' && app.status !== 'in_progress' && (
+                                 <div className="flex gap-2">
+                                   <Button 
+                                    size="sm" 
+                                    onClick={() => updateApplicationStatus(app._id || app.id, 'accepted')} 
+                                    className="h-10 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 rounded-xl px-4 text-[10px] font-black tracking-widest uppercase"
+                                   >
+                                     APPROVE
+                                   </Button>
+                                   <Button 
+                                    size="sm" 
+                                    onClick={() => updateApplicationStatus(app._id || app.id, 'rejected')} 
+                                    className="h-10 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/20 rounded-xl px-4 text-[10px] font-black tracking-widest uppercase"
+                                   >
+                                     REJECT
+                                   </Button>
+                                 </div>
+                               )}
+                               <Button 
+                                 size="icon" 
+                                 variant="ghost" 
+                                 onClick={() => { setSelectedChatUserId(app.worker_id); setShowChat(true); }}
+                                 className="h-10 w-10 rounded-xl bg-white/5 hover:bg-primary/20 hover:text-primary transition-all active:scale-90"
+                               >
+                                 <MessageSquare className="w-5 h-5" />
                                </Button>
-                               <Button size="sm" onClick={() => updateApplicationStatus(app._id || app.id, 'rejected')} className="h-8 bg-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg px-4 text-[10px] font-bold tracking-widest uppercase">
-                                 REJECT
-                               </Button>
-                             </>
-                           )}
-                           <Button 
-                             size="icon" 
-                             variant="ghost" 
-                             onClick={() => { setSelectedChatUserId(app.worker_id); setShowChat(true); }}
-                             className="h-8 w-8 rounded-lg bg-white/5 hover:bg-primary/20 hover:text-primary"
-                           >
-                             <MessageSquare className="w-4 h-4" />
-                           </Button>
-                         </div>
-                       </motion.div>
+                             </div>
+                          </div>
+                        </motion.div>
                      )) : (
-                       <div className="py-20 text-center opacity-40">
-                         <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                         <p className="text-sm font-bold font-['Space_Grotesk'] uppercase tracking-[0.2em]">No Candidates Found</p>
-                       </div>
-                     )}
+                        <div className="py-20 text-center opacity-40">
+                          <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                          <p className="text-sm font-bold font-['Space_Grotesk'] uppercase tracking-[0.2em]">No Candidates Found</p>
+                        </div>
+                      )}
                   </div>
                </div>
              </motion.div>
@@ -638,80 +749,13 @@ const EmployerDashboard = () => {
       </main>
 
       {/* ─── CREATE MISSION DIALOG ─── */}
-      <Dialog open={showCreateJob} onOpenChange={setShowCreateJob}>
-        <DialogContent className="employer-theme max-w-2xl glass-card border-white/5 rounded-[3rem] p-12 backdrop-blur-3xl overflow-y-auto max-h-[90vh]">
-          <DialogHeader className="mb-10 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary/20">
-              <Zap className="w-8 h-8 text-primary" />
-            </div>
-            <DialogTitle className="text-4xl font-black font-['Space_Grotesk'] tracking-tighter uppercase mb-2">{t('initiate_mission')}</DialogTitle>
-            <DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-[0.3em] font-['Space_Grotesk']">{t('protocol_desc') || 'Operational Deployment Protocol'}</DialogDescription>
-          </DialogHeader>
+      {showCreateJob && (
+        <JobPostingWizard 
+          onComplete={() => { setShowCreateJob(false); fetchData(); }} 
+          onCancel={() => setShowCreateJob(false)} 
+        />
+      )}
 
-          <form onSubmit={handleCreateJob} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="md:col-span-2 space-y-3">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-2">{t('mission_designation')}</Label>
-              <div className="relative group">
-                <Input 
-                  className="h-16 pl-6 rounded-2xl bg-muted/30 border-white/5 focus:border-primary/50 text-lg font-['Space_Grotesk'] shadow-inner"
-                  placeholder="e.g. Masonry for Industrial Site #4"
-                  value={newJob.title}
-                  onChange={(e) => setNewJob({...newJob, title: e.target.value})}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-2">SPECIFIC SECTOR</Label>
-              <Select onValueChange={(v) => setNewJob({...newJob, category: v})}>
-                <SelectTrigger className="h-16 rounded-2xl bg-muted/30 border-white/5 focus:border-primary/50 text-lg font-['Space_Grotesk']">
-                  <SelectValue placeholder="DOMAIN SELECT" />
-                </SelectTrigger>
-                <SelectContent className="glass-card border-white/5">
-                  <SelectItem value="construction">CONSTRUCTION</SelectItem>
-                  <SelectItem value="logistics">LOGISTICS</SelectItem>
-                  <SelectItem value="agriculture">AGRICULTURE</SelectItem>
-                  <SelectItem value="hospitality">HOSPITALITY</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-2">BASE COMPENSATION</Label>
-              <div className="relative group">
-                <IndianRupee className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  type="number"
-                  className="h-16 pl-12 rounded-2xl bg-muted/30 border-white/5 focus:border-primary/50 text-lg font-['Space_Grotesk'] shadow-inner"
-                  placeholder="AMOUNT"
-                  value={newJob.pay_amount}
-                  onChange={(e) => setNewJob({...newJob, pay_amount: e.target.value})}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-2 space-y-3">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-2">MISSION PARAMETERS (DESCRIPTION)</Label>
-              <Textarea 
-                className="min-h-[140px] rounded-3xl bg-muted/30 border-white/5 focus:border-primary/50 p-6 text-lg"
-                placeholder="List technical requirements, equipment, and duration..."
-                value={newJob.description}
-                onChange={(e) => setNewJob({...newJob, description: e.target.value})}
-              />
-            </div>
-
-            <div className="md:col-span-2 flex gap-4 pt-4">
-              <Button type="button" variant="ghost" onClick={() => setShowCreateJob(false)} className="h-16 px-10 rounded-2xl font-bold uppercase tracking-widest opacity-60 hover:opacity-100">{t('abort') || 'Abort'}</Button>
-              <Button type="submit" className="flex-1 h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-lg font-['Space_Grotesk'] uppercase tracking-widest shadow-xl shadow-primary/20">
-                {t('deploy_broadcast')}
-                <Zap className="w-5 h-5 ml-3" />
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* ─── SIDE PANEL (Chat) ─── */}
       <AnimatePresence>
@@ -727,6 +771,24 @@ const EmployerDashboard = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── HANDSHAKE MODAL ─── */}
+      <Dialog open={showHandshakeModal} onOpenChange={setShowHandshakeModal}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-[#0D1117] border-white/5 rounded-[2.5rem] selection:bg-primary/30">
+          <DialogHeader className="p-8 pb-0">
+            <DialogTitle className="hidden">Secure Handshake</DialogTitle>
+            <DialogDescription className="hidden">Verify worker's proximity and presence at the mission site.</DialogDescription>
+          </DialogHeader>
+          <HandshakeControl 
+            role="employer" 
+            jobId={activeHandshakeJobId} 
+            onSuccess={() => {
+              setShowHandshakeModal(false);
+              fetchData();
+            }} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

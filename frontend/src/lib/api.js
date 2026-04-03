@@ -25,9 +25,10 @@ export const squadsApi = {
 
 // ==================== ESCROW & EARNINGS ====================
 export const escrowApi = {
-  lock: (data) => api.post('/escrow/lock', data),
-  release: (data) => api.post('/escrow/release', data),
-  getJobEscrows: (jobId) => api.get(`/escrow/job/${jobId}`),
+  get: (jobId) => api.get(`/payment/escrow/${jobId}`),
+  create: (data) => api.post('/payment/escrow/create', data),
+  release: (data) => api.post('/payment/escrow/release', data),
+  requestRelease: (data) => api.post('/payment/escrow/request-release', data),
 };
 
 export const earningsApi = {
@@ -65,12 +66,8 @@ export const offersApi = {
 // ==================== LIVE TRACKING ====================
 export const trackingApi = {
   updateLocation: (data) => api.post('/tracking/location', data),
-  getWorkerLocation: (jobId) => api.get(`/tracking/location/${jobId}`),
-  stopLocationSharing: (jobId) => api.post(`/tracking/location/${jobId}/stop`),
-  submitProgress: (data) => api.post('/tracking/progress', data),
-  getProgress: (jobId) => api.get(`/tracking/progress/${jobId}`),
-  markComplete: (jobId) => api.post(`/tracking/complete/${jobId}`),
-  approveCompletion: (jobId, workerId) => api.post(`/tracking/approve/${jobId}?worker_id=${workerId}`),
+  updateProgress: (data) => api.post('/tracking/progress', data),
+  getStatus: (jobId) => api.get(`/tracking/status/${jobId}`),
 };
 
 // ==================== PORTFOLIO ====================
