@@ -252,7 +252,17 @@ async def shram_chatbot(request: Request):
         
         return {"response": response.text}
     except Exception as e:
-        logger.error(f"Gemini API Error: {type(e).__name__} - {str(e)}")
+        err_str = str(e).lower()
+        logger.error(f"Gemini API Critical Failure: {type(e).__name__} - {str(e)}")
+        
+        # Specific friendly messages for common AI service errors
+        if "429" in err_str or "quota" in err_str or "exhausted" in err_str:
+            return {"response": "The AI Assistant is currently resting due to high demand. Please try again in a minute or two!"}
+        
+        if "api_key" in err_str or "invalid" in err_str or "permission" in err_str:
+            logger.critical("CHECK SYSTEM ENV: GEMINI_API_KEY appears invalid or restricted.")
+            return {"response": "I am experiencing some internal configuration issues. Please try again later while I fix them!"}
+            
         return {"response": "I'm having trouble connecting to my brain right now. Please try again later!"}
 
 

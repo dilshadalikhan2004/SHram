@@ -30,6 +30,7 @@ import WorkerJobDetail from './pages/worker/WorkerJobDetail';
 import WorkerBids from './pages/worker/WorkerBids';
 import WorkerWallet from './pages/worker/WorkerWallet';
 import WorkerProfile from './pages/worker/WorkerProfile';
+import WorkerEditProfile from './pages/worker/WorkerEditProfile';
 import WorkerHandshake from './pages/worker/WorkerHandshake';
 import WorkerPortfolio from './pages/worker/WorkerPortfolio';
 import WorkerNotifications from './pages/worker/WorkerNotifications';
@@ -176,6 +177,7 @@ function AppRoutes() {
           <Route path="bids" element={<WorkerBids />} />
           <Route path="wallet" element={<WorkerWallet />} />
           <Route path="profile" element={<WorkerProfile />} />
+          <Route path="profile/edit" element={<WorkerEditProfile />} />
           <Route path="handshake" element={<WorkerHandshake />} />
           <Route path="portfolio" element={<WorkerPortfolio />} />
           <Route path="notifications" element={<WorkerNotifications />} />
@@ -205,7 +207,6 @@ function AppRoutes() {
         {/* Catch all - worker redirects */}
         <Route path="/worker/dashboard" element={<Navigate to="/worker/home" replace />} />
         <Route path="/worker/profile/setup" element={<Navigate to="/worker/onboard" replace />} />
-        <Route path="/worker/profile/edit" element={<Navigate to="/worker/onboard" replace />} />
         <Route path="/worker/skills-assessment" element={<Navigate to="/worker/profile" replace />} />
         <Route
           path="/worker/profile/:id"

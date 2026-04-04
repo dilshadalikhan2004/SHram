@@ -182,7 +182,7 @@ const VoiceSearchButton = ({ onResult, className = '' }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center"
+            className="fixed inset-0 z-[60] flex items-center justify-center p-6 sm:p-0"
             style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
           >
             <div className="absolute inset-0 bg-black/60" onClick={isListening ? stopListening : undefined} />
@@ -192,7 +192,13 @@ const VoiceSearchButton = ({ onResult, className = '' }) => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.85, opacity: 0, y: 30 }}
               transition={{ type: 'spring', damping: 22, stiffness: 260 }}
-              className="relative z-10 w-[90vw] max-w-md rounded-2xl overflow-hidden"
+              className="relative z-10 w-[90vw] max-w-md rounded-2xl overflow-hidden cursor-pointer"
+              onClick={(e) => {
+                // Prevent clicks on secondary buttons from bubbling up if they already have handlers
+                if (isListening) {
+                  stopListening();
+                }
+              }}
               style={{
                 background: 'linear-gradient(135deg, rgba(30,30,50,0.95) 0%, rgba(20,20,40,0.98) 100%)',
                 border: '1px solid rgba(255,255,255,0.08)',

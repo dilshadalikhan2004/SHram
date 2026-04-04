@@ -83,6 +83,7 @@ const OTPVerification = ({ phoneNumber: initialPhone, onVerified, onCancel }) =>
 
     setLoading(true);
     try {
+      const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
       await api.post('/auth/verify-otp', { phone: formattedPhone, code });
       toast.success('Phone verified successfully! ✅');
       onVerified?.();

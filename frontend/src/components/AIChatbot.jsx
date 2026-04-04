@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, X, Send, User, Loader2, Sparkles } from 'lucide-react';
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+import api from '../lib/api';
 
 const AIChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +30,7 @@ const AIChatbot = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/api/chatbot`, { query: userMessage });
+      const response = await api.post('/chatbot', { query: userMessage });
       setMessages(prev => [...prev, { role: 'assistant', content: response.data.response }]);
     } catch (error) {
       console.error('Chatbot error:', error);
