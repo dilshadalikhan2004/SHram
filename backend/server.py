@@ -388,26 +388,96 @@ async def get_employer_stats(request: Request):
     user_id = await get_current_user_id(request)
     db = get_db()
 
+    # Base Metrics
     total_jobs_posted = await db.jobs.count_documents({"employer_id": user_id})
     active_hiring = await db.jobs.count_documents({"employer_id": user_id, "status": "open"})
-    total_hires = await db.applications.count_documents({
-        "status": {"$in": ["selected", "accepted", "completed"]}
-    })
-    # Filter hires to only this employer's jobs
-    employer_jobs = await db.jobs.find({"employer_id": user_id}, {"id": 1}).to_list(100)
-    employer_job_ids = [j.get("id") for j in employer_jobs]
+    
+    # Calculate total hires from employer's jobs
+    employer_jobs = await db.jobs.find({"employer_id": user_id}).to_list(None)
+    employer_job_ids = [j.get("id") or str(j.get("_id")) for j in employer_jobs]
+    
+    total_hires = 0
+    force_breakdown_raw = {}
+    
     if employer_job_ids:
-        total_hires = await db.applications.count_documents({
+        hires_cursor = db.applications.find({
             "job_id": {"$in": employer_job_ids},
             "status": {"$in": ["selected", "accepted", "completed"]}
         })
-    else:
-        total_hires = 0
+        async for app in hires_cursor:
+            total_hires += 1
+            # Build force breakdown map
+            job = next((j for j in employer_jobs if (j.get("id") or str(j.get("_id"))) == app.get("job_id")), None)
+            if job:
+                cat = job.get("category", "other").capitalize()
+                force_breakdown_raw[cat] = force_breakdown_raw.get(cat, 0) + 1
+    
+    # Pending Payments (Escrow simplified calculate: open jobs default required capital)
+    pending_payments = 0
+    for job in employer_jobs:
+        if job.get("status") in ["open", "active"]:
+            expected_escrow = ((job.get("salary_paise", 50000)) * (job.get("team_size", 1))) / 100
+            pending_payments += expected_escrow
+            
+    # Recent Activity Feed
+    recent_activity = []
+    # 1. Recent Applications
+    if employer_job_ids:
+        recent_apps = await db.applications.find({"job_id": {"$in": employer_job_ids}}).sort("applied_at", -1).limit(3).to_list(None)
+        for app in recent_apps:
+            job = next((j for j in employer_jobs if (j.get("id") or str(j.get("_id"))) == app.get("job_id")), None)
+            recent_activity.append({
+                "id": app.get("id") or str(app.get("_id")),
+                "type": "applicant",
+                "title": f"New Applicant: #{str(app.get('worker_id'))[:4]}",
+                "job": job.get("title") if job else "Unknown Mission",
+                "time": getattr(app.get("applied_at"), "isoformat", lambda: str(app.get("applied_at", "")))() if app.get("applied_at") else "Recently",
+                "status": "new",
+                "original_date": app.get("applied_at", datetime.min)
+            })
+
+    # Sort activity
+    recent_activity.sort(key=lambda x: x.get("original_date", datetime.min), reverse=True)
+    
+    # Convert force breakdown to sorted array format for UI
+    force_breakdown = []
+    colors = ['bg-primary', 'bg-orange-400', 'bg-amber-500', 'bg-emerald-500', 'bg-blue-400']
+    for idx, (label, count) in enumerate(force_breakdown_raw.items()):
+        force_breakdown.append({
+            "label": label,
+            "count": count,
+            "color": colors[idx % len(colors)]
+        })
+        
+    # AI Tactical Briefing
+    ai_insight = "Operational efficiency targets stabilized across active zones."
+    if total_hires > 0 or total_jobs_posted > 0:
+        try:
+            cur_ai_client = get_ai_client()
+            if cur_ai_client:
+                prompt = f"""
+                You are 'Shram Matrix', an AI logistics advisor. 
+                The employer currently has {active_hiring} open missions, {total_hires} total deployed personnel, and a pending payroll/escrow balance of ₹{pending_payments}.
+                Provide a single, short, tactical, professional piece of strategic advice (max 20 words) for their dashboard. Provide only the quote. Keep it immersive and slightly industrial/sci-fi themed.
+                """
+                response = cur_ai_client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+                if response and response.text:
+                    ai_insight = response.text.strip().replace('"', '')
+        except Exception as e:
+            pass # Use fallback
 
     return {
-        "total_jobs_posted": total_jobs_posted,
-        "active_hiring": active_hiring,
-        "total_hires": total_hires
+        "status": "success",
+        "data": {
+            "total_jobs_posted": total_jobs_posted,
+            "active_hiring": active_hiring,
+            "total_hires": total_hires,
+            "pending_payments": pending_payments,
+            "attendance_today": 96, # Placeholder for now as check-in logic isn't fully robust
+            "force_breakdown": force_breakdown,
+            "recent_activity": recent_activity[:4],
+            "ai_insight": ai_insight
+        }
     }
 
 # Include all sub-routers

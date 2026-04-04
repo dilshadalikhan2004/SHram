@@ -22,12 +22,15 @@ export const EmployerDataProvider = ({ children }) => {
   const [myJobs, setMyJobs] = useState([]);
   const [applicants, setApplicants] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     active_jobs: 0,
     total_hired: 0,
     pending_payments: 0,
-    attendance_today: 0
+    attendance_today: 0,
+    force_breakdown: [],
+    ai_insight: ""
   });
 
   // ── Data Fetching ──
@@ -39,11 +42,12 @@ export const EmployerDataProvider = ({ children }) => {
     const headers = { Authorization: `Bearer ${token}` };
 
     try {
-      const [profileRes, jobsRes, appsRes, notifRes] = await Promise.all([
+      const [profileRes, jobsRes, appsRes, notifRes, statsRes] = await Promise.all([
         axios.get(`${API_URL}/api/employer/profile`, { headers }).catch(() => ({ data: null })),
         axios.get(`${API_URL}/api/jobs/my-jobs`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/applications/employer`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/notifications`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API_URL}/api/stats/employer`, { headers }).catch(() => ({ data: null }))
       ]);
 
       setProfile(profileRes.data);
@@ -51,16 +55,30 @@ export const EmployerDataProvider = ({ children }) => {
       setApplicants(appsRes.data || []);
       setNotifications(notifRes.data || []);
 
-      // Calculate simple stats from fetched data
-      const activeJobs = (jobsRes.data || []).filter(j => j.status === 'open').length;
-      const hiredCount = (appsRes.data || []).filter(a => a.status === 'accepted' || a.status === 'selected').length;
-      
-      setStats({
-        active_jobs: activeJobs,
-        total_hired: hiredCount,
-        pending_payments: 0, // Placeholder
-        attendance_today: 0  // Placeholder
-      });
+      if (statsRes.data?.data) {
+          const sd = statsRes.data.data;
+          setStats({
+              active_jobs: sd.active_hiring || 0,
+              total_hired: sd.total_hires || 0,
+              pending_payments: sd.pending_payments || 0,
+              attendance_today: sd.attendance_today || 0,
+              force_breakdown: sd.force_breakdown || [],
+              ai_insight: sd.ai_insight || ""
+          });
+          setRecentActivity(sd.recent_activity || []);
+      } else {
+          // Fallback if stat endpoint fails
+          const activeJobs = (jobsRes.data || []).filter(j => j.status === 'open').length;
+          const hiredCount = (appsRes.data || []).filter(a => a.status === 'accepted' || a.status === 'selected').length;
+          setStats({
+            active_jobs: activeJobs,
+            total_hired: hiredCount,
+            pending_payments: 0,
+            attendance_today: 0,
+            force_breakdown: [],
+            ai_insight: "Real-time AI uplink unavailable."
+          });
+      }
 
     } catch (err) {
       toast.error(parseApiError(err, "Failed to sync employer dashboard"));
@@ -98,7 +116,7 @@ export const EmployerDataProvider = ({ children }) => {
   const unreadNotifications = notifications.filter(n => !n.is_read).length;
 
   const value = {
-    profile, myJobs, applicants, notifications, loading, stats,
+    profile, myJobs, applicants, notifications, recentActivity, loading, stats,
     fetchData, refreshData, getStatusColor, getApplicantStatusColor, unreadNotifications
   };
 

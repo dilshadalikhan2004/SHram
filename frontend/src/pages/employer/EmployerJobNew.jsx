@@ -166,19 +166,12 @@ const EmployerJobNew = () => {
                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 font-['Space_Grotesk']">Mission Location Precision</h3>
                  <MapPin className="w-4 h-4 text-primary/30" />
               </div>
-              <div className="h-[400px] w-full rounded-[2.5rem] overflow-hidden border-2 border-white/10 group relative shadow-inner">
+              <div className="w-full relative group">
                  <LocationPicker 
                    value={formData.location}
                    onChange={(address) => setFormData(f => ({ ...f, location: address }))}
                    onCoordinatesChange={(lat, lng) => setFormData(f => ({ ...f, latitude: lat, longitude: lng }))}
                  />
-                 {!formData.location && (
-                   <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
-                      <div className="bg-primary/10 border border-primary/30 px-6 py-3 rounded-full text-primary text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl">
-                         Pin Geographic Mission Coordinates
-                      </div>
-                   </div>
-                 )}
               </div>
            </div>
         </div>

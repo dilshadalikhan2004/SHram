@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 const EmployerHome = () => {
   const navigate = useNavigate();
-  const { stats, loading, myJobs, applicants } = useEmployerData();
+  const { stats, loading, myJobs, applicants, recentActivity } = useEmployerData();
 
   if (loading) {
     return (
@@ -29,13 +29,6 @@ const EmployerHome = () => {
     { label: 'Deployed Force', value: stats.total_hired, icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
     { label: 'Pending Payouts', value: `₹${stats.pending_payments}`, icon: Zap, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
     { label: 'Attendance', value: `${stats.attendance_today}%`, icon: UserCheck, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-  ];
-
-  const recentActivity = [
-    { id: 1, type: 'applicant', title: '5 New Tilers Applied', job: 'Noida Luxury Residences', time: '12m ago', status: 'new' },
-    { id: 2, type: 'payment', title: 'Escrow Released', job: 'Gurgaon Metro Phase 2', time: '1h ago', status: 'confirmed' },
-    { id: 3, type: 'attendance', title: 'Daily Check-in Complete', job: 'Multiple Sites', time: '3h ago', status: 'done' },
-    { id: 4, type: 'alert', title: '3 Workers Churning', job: 'Borivali Express Hub', time: '5h ago', status: 'critical' },
   ];
 
   return (
@@ -119,27 +112,33 @@ const EmployerHome = () => {
              <Button variant="ghost" className="rounded-xl font-black text-[10px] tracking-widest text-primary uppercase">Archives <ChevronRight className="w-4 h-4 ml-1" /></Button>
           </CardHeader>
           <CardContent className="px-10 pb-10 space-y-4">
-             {recentActivity.map((activity, i) => (
-                <div key={activity.id} className="p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-white/10 transition-all flex items-center justify-between group/item">
-                  <div className="flex items-center gap-6">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover/item:scale-110 group-hover/item:rotate-3 ${
-                      activity.status === 'critical' ? 'bg-rose-500/20 text-rose-500 border border-rose-500/20' : 
-                      activity.status === 'new' ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20'
-                    }`}>
-                      {activity.type === 'alert' ? <AlertCircle className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
-                    </div>
-                    <div>
-                      <h4 className="font-black font-['Space_Grotesk'] text-lg uppercase tracking-tight">{activity.title}</h4>
-                      <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">
-                        <span className="text-primary italic">{activity.job}</span>
-                        <span>•</span>
-                        <span>{activity.time}</span>
+             {recentActivity && recentActivity.length > 0 ? (
+                 recentActivity.map((activity, i) => (
+                    <div key={activity.id || i} className="p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-white/10 transition-all flex items-center justify-between group/item">
+                      <div className="flex items-center gap-6">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover/item:scale-110 group-hover/item:rotate-3 ${
+                          activity.status === 'critical' ? 'bg-rose-500/20 text-rose-500 border border-rose-500/20' : 
+                          activity.status === 'new' ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20'
+                        }`}>
+                          {activity.type === 'alert' ? <AlertCircle className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
+                        </div>
+                        <div>
+                          <h4 className="font-black font-['Space_Grotesk'] text-lg uppercase tracking-tight">{activity.title}</h4>
+                          <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                            <span className="text-primary italic">{activity.job}</span>
+                            <span>•</span>
+                            <span>{activity.time}</span>
+                          </div>
+                        </div>
                       </div>
+                      <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover/item:opacity-100 transition-opacity"><ArrowUpRight className="w-5 h-5 text-primary" /></Button>
                     </div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover/item:opacity-100 transition-opacity"><ArrowUpRight className="w-5 h-5 text-primary" /></Button>
+                 ))
+             ) : (
+                <div className="text-center py-10 text-muted-foreground/40 text-xs font-black uppercase tracking-widest">
+                    No recent signals detected.
                 </div>
-             ))}
+             )}
           </CardContent>
         </Card>
 
@@ -155,10 +154,10 @@ const EmployerHome = () => {
               </div>
               <div className="space-y-4">
                  <p className="text-sm font-bold text-foreground leading-relaxed italic">
-                   "Operational efficiency is dropping in 2 units. I recommend increasing the daily rate in <span className="text-primary font-black uppercase underline decoration-2 underline-offset-4 cursor-pointer">Sector 4</span> to re-attract verified laborers."
+                   "{stats.ai_insight || 'Syncing tactical assessment...'}"
                  </p>
                  <Button className="w-full h-12 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-xl overflow-hidden group-hover:scale-[1.02] transition-transform">
-                    Execute Optimization
+                    Acknowledge Signal
                  </Button>
               </div>
            </div>
@@ -169,26 +168,31 @@ const EmployerHome = () => {
                  <Users className="w-4 h-4 text-muted-foreground/20" />
               </div>
               <div className="space-y-6">
-                 {[
-                   { label: 'Masonry', count: 42, color: 'bg-primary' },
-                   { label: 'Electrical', count: 28, color: 'bg-orange-400' },
-                   { label: 'Plumbing', count: 15, color: 'bg-amber-500' }
-                 ].map((unit, i) => (
-                    <div key={i} className="space-y-2">
-                       <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                          <span>{unit.label} ({unit.count})</span>
-                          <span className="text-muted-foreground/40">{Math.round((unit.count / 85) * 100)}%</span>
-                       </div>
-                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(unit.count / 85) * 100}%` }}
-                            transition={{ duration: 1.5, delay: 0.5 + i * 0.2 }}
-                            className={`h-full ${unit.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}
-                          />
-                       </div>
+                 {stats.force_breakdown && stats.force_breakdown.length > 0 ? (
+                     stats.force_breakdown.map((unit, i) => {
+                        const totalForce = stats.force_breakdown.reduce((acc, curr) => acc + curr.count, 0);
+                        const pct = Math.round((unit.count / (totalForce || 1)) * 100);
+                        return (
+                        <div key={i} className="space-y-2">
+                           <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                              <span>{unit.label} ({unit.count})</span>
+                              <span className="text-muted-foreground/40">{pct}%</span>
+                           </div>
+                           <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ duration: 1.5, delay: 0.5 + i * 0.2 }}
+                                className={`h-full ${unit.color || 'bg-primary'} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}
+                              />
+                           </div>
+                        </div>
+                     )})
+                 ) : (
+                    <div className="text-center py-6 text-muted-foreground/40 text-xs font-black uppercase tracking-widest">
+                        No active deployments mapped.
                     </div>
-                 ))}
+                 )}
               </div>
            </Card>
         </div>

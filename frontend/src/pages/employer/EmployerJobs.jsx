@@ -26,8 +26,8 @@ const EmployerJobs = () => {
       <div className="flex flex-col md:flex-row justify-between gap-6">
         <div className="space-y-4 flex-1">
           <div className="flex items-center gap-3">
-             <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 ${job.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted/10 text-muted-foreground'}`}>
-                {job.status || 'ACTIVE'}
+             <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 ${job.status === 'active' || job.status === 'open' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted/10 text-muted-foreground'}`}>
+                {job.status === 'open' ? 'ACTIVE' : (job.status || 'ACTIVE')}
              </div>
              {job.is_urgent && <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-orange-500"><Zap className="w-3 h-3 fill-orange-500" /> Urgent</div>}
           </div>
@@ -89,10 +89,10 @@ const EmployerJobs = () => {
         </div>
 
         <TabsContent value="active" className="space-y-6 pt-0">
-           {myJobs.filter(j => j.status === 'active' || !j.status).map(job => (
+           {myJobs.filter(j => j.status === 'active' || j.status === 'open' || !j.status).map(job => (
               <JobCard key={job._id} job={job} />
            ))}
-           {myJobs.filter(j => j.status === 'active' || !j.status).length === 0 && (
+           {myJobs.filter(j => j.status === 'active' || j.status === 'open' || !j.status).length === 0 && (
               <div className="p-20 text-center rounded-[3rem] border-2 border-dashed border-white/5 bg-white/5">
                  <Briefcase className="w-12 h-12 text-muted-foreground/10 mx-auto mb-4" />
                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/20 italic">No Active Deployments Detected</p>

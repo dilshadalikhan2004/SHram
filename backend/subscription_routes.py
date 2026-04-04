@@ -31,14 +31,34 @@ async def create_checkout(req: CheckoutRequest, request: Request):
             # Bypass stripe for mock mode if keys aren't fully configured
             return {"url": f"{frontend_url}/employer/subscription?status=success_mock"}
 
+        # Dynamically build price data so we don't need real Price IDs in dashboard for prototyping
+        price_data = None
+        if req.priceId == "price_basic_499":
+            price_data = {
+                "currency": "inr",
+                "product_data": {"name": "Basic Profile Plan"},
+                "unit_amount": 49900, # Paise
+                "recurring": {"interval": "month"}
+            }
+        elif req.priceId == "price_pro_1499":
+            price_data = {
+                "currency": "inr",
+                "product_data": {"name": "Pro Profile Plan"},
+                "unit_amount": 149900, # Paise
+                "recurring": {"interval": "month"}
+            }
+            
+        line_item = {'quantity': 1}
+        if price_data:
+            line_item['price_data'] = price_data
+        else:
+            line_item['price'] = req.priceId
+
         # 2. Create Stripe Checkout Session
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             customer_email=profile.get("email"),
-            line_items=[{
-                'price': req.priceId,
-                'quantity': 1,
-            }],
+            line_items=[line_item],
             mode='subscription',
             success_url=f"{frontend_url}/employer/subscription?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/employer/subscription?status=canceled",
