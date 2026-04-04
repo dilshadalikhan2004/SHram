@@ -28,7 +28,7 @@ class UserCreate(BaseModel):
 
 # --- PROFILE MODELS ---
 class WorkerProfile(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
     full_name: str = "Worker"
     skills: List[Any] = []
     experience_years: float = 0
@@ -55,7 +55,7 @@ class WorkerProfile(BaseModel):
         extra = "allow"
 
 class EmployerProfile(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
     company_name: Optional[str] = None
     company_type: Optional[str] = None
     location: Optional[str] = None

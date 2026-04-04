@@ -28,7 +28,7 @@ const EmployerHome = () => {
     { label: 'Active Missions', value: stats.active_jobs, icon: Briefcase, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
     { label: 'Deployed Force', value: stats.total_hired, icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
     { label: 'Pending Payouts', value: `₹${stats.pending_payments}`, icon: Zap, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
-    { label: 'Attendance', value: `${stats.attendance_today}%`, icon: UserCheck, color: 'text-cyan-500', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
+    { label: 'Attendance', value: `${stats.attendance_today}%`, icon: UserCheck, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
   ];
 
   const recentActivity = [
@@ -171,8 +171,8 @@ const EmployerHome = () => {
               <div className="space-y-6">
                  {[
                    { label: 'Masonry', count: 42, color: 'bg-primary' },
-                   { label: 'Electrical', count: 28, color: 'bg-blue-400' },
-                   { label: 'Plumbing', count: 15, color: 'bg-cyan-500' }
+                   { label: 'Electrical', count: 28, color: 'bg-orange-400' },
+                   { label: 'Plumbing', count: 15, color: 'bg-amber-500' }
                  ].map((unit, i) => (
                     <div key={i} className="space-y-2">
                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">

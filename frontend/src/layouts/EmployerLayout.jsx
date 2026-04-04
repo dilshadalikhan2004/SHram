@@ -56,12 +56,12 @@ const EmployerLayoutInner = () => {
     }`;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] text-foreground selection:bg-primary/30 precision-grid font-['Manrope'] relative">
+    <div className="min-h-screen bg-[#0A0A0B] text-foreground selection:bg-orange-500/30 precision-grid font-['Manrope'] relative employer-theme">
       
       {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20 z-0 overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-500/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-500/10 blur-[120px] rounded-full" />
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5" />
       </div>
 
@@ -74,7 +74,7 @@ const EmployerLayoutInner = () => {
             className="flex items-center gap-4 cursor-pointer"
             onClick={() => navigate('/employer/home')}
           >
-            <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-400 to-cyan-500 font-['Space_Grotesk'] tracking-tighter uppercase">
+            <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary via-orange-400 to-amber-500 font-['Space_Grotesk'] tracking-tighter uppercase">
               ShramSetu
             </span>
             <div className="h-6 w-px bg-white/10 hidden md:block" />

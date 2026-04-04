@@ -16,6 +16,7 @@ const WorkerEditProfile = () => {
   const { profile, categories, fetchData, loading } = useWorkerData();
   
   const [formData, setFormData] = useState({
+    user_id: '',
     full_name: '',
     bio: '',
     skills: [],
@@ -30,6 +31,7 @@ const WorkerEditProfile = () => {
   useEffect(() => {
     if (profile) {
       setFormData({
+        user_id: profile.user_id || user?.id || user?.user_id || '',
         full_name: profile.full_name || user?.full_name || '',
         bio: profile.bio || '',
         skills: profile.skills || [],

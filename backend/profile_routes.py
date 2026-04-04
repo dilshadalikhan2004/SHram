@@ -104,15 +104,18 @@ async def get_public_worker_profile(target_user_id: str):
 async def update_worker_profile(profile_in: WorkerProfile, request: Request):
     user_id = await get_current_user_id(request)
     db = get_db()
-    # Ensure user_id matches
-    if profile_in.user_id != user_id:
-         raise HTTPException(status_code=403, detail="Forbidden")
+    
+    # Set user_id from token to ensure correctness
+    profile_data = profile_in.dict()
+    profile_data["user_id"] = user_id
          
     await db.worker_profiles.update_one(
         {"user_id": user_id},
-        {"$set": profile_in.dict()},
+        {"$set": profile_data},
         upsert=True
     )
+    # Return the merged data
+    profile_in.user_id = user_id
     return profile_in
 
 class StatusUpdate(BaseModel):
@@ -143,15 +146,18 @@ async def get_employer_profile(request: Request):
 async def update_employer_profile(profile_in: EmployerProfile, request: Request):
     user_id = await get_current_user_id(request)
     db = get_db()
-    # Ensure user_id matches
-    if profile_in.user_id != user_id:
-         raise HTTPException(status_code=403, detail="Forbidden")
+    
+    # Set user_id from token to ensure correctness
+    profile_data = profile_in.dict()
+    profile_data["user_id"] = user_id
          
     await db.employer_profiles.update_one(
         {"user_id": user_id},
-        {"$set": profile_in.dict()},
+        {"$set": profile_data},
         upsert=True
     )
+    # Return the merged data
+    profile_in.user_id = user_id
     return profile_in
 
 @profile_router.post("/worker/track-view")

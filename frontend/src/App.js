@@ -55,6 +55,14 @@ import EmployerHome from './pages/employer/EmployerHome';
 import EmployerJobs from './pages/employer/EmployerJobs';
 import EmployerJobNew from './pages/employer/EmployerJobNew';
 import EmployerJobDetail from './pages/employer/EmployerJobDetail';
+import EmployerWorkers from './pages/employer/EmployerWorkers';
+import EmployerSquads from './pages/employer/EmployerSquads';
+import EmployerPayroll from './pages/employer/EmployerPayroll';
+import EmployerContracts from './pages/employer/EmployerContracts';
+import EmployerCompliance from './pages/employer/EmployerCompliance';
+import EmployerAnalyticsPage from './pages/employer/EmployerAnalyticsPage';
+import EmployerNotifications from './pages/employer/EmployerNotifications';
+import EmployerSettings from './pages/employer/EmployerSettings';
 
 // Employer Onboarding Pages
 import OnboardCompanyEmpl from './pages/employer/onboard/OnboardCompany';
@@ -232,14 +240,14 @@ function AppRoutes() {
           <Route path="jobs/new" element={<EmployerJobNew />} />
           <Route path="jobs/:id" element={<EmployerJobDetail />} />
           {/* Future routes: workers, payroll, etc. map to EmployerHome or MVP pages for now */}
-          <Route path="workers" element={<EmployerHome />} />
-          <Route path="squads" element={<EmployerHome />} />
-          <Route path="payroll" element={<EmployerHome />} />
-          <Route path="contracts" element={<EmployerHome />} />
-          <Route path="compliance" element={<EmployerHome />} />
-          <Route path="analytics" element={<EmployerHome />} />
-          <Route path="notifications" element={<EmployerHome />} />
-          <Route path="settings" element={<EmployerHome />} />
+          <Route path="workers" element={<EmployerWorkers />} />
+          <Route path="squads" element={<EmployerSquads />} />
+          <Route path="payroll" element={<EmployerPayroll />} />
+          <Route path="contracts" element={<EmployerContracts />} />
+          <Route path="compliance" element={<EmployerCompliance />} />
+          <Route path="analytics" element={<EmployerAnalyticsPage />} />
+          <Route path="notifications" element={<EmployerNotifications />} />
+          <Route path="settings" element={<EmployerSettings />} />
         </Route>
 
         {/* Employer Onboarding (Linear) */}
