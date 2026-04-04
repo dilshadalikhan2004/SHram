@@ -4,7 +4,7 @@ import {
   Sparkles, Briefcase, MapPin, Users, 
   IndianRupee, CheckCircle, Zap, Calendar, 
   Clock, ArrowRight, MessageSquare, AlertCircle,
-  ChevronRight, ArrowLeft, Send, Trash2, Edit3
+  ChevronRight, ArrowLeft, Send, Trash2, Edit3, ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';

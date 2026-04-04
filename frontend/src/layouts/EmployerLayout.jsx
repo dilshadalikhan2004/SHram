@@ -11,7 +11,7 @@ import AIChatbot from '../components/AIChatbot';
 import {
   LayoutDashboard, Briefcase, Users, Wallet, 
   Settings, Bell, MessageSquare, LogOut, 
-  Search, PlusCircle, ShieldCheck, PieChart,
+  Search, PlusCircle, ShieldCheck, PieChart, Crown,
   ChevronRight, Menu, X, FileText, BadgeCheck
 } from 'lucide-react';
 
@@ -44,12 +44,13 @@ const EmployerLayoutInner = () => {
         { to: '/employer/contracts', icon: FileText, label: 'Digital Contracts' },
         { to: '/employer/compliance', icon: ShieldCheck, label: 'Compliance Hub' },
         { to: '/employer/analytics', icon: PieChart, label: 'Live Analytics' },
+        { to: '/employer/subscription', icon: Crown, label: 'Upgrades & Billing' },
       ]
     }
   ];
 
   const sidebarClass = ({ isActive }) =>
-    `flex items-center gap-4 px-5 py-4 rounded-2xl w-full transition-all text-left group relative overflow-hidden ${
+    `flex items-center ${isSidebarOpen ? 'gap-4 px-5 justify-start' : 'justify-center px-0'} py-4 rounded-2xl w-full transition-all group relative overflow-hidden ${
       isActive
         ? 'bg-primary/10 text-primary shadow-lg shadow-primary/5 border border-primary/20'
         : 'text-muted-foreground/60 hover:bg-white/5 hover:text-foreground border border-transparent'
@@ -93,13 +94,7 @@ const EmployerLayoutInner = () => {
             />
           </div>
 
-          <Button 
-            onClick={() => navigate('/employer/jobs/new')}
-            className="hidden sm:flex h-10 px-5 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase tracking-widest gap-2 shadow-xl shadow-primary/20"
-          >
-            <PlusCircle className="w-4 h-4" />
-            Deploy Mission
-          </Button>
+          {/* Removed redundant Deploy Mission button */}
 
           <div className="flex items-center gap-2 h-10 px-1 rounded-xl bg-muted/20 border border-white/5">
             <button onClick={() => setShowChat(!showChat)} className="relative p-2 rounded-lg transition-all hover:bg-primary/10 group">
@@ -121,10 +116,10 @@ const EmployerLayoutInner = () => {
       </header>
 
       {/* SIDEBAR */}
-      <aside className={`fixed left-0 top-0 h-full z-40 transition-all duration-500 bg-background/50 border-r border-white/5 backdrop-blur-md flex flex-col pt-28 pb-10 px-6 ${isSidebarOpen ? 'w-80' : 'w-24'}`}>
+      <aside className={`fixed left-0 top-0 h-full z-40 transition-all duration-500 bg-background/50 border-r border-white/5 backdrop-blur-md flex flex-col pt-28 pb-10 ${isSidebarOpen ? 'w-80 px-6' : 'w-24 px-3 items-center'}`}>
         <div className="mb-4 px-2" />
 
-        <nav className="flex-1 space-y-8 overflow-y-auto pr-2 custom-scrollbar">
+        <nav className="flex-1 w-full space-y-8 overflow-y-auto custom-scrollbar overflow-x-hidden">
           {navGroups.map((group, idx) => (
             <div key={idx} className="space-y-3">
               {isSidebarOpen && (
@@ -168,7 +163,7 @@ const EmployerLayoutInner = () => {
            )}
            <Button 
             variant="ghost" 
-            className="w-full justify-start gap-4 px-5 text-muted-foreground hover:text-foreground group"
+            className={`w-full ${isSidebarOpen ? 'justify-start px-5' : 'justify-center px-0'} gap-4 text-muted-foreground hover:text-foreground group`}
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
            >
              <Menu className="w-5 h-5 group-hover:rotate-180 transition-transform" />

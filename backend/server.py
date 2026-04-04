@@ -37,6 +37,7 @@ from portfolio_routes import portfolio_router
 from verification_routes import verification_router
 from offer_routes import offer_router
 from reputation_routes import reputation_router
+from subscription_routes import subscription_router
 from cloudinary_utils import upload_to_cloudinary
 from google import genai
 import google.generativeai as legacy_genai # Keeping as fallback if needed elsewhere temporarily
@@ -425,6 +426,7 @@ api_router.include_router(portfolio_router)
 api_router.include_router(verification_router)
 api_router.include_router(offer_router)
 api_router.include_router(reputation_router)
+api_router.include_router(subscription_router)
 
 # WebSocket Connection Manager
 class ConnectionManager:

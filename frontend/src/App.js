@@ -63,6 +63,7 @@ import EmployerCompliance from './pages/employer/EmployerCompliance';
 import EmployerAnalyticsPage from './pages/employer/EmployerAnalyticsPage';
 import EmployerNotifications from './pages/employer/EmployerNotifications';
 import EmployerSettings from './pages/employer/EmployerSettings';
+import EmployerSubscription from './pages/employer/EmployerSubscription';
 
 // Employer Onboarding Pages
 import OnboardCompanyEmpl from './pages/employer/onboard/OnboardCompany';
@@ -248,6 +249,7 @@ function AppRoutes() {
           <Route path="analytics" element={<EmployerAnalyticsPage />} />
           <Route path="notifications" element={<EmployerNotifications />} />
           <Route path="settings" element={<EmployerSettings />} />
+          <Route path="subscription" element={<EmployerSubscription />} />
         </Route>
 
         {/* Employer Onboarding (Linear) */}
