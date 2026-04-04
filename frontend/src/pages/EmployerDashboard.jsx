@@ -30,6 +30,7 @@ import LocationPicker from '../components/LocationPicker';
 import JobPostingWizard from '../components/JobPostingWizard';
 import HandshakeControl from '../components/HandshakeControl';
 import LiveMissionTracker from '../components/LiveMissionTracker';
+import AIChatbot from '../components/AIChatbot';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
 } from '../components/ui/dialog';
@@ -91,6 +92,11 @@ const EmployerDashboard = () => {
     is_asap: false,
     broadcast_radius: 5
   });
+
+  const getPhotoUrl = (path) => { 
+    if (!path) return null; 
+    return path.startsWith('http') ? path : `${API_URL}/api/files/${path}`; 
+  };
 
   useEffect(() => {
     document.title = t('hq_title');
@@ -240,13 +246,7 @@ const EmployerDashboard = () => {
 
       {/* ─── SIDEBAR ─── */}
       <aside className={`fixed left-0 top-0 h-full z-40 flex flex-col pt-28 pb-10 px-6 bg-background/80 dark:bg-[#0A0A0B]/80 border-r border-white/5 dark:border-white/5 border-black/5 backdrop-blur-3xl transition-all duration-500 ${isSidebarOpen ? 'w-72' : 'w-24'}`}>
-        <div className="mb-12 px-2">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_12px_rgba(var(--primary-rgb),0.8)]" />
-            <h3 className={`text-[10px] uppercase font-black tracking-[0.4em] text-primary font-['Space_Grotesk'] transition-opacity duration-300 ${!isSidebarOpen && 'opacity-0'}`}>{t('dashboard')}</h3>
-          </div>
-          <p className={`text-[9px] uppercase tracking-[0.3em] text-muted-foreground/30 font-bold transition-opacity duration-300 ${!isSidebarOpen && 'opacity-0'}`}>{t('active_session')}</p>
-        </div>
+        <div className="mb-4 px-2" />
 
         <nav className="space-y-3 flex-1">
           {sidebarItems.map(item => (
@@ -568,7 +568,7 @@ const EmployerDashboard = () => {
                                </div>
                             )}
                             <Avatar className="w-14 h-14 border-2 border-white/5 cursor-pointer shadow-lg shadow-black/20" onClick={() => navigate(`/worker/profile/${app.worker_id}`)}>
-                              <AvatarImage src={app.worker_profile?.avatar_url} />
+                              <AvatarImage src={getPhotoUrl(app.worker_profile?.avatar_url || app.worker_profile?.profile_photo)} />
                               <AvatarFallback className="bg-primary/10 text-primary font-bold">WK</AvatarFallback>
                             </Avatar>
                             <div className="flex-grow">
@@ -587,12 +587,26 @@ const EmployerDashboard = () => {
                                 {app.job?.title || 'Active Transmission'}
                               </p>
                               
-                              <div className="flex items-start gap-3 bg-slate-950/40 p-3 rounded-xl border border-white/5 max-w-lg">
-                                 <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                 <p className="text-[10px] text-muted-foreground/80 font-medium leading-relaxed italic">
-                                    {app.ai_insights || "Gemini 1.5 is cross-referencing worker profile with mission requirements..."}
-                                 </p>
-                              </div>
+                               <div className="flex flex-col gap-2 mt-4 max-w-lg">
+                                 {app.bid_amount_paise && app.bid_amount_paise !== app.job?.salary_paise && (
+                                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 w-fit">
+                                     <IndianRupee className="w-3.5 h-3.5 text-amber-500" />
+                                     <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Custom Bid: ₹{app.bid_amount_paise / 100}</span>
+                                   </div>
+                                 )}
+                                 <div className="flex items-start gap-3 bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                                    <MessageSquare className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-muted-foreground font-medium leading-relaxed italic">
+                                       {app.proposal_message || "No custom protocol message provided."}
+                                    </p>
+                                 </div>
+                                 <div className="flex items-start gap-3 bg-primary/5 p-3 rounded-xl border border-primary/10">
+                                    <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-primary/80 font-medium leading-relaxed">
+                                       {app.ai_insights || "Gemini 1.5 is cross-referencing worker profile..."}
+                                    </p>
+                                 </div>
+                               </div>
                             </div>
                           </div>
                           
@@ -789,6 +803,9 @@ const EmployerDashboard = () => {
           />
         </DialogContent>
       </Dialog>
+      
+      {/* ─── AI CHATBOT ─── */}
+      <AIChatbot />
     </div>
   );
 };

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List, Optional
 from datetime import datetime
 import uuid
-from database import get_db
+from database import get_db, mongo_to_dict, mongo_list_to_dict
 from models import Application, ApplicationUpdate
 
 from auth_utils import get_current_user_id
@@ -33,14 +33,13 @@ async def create_application(payload: dict, request: Request):
     # --- AI MATCHING: Gemini Fit Analysis ---
     if job and worker:
         try:
-            import google.generativeai as genai
+            from google import genai
             import os
             import json
             
             GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
             if GEMINI_KEY:
-                genai.configure(api_key=GEMINI_KEY)
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                client = genai.Client(api_key=GEMINI_KEY)
                 
                 prompt = f"""
                 Compare this Worker Profile with the Job Description.
@@ -51,7 +50,11 @@ async def create_application(payload: dict, request: Request):
                 "score": 0.0 to 1.0 (float reflecting fit),
                 "insight": "One concise sentence explaining why they match or what they miss."
                 """
-                response = model.generate_content(prompt)
+                
+                response = client.models.generate_content(
+                    model="gemini-1.5-flash",
+                    contents=prompt
+                )
                 clean_text = response.text.strip()
                 if "```json" in clean_text:
                     clean_text = clean_text.split("```json")[1].split("```")[0].strip()
@@ -69,8 +72,10 @@ async def create_application(payload: dict, request: Request):
         worker_id=user_id,
         match_score=match_score,
         ai_insights=ai_insights,
-        counter_offer_paise=payload.get("counter_offer_paise"),
-        offer_status="countered" if payload.get("counter_offer_paise") else "pending",
+        bid_amount_paise=payload.get("bid_amount_paise"),
+        proposal_message=payload.get("proposal_message"),
+        counter_offer_paise=payload.get("counter_offer_paise") or payload.get("bid_amount_paise"),
+        offer_status="countered" if payload.get("bid_amount_paise") or payload.get("counter_offer_paise") else "pending",
         quick_apply=payload.get("quick_apply", False)
     )
     
@@ -115,7 +120,7 @@ async def get_worker_applications(request: Request):
         if job:
             app["job"] = job
             
-    return apps
+    return mongo_list_to_dict(apps)
 
 @app_router.get("/job/{job_id}", response_model=List[dict])
 async def get_job_applications(job_id: str, request: Request):
@@ -136,7 +141,7 @@ async def get_job_applications(job_id: str, request: Request):
         if profile:
             app["worker_profile"] = profile
             
-    return apps
+    return mongo_list_to_dict(apps)
 
 @app_router.get("/employer", response_model=List[dict])
 async def get_employer_applications(request: Request):

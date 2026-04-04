@@ -11,10 +11,11 @@ from escrow_models import EscrowAccount, CreateEscrowRequest, TargetEscrowReleas
 payment_api_router = APIRouter(prefix="/payment", tags=["payment"])
 
 from auth_utils import get_current_user_id
+from database import get_db
 
 @payment_api_router.get("/escrow/{job_id}")
 async def get_escrow(job_id: str, request: Request):
-    from server import db
+    db = get_db()
     escrow = await db.escrows.find_one({"job_id": job_id})
     if not escrow:
         raise HTTPException(status_code=404, detail="Escrow not found")
@@ -24,9 +25,9 @@ async def get_escrow(job_id: str, request: Request):
 async def create_escrow(req: CreateEscrowRequest, request: Request):
     user_id = await get_current_user_id(request)
     db = request.app.state.db if hasattr(request.app.state, 'db') else None # Will be mocked/injected in server.py
-    if not db:
+    if db is None:
         # Fallback to importing server.db if needed
-        from server import db
+        db = get_db()
     
     # Verify employer
     job = await db.jobs.find_one({"id": req.jobId})
@@ -52,7 +53,7 @@ async def create_escrow(req: CreateEscrowRequest, request: Request):
         amount_paise=breakdown["gross_amount_paise"],
         platform_fee_paise=breakdown["platform_fee_paise"],
         net_to_worker_paise=breakdown["net_to_worker_paise"],
-        status="ESCROWED",  # Set to ESCROWED immediately for mock/manual securing
+        status="ESCROWED",  # Sandbox bypass: Automatically set to ESCROWED instead of PENDING
         razorpay_order_id=mock_order_id,
         deposited_at=datetime.utcnow()
     )
@@ -61,11 +62,31 @@ async def create_escrow(req: CreateEscrowRequest, request: Request):
     
     return {"escrow": new_escrow.dict(), "razorpayOrderId": mock_order_id}
 
+@payment_api_router.post("/escrow/webhook/razorpay")
+async def razorpay_webhook(request: Request):
+    db = request.app.state.db if hasattr(request.app.state, 'db') else None
+    if db is None:
+        db = get_db()
+    
+    payload = await request.json()
+    # In production: Verify razorpay_signature using RAZORPAY_KEY_SECRET here
+    
+    event = payload.get("event")
+    if event == "payment.captured":
+        order_id = payload["payload"]["payment"]["entity"]["order_id"]
+        # Fills in ESCROWED state automatically
+        await db.escrows.update_one(
+            {"razorpay_order_id": order_id},
+            {"$set": {"status": "ESCROWED", "deposited_at": datetime.utcnow()}}
+        )
+    return {"status": "ok"}
+
+
 
 @payment_api_router.post("/escrow/request-release")
 async def request_release(req: NoShowConfirmRequest, request: Request):
     user_id = await get_current_user_id(request)
-    from server import db
+    db = get_db()
     
     # Verify worker
     job = await db.jobs.find_one({"id": req.jobId})
@@ -109,7 +130,7 @@ async def request_release(req: NoShowConfirmRequest, request: Request):
 @payment_api_router.post("/escrow/release")
 async def release_escrow(req: TargetEscrowRelease, request: Request):
     user_id = await get_current_user_id(request)
-    from server import db
+    db = get_db()
     
     job = await db.jobs.find_one({"id": req.jobId})
     if not job:
@@ -134,7 +155,7 @@ async def release_escrow(req: TargetEscrowRelease, request: Request):
 @payment_api_router.post("/no-show/confirm")
 async def confirm_no_show(req: NoShowConfirmRequest, request: Request):
     user_id = await get_current_user_id(request)
-    from server import db
+    db = get_db()
     
     job = await db.jobs.find_one({"id": req.jobId})
     if not job:

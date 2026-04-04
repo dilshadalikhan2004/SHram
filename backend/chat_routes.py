@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List, Dict, Any
-from database import get_db
+from database import get_db, mongo_to_dict, mongo_list_to_dict
 from auth_utils import get_current_user_id
 from models import ChatMessage
 from datetime import datetime
@@ -90,17 +90,18 @@ async def get_messages(other_user_id: str, request: Request):
         ]
     }).sort("timestamp", 1).to_list(length=500)
     
-    # Format for frontend
-    for msg in messages:
-        if "_id" in msg:
-            msg["_id"] = str(msg["_id"])
-        if "timestamp" in msg and isinstance(msg["timestamp"], datetime):
-            msg["timestamp"] = msg["timestamp"].isoformat()
-            
-    return messages
+    return mongo_list_to_dict(messages)
 
 @chat_router.get("/users/{user_id}")
 async def get_chat_user_details(user_id: str):
+    if user_id == "support":
+        return {
+            "id": "support",
+            "name": "ShramSetu Support",
+            "role": "admin",
+            "profile_photo": None
+        }
+
     db = get_db()
     user = await db.users.find_one({"_id": ObjectId(user_id)} if ObjectId.is_valid(user_id) else {"id": user_id})
     if not user:
@@ -112,12 +113,7 @@ async def get_chat_user_details(user_id: str):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    return {
-        "id": str(user.get("_id", user.get("id"))),
-        "name": user.get("full_name") or user.get("name") or user.get("company_name", "Unknown"),
-        "role": user.get("role", "worker"),
-        "profile_photo": user.get("profile_photo")
-    }
+    return mongo_to_dict(user)
 
 @chat_router.post("/messages")
 async def send_message_http(request: Request):
@@ -142,15 +138,11 @@ async def send_message_http(request: Request):
     
     await db.messages.insert_one(new_msg)
     
-    # Format for response
-    new_msg["_id"] = str(new_msg.get("_id", ""))
-    new_msg["timestamp"] = new_msg["timestamp"].isoformat()
-    
     # Broadcast through server manager if found
     from server import manager
     await manager.send_personal_message({
         "type": "new_message",
-        "message": new_msg
+        "message": mongo_to_dict(new_msg.copy())
     }, receiver_id)
     
-    return new_msg
+    return mongo_to_dict(new_msg)

@@ -15,6 +15,7 @@ import {
   Clock
 } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'sonner';
 import LocationPicker from './LocationPicker';
 
 const STEPS = [
@@ -62,6 +63,7 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
       setCurrentStep(1); // Move to basic info
     } catch (err) {
       console.error("AI Draft Error:", err);
+      toast.error("Failed to generate job draft. Please try again manually.");
     } finally {
       setIsDrafting(false);
     }

@@ -76,8 +76,16 @@ export const AuthProvider = ({ children }) => {
     setUser(prev => ({ ...prev, ...updatedUser }));
   };
 
+  const switchRole = async (newRole) => {
+    const response = await axios.patch(`${API_URL}/api/auth/role`, { role: newRole });
+    if (response.data.role) {
+      setUser(prev => ({ ...prev, role: response.data.role }));
+    }
+    return response.data;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, sendOtp, register, logout, updateUser, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, token, loading, login, sendOtp, register, logout, updateUser, switchRole, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

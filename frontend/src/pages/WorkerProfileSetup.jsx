@@ -114,23 +114,29 @@ const WorkerProfileSetup = () => {
 
     setIsLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const submitData = {
         ...profile,
         skills: profile.skills.map(s => typeof s === 'string' ? s : s.name),
         user_id: authUser?.id || authUser?.user_id || "unknown",
         full_name: authUser?.full_name || authUser?.name || "Worker",
         location: profile.location || (profile.latitude ? `${profile.latitude.toFixed(4)}, ${profile.longitude.toFixed(4)}` : 'Remote'),
+        lat: profile.latitude || null,
+        lng: profile.longitude || null,
         daily_rate: parseFloat(profile.daily_rate) || 0,
         hourly_rate: parseFloat(profile.hourly_rate) || 0,
         experience_years: parseInt(profile.experience_years) || 0,
-        video_intro: profile.video_intro_url,
+        video_intro: profile.video_intro_url || '',
       };
       
-      await axios.post(`${API_URL}/api/worker/profile`, submitData);
+      await axios.post(`${API_URL}/api/worker/profile`, submitData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       updateUser({ profile_complete: true });
       toast.success('Profile created successfully!');
       navigate('/worker');
     } catch (error) {
+      console.error('Profile save error:', error.response?.data || error.message);
       toast.error(parseApiError(error, 'Failed to create profile'));
     } finally {
       setIsLoading(false);

@@ -14,7 +14,10 @@ const MatchScoreCard = ({ jobId }) => {
   useEffect(() => {
     const fetchMatchScore = async () => {
       try {
-        const response = await axios.get(`${API_URL}/api/match-score/${jobId}`);
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_URL}/api/jobs/match/${jobId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
         setMatchData(response.data);
       } catch (error) {
         console.error('Failed to fetch match score:', error);

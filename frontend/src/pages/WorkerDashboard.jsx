@@ -17,7 +17,7 @@ import {
   Filter, Building2, CheckCircle, XCircle, AlertCircle, TrendingUp,
   Bookmark, BookmarkCheck, Zap, Sparkles, Shield, History, Rocket,
   Users, Wallet, Award, Video, Trash2, Wifi, Settings, LayoutDashboard,
-  Mic, Plus, Activity, Target, ShieldCheck, Terminal
+  Mic, Plus, Activity, Target, ShieldCheck, Terminal, Smartphone, Flame
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseApiError } from '../utils/errorUtils';
@@ -32,12 +32,16 @@ import KYCPanel from '../components/KYCPanel';
 import BidSuggestion from '../components/BidSuggestion';
 import VideoIntroRecorder from '../components/VideoIntroRecorder';
 import VoiceSearchButton from '../components/VoiceSearchButton';
-
+import FilterDrawer from '../components/FilterDrawer';
+import JobMapView from '../components/JobMapView';
 import HandshakeControl from '../components/HandshakeControl';
 import LiveMissionTracker from '../components/LiveMissionTracker';
+import BiddingModal from '../components/BiddingModal';
+import AIChatbot from '../components/AIChatbot';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
 } from '../components/ui/dialog';
+import { profileApi, applicationsApi, jobsApi } from '../lib/api';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -89,6 +93,18 @@ const WorkerDashboard = () => {
   const [sidebarTab, setSidebarTab] = useState('dashboard');
   const [activeHandshakeJobId, setActiveHandshakeJobId] = useState(null);
   const [showHandshakeModal, setShowHandshakeModal] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState({
+    category: 'all',
+    minPay: '',
+    maxPay: '',
+    urgency: 'all',
+    distance: 20
+  });
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+  const [workerStats, setWorkerStats] = useState({ profile_views: 0 });
+  const [isBiddingModalOpen, setIsBiddingModalOpen] = useState(false);
+  const [bidTargetJob, setBidTargetJob] = useState(null);
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -106,41 +122,43 @@ const WorkerDashboard = () => {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const token = localStorage.getItem('token');
-    const headers = { Authorization: `Bearer ${token}` };
+    const filterParams = {
+      category: appliedFilters.category,
+      min_pay: appliedFilters.minPay ? parseInt(appliedFilters.minPay) * 100 : undefined,
+      max_pay: appliedFilters.maxPay ? parseInt(appliedFilters.maxPay) * 100 : undefined,
+      urgency: appliedFilters.urgency,
+      search: searchQuery
+    };
 
-    // Fetch each independently — one 404 must NOT kill the others
-    const [jobsRes, appsRes, statsRes, notifRes, catRes, profileRes, savedRes] = await Promise.all([
-      axios.get(`${API_URL}/api/jobs`, { headers }).catch(() => ({ data: [] })),
-      axios.get(`${API_URL}/api/applications/worker`, { headers }).catch(() => ({ data: [] })),
-      axios.get(`${API_URL}/api/stats/worker`, { headers }).catch(() => ({ data: null })),
-      axios.get(`${API_URL}/api/notifications`, { headers }).catch(() => ({ data: [] })),
-      axios.get(`${API_URL}/api/categories`).catch(() => ({ data: { categories: [] } })),
-      axios.get(`${API_URL}/api/worker/profile`, { headers }).catch(() => ({ data: null })),
-      axios.get(`${API_URL}/api/jobs/saved`, { headers }).catch(() => ({ data: [] })),
-    ]);
+    try {
+      const [jobsRes, profileRes, appsRes, statsRes, notifRes, catRes, savedRes] = await Promise.all([
+        jobsApi.list(filterParams).catch(() => ({ data: [] })),
+        profileApi.getWorkerProfile().catch(() => ({ data: null })),
+        applicationsApi.getWorkerApplications().catch(() => ({ data: [] })),
+        profileApi.getWorkerStats().catch(() => ({ data: { profile_views: 0 } })),
+        axios.get(`${API_URL}/api/notifications`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).catch(() => ({ data: [] })),
+        axios.get(`${API_URL}/api/categories`).catch(() => ({ data: { categories: [] } })),
+        jobsApi.getSaved().catch(() => ({ data: [] })),
+      ]);
 
-    setJobs(jobsRes.data || []);
-    setApplications(appsRes.data || []);
-    if (statsRes.data) setStats(statsRes.data);
-    setNotifications(notifRes.data || []);
-    setCategories(catRes.data?.categories || []);
-    setSavedJobs(savedRes.data || []);
-
-    // Restore online status: DB profile > localStorage fallback > default false
-    if (profileRes.data) {
+      setJobs(jobsRes.data || []);
       setProfile(profileRes.data);
-      const dbOnline = profileRes.data.is_online === true;
-      setIsOnline(dbOnline);
-      localStorage.setItem('worker_is_online', JSON.stringify(dbOnline));
-    } else {
-      // Profile not found (new user) — restore from localStorage
-      const cached = localStorage.getItem('worker_is_online');
-      if (cached !== null) setIsOnline(JSON.parse(cached));
+      setApplications(appsRes.data || []);
+      setWorkerStats(statsRes.data || { profile_views: 0 });
+      setNotifications(notifRes.data || []);
+      setCategories(catRes.data?.categories || []);
+      setSavedJobs(savedRes.data || []);
+      
+      if (profileRes.data) {
+        setIsOnline(profileRes.data.is_online === true);
+        localStorage.setItem('worker_is_online', JSON.stringify(profileRes.data.is_online === true));
+      }
+    } catch (err) {
+      toast.error(parseApiError(err, "Failed to sync dashboard"));
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-  }, [API_URL]);
+  }, [appliedFilters, searchQuery]);
 
   useEffect(() => {
     document.title = 'Deployment Command | ShramSetu';
@@ -149,13 +167,21 @@ const WorkerDashboard = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleApply = async (jobId, quickApply = false) => {
+  const handleApply = async (payload) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/api/applications`, { job_id: jobId, quick_apply: quickApply }, { headers: { Authorization: `Bearer ${token}` } });
-      toast.success(quickApply ? '⚡ Quick apply successful!' : '✅ Application submitted!');
-      fetchData(); setSelectedJob(null);
-    } catch (error) { toast.error(parseApiError(error, 'Failed to apply')); }
+      await applicationsApi.create(payload);
+      toast.success(payload.bid_amount_paise ? '🚀 Mission bid transmitted!' : '✅ Application submitted!');
+      fetchData();
+      setSelectedJob(null);
+      setIsBiddingModalOpen(false);
+    } catch (error) {
+      toast.error(parseApiError(error, 'Failed to apply'));
+    }
+  };
+
+  const openBiddingFlow = (job) => {
+    setBidTargetJob(job);
+    setIsBiddingModalOpen(true);
   };
 
   const handleRequestRelease = async (jobId) => {
@@ -178,7 +204,6 @@ const WorkerDashboard = () => {
 
   const handleToggleOnline = async () => {
     const newStatus = !isOnline;
-    // Optimistically update UI + persist locally
     setIsOnline(newStatus);
     localStorage.setItem('worker_is_online', JSON.stringify(newStatus));
     try {
@@ -186,7 +211,6 @@ const WorkerDashboard = () => {
       await axios.patch(`${API_URL}/api/worker/status`, { is_online: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
       toast.success(newStatus ? "🟢 You are now ONLINE! Employers can see you." : "You are now OFFLINE.");
     } catch (error) {
-      // Revert on failure
       setIsOnline(!newStatus);
       localStorage.setItem('worker_is_online', JSON.stringify(!newStatus));
       toast.error(parseApiError(error, "Failed to update status"));
@@ -214,14 +238,17 @@ const WorkerDashboard = () => {
       const searchable = [job.title, job.location, job.description || '', job.category || '', ...(job.requirements || [])].join(' ').toLowerCase();
       matchesSearch = keywords.some(kw => searchable.includes(kw));
     }
-    return matchesSearch && (selectedCategory === 'all' || job.category === selectedCategory);
+    return matchesSearch;
   }).sort((a, b) => calculateMatchScore(b) - calculateMatchScore(a));
 
   const hasApplied = (jobId) => applications.some(app => app.job_id === jobId);
   const isSaved = (jobId) => savedJobs.some(j => j.id === jobId);
   const unreadNotifications = notifications.filter(n => !n.read).length;
   const getCategoryName = (cat) => language === 'hi' ? (cat.name_hi || cat.name) : language === 'or' ? (cat.name_or || cat.name) : cat.name;
-  const getPhotoUrl = (path) => { if (!path) return null; return `${API_URL}/api/files/${path}?auth=${localStorage.getItem('token')}`; };
+  const getPhotoUrl = (path) => { 
+    if (!path) return null; 
+    return path.startsWith('http') ? path : `${API_URL}/api/files/${path}`; 
+  };
   const getTimeAgo = (d) => { const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000); return m < 60 ? `${m}m ago` : m < 1440 ? `${Math.floor(m/60)}h ago` : `${Math.floor(m/1440)}d ago`; };
   const profileStrength = profile ? [profile.skills?.length > 0 ? 20 : 0, profile.location ? 15 : 0, profile.bio ? 10 : 0, profile.phone_verified ? 15 : 0, profile.video_intro ? 15 : 0, profile.daily_rate ? 10 : 0, profile.experience_years ? 15 : 0].reduce((a, b) => a + b, 0) : 0;
 
@@ -244,6 +271,13 @@ const WorkerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 precision-grid font-['Manrope'] relative">
+      <FilterDrawer 
+        isOpen={isFilterOpen} 
+        onClose={() => setIsFilterOpen(false)} 
+        onApply={setAppliedFilters}
+        categories={categories}
+        initialFilters={appliedFilters}
+      />
       {/* ─── BACKGROUND DECOR ─── */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20 z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
@@ -272,7 +306,35 @@ const WorkerDashboard = () => {
               value={searchQuery} 
               onChange={(e) => setSearchQuery(e.target.value)} 
             />
-            <VoiceSearchButton onResult={(text) => { setSearchQuery(text); setSidebarTab('dashboard'); toast.success(`Diagnostic Search: "${text}"`); }} className="w-5 h-5 ml-3 opacity-60 hover:opacity-100 transition-opacity" />
+            <VoiceSearchButton onResult={(text) => { setSearchQuery(text); setSidebarTab('dashboard'); fetchData(); toast.success(`Diagnostic Search: "${text}"`); }} className="w-5 h-5 ml-3 opacity-60 hover:opacity-100 transition-opacity" />
+          </div>
+
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsFilterOpen(true)}
+            className={`rounded-xl transition-all ${isFilterOpen ? 'bg-primary text-primary-foreground' : 'hover:bg-primary/10'}`}
+          >
+            <Filter className="w-5 h-5" />
+          </Button>
+
+          <div className="flex items-center gap-1 p-1 bg-muted/20 border border-white/5 rounded-xl">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setViewMode('list')}
+              className={`rounded-lg px-3 h-8 ${viewMode === 'list' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground'}`}
+            >
+              <LayoutDashboard className="w-4 h-4 mr-2" /> List
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setViewMode('map')}
+              className={`rounded-lg px-3 h-8 ${viewMode === 'map' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground'}`}
+            >
+              <MapPin className="w-4 h-4 mr-2" /> Map
+            </Button>
           </div>
 
           <div className="flex items-center gap-2 h-10 px-1 rounded-xl bg-muted/20 border border-white/5">
@@ -295,13 +357,7 @@ const WorkerDashboard = () => {
 
       {/* ─── SIDEBAR (desktop) ─── */}
       <aside className="fixed left-0 top-0 h-full w-72 z-40 hidden lg:flex flex-col pt-28 pb-10 px-6 bg-background/50 border-r border-white/5 backdrop-blur-md">
-        <div className="mb-12 px-2">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]" />
-            <h3 className="text-[10px] uppercase font-black tracking-[0.3em] text-primary font-['Space_Grotesk']">{t('operational_hub')}</h3>
-          </div>
-          <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 font-bold">Protocol v4.0.2 / Precison Mode</p>
-        </div>
+        <div className="mb-4 px-2" />
 
         <nav className="space-y-2 flex-1">
           {sidebarItems.map(item => (
@@ -360,6 +416,10 @@ const WorkerDashboard = () => {
                 </div>
 
                 <div className="flex items-center gap-6 p-5 rounded-[2rem] glass border border-white/5 shadow-2xl backdrop-blur-2xl">
+                  <div className="flex flex-col items-center gap-1 border-r border-white/5 pr-6 mr-2">
+                     <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em]">{t('profile_views') || 'Profile Views'}</span>
+                     <span className="text-xl font-black font-['Space_Grotesk'] text-primary">{workerStats.profile_views || 0}</span>
+                  </div>
                   <div className="relative">
                     <div className={`absolute -inset-1 rounded-full blur-md bg-primary opacity-20 ${isOnline ? 'animate-pulse' : 'hidden'}`} />
                     <Avatar className="w-16 h-16 border-2 border-white/10 ring-4 ring-primary/20 ring-offset-4 ring-offset-background/50">
@@ -454,118 +514,122 @@ const WorkerDashboard = () => {
                   </div>
                 )}
 
-                {/* Job Cards */}
-                {filteredJobs.length === 0 ? (
-                  <div className="text-center py-32 glass-card rounded-[2.5rem] border-white/5">
-                    <Briefcase className="w-16 h-16 mx-auto mb-6 text-muted-foreground/20 animate-pulse" />
-                    <p className="font-black text-2xl text-foreground font-['Space_Grotesk'] uppercase tracking-tight">{t('zero_nodes')}</p>
-                    <p className="text-muted-foreground/60 font-['Space_Grotesk'] mt-2">{t('no_jobs_found')}</p>
-                  </div>
-                ) : (
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
-                    {filteredJobs.map((job, i) => {
-                      const matchScore = calculateMatchScore(job);
-                      return (
-                        <motion.div 
-                          key={job.id} 
-                          variants={itemVariants}
-                          whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                          className="p-8 md:p-10 glass-card rounded-[2.5rem] relative group overflow-hidden cursor-pointer border-white/5 hover:border-primary/20"
-                          onClick={() => setSelectedJob(job)}
-                        >
-                          {/* High-Precision AI Match Badge */}
-                          {matchScore > 0 && (
-                            <div className="absolute top-0 right-0 p-6 md:p-10">
-                              <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-xl transition-all duration-500 group-hover:scale-110 shadow-2xl ${
-                                matchScore >= 80 ? 'bg-green-500/10 border-green-500/30 text-green-500' : 
-                                matchScore >= 50 ? 'bg-primary/10 border-primary/30 text-primary' : 
-                                'bg-amber-500/10 border-amber-500/30 text-amber-500'
-                              }`}>
-                                <div className={`w-2 h-2 rounded-full animate-pulse ${
-                                  matchScore >= 80 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 
-                                  matchScore >= 50 ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]' : 
-                                  'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]'
-                                }`} />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] font-['Space_Grotesk']">{matchScore}% Accuracy</span>
+                {/* ─── JOB GRID / MAP ─── */}
+                <div className="space-y-6 flex-1 flex justify-center">
+                  {viewMode === 'list' ? (
+                    <div className="w-full max-w-3xl flex flex-col gap-10 pb-20">
+                      <AnimatePresence mode="popLayout">
+                        {filteredJobs.map((job) => (
+                          <motion.div
+                            key={job.id}
+                            layout
+                            variants={itemVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            whileHover={{ scale: 1.01 }}
+                            className="bg-[#0D1117]/80 backdrop-blur-xl rounded-[2.5rem] border border-white/5 shadow-2xl hover:border-primary/30 p-8 space-y-6 transition-all duration-500 group cursor-pointer relative overflow-hidden"
+                            onClick={() => setSelectedJob(job)}
+                          >
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                            
+                            <div className="relative z-10 flex justify-between items-start mb-2">
+                              <div className="flex items-center gap-4">
+                                <div className="p-4 rounded-2xl bg-muted/20 border border-white/5 group-hover:bg-primary/20 transition-colors shadow-inner">
+                                  <Briefcase className="w-8 h-8 text-primary shadow-sm" />
+                                </div>
+                                <div>
+                                  <h3 className="text-2xl font-black font-['Space_Grotesk'] leading-tight text-foreground group-hover:text-primary transition-colors tracking-tight">
+                                    {job.title}
+                                  </h3>
+                                  <p className="flex items-center gap-2 mt-1text-muted-foreground font-black text-xs uppercase tracking-widest opacity-80">
+                                    <Building2 className="w-4 h-4 text-primary" /> {job.company_name || 'Verified Mission'}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          )}
-
-                          <div className="flex items-start gap-6 md:gap-10">
-                            <div className="w-20 h-20 rounded-[1.5rem] flex items-center justify-center shrink-0 bg-muted/20 border border-white/5 group-hover:border-primary/30 transition-all duration-500 shadow-inner overflow-hidden relative">
-                              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                              <Building2 className="w-10 h-10 text-primary group-hover:scale-110 transition-transform duration-500 z-10" />
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-4 mb-2 flex-wrap">
-                                {job.is_boosted && (
-                                  <span className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] bg-orange-500/10 text-orange-500 border border-orange-500/20 font-['Space_Grotesk'] flex items-center gap-2">
-                                    <Flame className="w-3 h-3" /> {t('priority_deployment') || 'Priority Deployment'}
+                              <div className="flex flex-col gap-2 items-end">
+                                <span className={`inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${getMatchBg(calculateMatchScore(job))} ${getMatchColor(calculateMatchScore(job))}`}>
+                                  {calculateMatchScore(job)}% Match
+                                </span>
+                                {(job.urgency === 'asap' || job.is_urgent) && (
+                                  <span className="inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-500 border border-rose-500/20 animate-pulse">
+                                    <Zap className="w-3 h-3 mr-1.5 fill-current" /> Urgent
                                   </span>
                                 )}
-                                <span className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/40 font-['Space_Grotesk']">{job.company_name || 'Verified Employer'}</span>
-                              </div>
-                              
-                              <h3 className="text-2xl md:text-4xl font-black mb-5 pr-32 text-foreground font-['Space_Grotesk'] tracking-tighter uppercase leading-[0.95] group-hover:text-primary transition-colors">
-                                {job.title}
-                              </h3>
-
-                              <div className="grid grid-cols-2 lg:flex lg:flex-wrap gap-x-8 gap-y-4 mb-8">
-                                <div className="flex items-center gap-2.5">
-                                  <IndianRupee className="w-4 h-4 text-primary" />
-                                  <div className="flex flex-col">
-                                    <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black font-['Space_Grotesk']">{t('payrate')}</span>
-                                    <span className="text-base font-black text-foreground font-['Space_Grotesk'] tracking-tight">₹{job.salary_paise ? job.salary_paise / 100 : 0}/{job.salary_type || 'daily'}</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2.5">
-                                  <MapPin className="w-4 h-4 text-primary" />
-                                  <div className="flex flex-col">
-                                    <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black font-['Space_Grotesk']">{t('location')}</span>
-                                    <span className="text-base font-black text-foreground font-['Space_Grotesk'] tracking-tight">{job.location}</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2.5">
-                                  <Clock className="w-4 h-4 text-primary" />
-                                  <div className="flex flex-col">
-                                    <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black font-['Space_Grotesk']">{t('timestamp')}</span>
-                                    <span className="text-base font-black text-foreground font-['Space_Grotesk'] tracking-tight">{getTimeAgo(job.posted_at)}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-4">
-                                {!hasApplied(job.id) ? (
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); handleApply(job.id, true); }} 
-                                    className="px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-white bg-primary shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all font-['Space_Grotesk'] relative overflow-hidden group/btn"
-                                  >
-                                    <span className="relative z-10">{t('initialize_deployment')}</span>
-                                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
-                                  </button>
-                                ) : (
-                                  <div className="px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/30 font-['Space_Grotesk'] flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-primary" /> {t('applied_synced')}
-                                  </div>
-                                )}
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id); }} 
-                                  className="p-4 rounded-2xl bg-muted/20 border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all group/save"
-                                >
-                                  {isSaved(job.id) ? 
-                                    <BookmarkCheck className="w-6 h-6 text-primary fill-primary/20" /> : 
-                                    <Bookmark className="w-6 h-6 text-muted-foreground/60 transition-colors group-hover/save:text-primary" />
-                                  }
-                                </button>
                               </div>
                             </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </motion.div>
-                )}
+                            
+                            {/* Mission Brief Snippet */}
+                            {job.description && (
+                              <p className="relative z-10 text-muted-foreground/80 font-medium font-['Manrope'] line-clamp-3 leading-relaxed text-sm pr-4">
+                                {job.description}
+                              </p>
+                            )}
+
+                            <div className="relative z-10 flex flex-wrap gap-6 py-6 border-y border-white/5">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-primary/10">
+                                  <IndianRupee className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="font-black text-2xl tracking-tighter text-foreground">{job.salary_paise ? job.salary_paise / 100 : job.pay_amount}</p>
+                                  <p className="text-[9px] font-black tracking-widest text-muted-foreground uppercase opacity-60">/{job.salary_type || job.pay_type}</p>
+                                </div>
+                              </div>
+                              <div className="w-[1px] h-12 bg-white/5 hidden sm:block" />
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-muted/20">
+                                  <MapPin className="w-5 h-5 text-muted-foreground" />
+                                </div>
+                                <div>
+                                  <p className="font-black text-base text-foreground max-w-[150px] truncate">{job.location}</p>
+                                  <p className="text-[9px] font-black tracking-widest text-muted-foreground uppercase opacity-60">Location</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="relative z-10 flex justify-between items-center pt-2">
+                              <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2">
+                                  <Users className="w-4 h-4 text-muted-foreground/60" /> 
+                                  <span className="text-xs font-black tracking-widest bg-muted/20 px-2 py-1 rounded-md">{job.applicant_count || 0}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Star className="w-4 h-4 text-amber-500 fill-amber-500/20" /> 
+                                  <span className="text-xs font-black tracking-widest text-amber-500">{job.employer_rating || 4.5}</span>
+                                </div>
+                              </div>
+                              <Button 
+                                variant="default"
+                                size="lg"
+                                className="rounded-xl font-black uppercase tracking-widest h-12 px-6 shadow-xl shadow-primary/20 hover:scale-105 transition-all text-xs"
+                              >
+                                Mission Briefing <ChevronRight className="w-4 h-4 ml-2" />
+                              </Button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <JobMapView 
+                      jobs={filteredJobs} 
+                      onSelectJob={setSelectedJob}
+                    />
+                  )}
+                  {filteredJobs.length === 0 && (
+                    <div className="py-20 text-center space-y-4">
+                      <div className="w-16 h-16 rounded-full bg-muted/20 flex items-center justify-center mx-auto mb-6">
+                        <Search className="w-8 h-8 text-muted-foreground/40" />
+                      </div>
+                      <h3 className="text-xl font-bold">No missions match your signature</h3>
+                      <p className="text-muted-foreground max-w-sm mx-auto">Try adjusting your spectral filters or expanding your scanning radius.</p>
+                      <Button variant="ghost" onClick={() => setAppliedFilters({ category: 'all', minPay: '', maxPay: '', urgency: 'all', distance: 20 })} className="text-primary font-bold">
+                        Clear Frequency Filters
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* ─── Right: Stats & Insights ─── */}
@@ -842,8 +906,8 @@ const WorkerDashboard = () => {
                                  className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-white flex items-center gap-2 bg-emerald-600 shadow-lg shadow-emerald-600/20 hover:brightness-110 active:scale-95 transition-all font-['Space_Grotesk'] border border-emerald-500/30"
                                >
                                  <Smartphone className="w-4 h-4" /> Secure Check-In
-                               </button>
-                             )}
+                             </button>
+                           )}
                           </div>
                         )}
                       </div>
@@ -1185,17 +1249,18 @@ const WorkerDashboard = () => {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
+            className="fixed inset-0 z-[60] flex justify-end"
             onClick={() => setSelectedJob(null)}
           >
-            <div className="absolute inset-0 bg-background/90 backdrop-blur-xl" />
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
             
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 40 }} 
-              animate={{ scale: 1, opacity: 1, y: 0 }} 
-              exit={{ scale: 0.9, opacity: 0, y: 40 }} 
+              initial={{ x: '100%' }} 
+              animate={{ x: 0 }} 
+              exit={{ x: '100%' }} 
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               onClick={(e) => e.stopPropagation()} 
-              className="max-w-2xl w-full max-h-[92vh] overflow-hidden rounded-[2.5rem] glass-card shadow-[0_0_100px_rgba(0,0,0,0.5)] border-white/10 relative flex flex-col"
+              className="w-full max-w-2xl h-full overflow-hidden bg-[#0a0d14]/95 backdrop-blur-3xl border-l border-white/10 relative flex flex-col shadow-[-20px_0_100px_rgba(0,0,0,0.8)]"
             >
               {/* Header Info */}
               <div className="relative p-8 pb-0 z-10">
@@ -1302,32 +1367,26 @@ const WorkerDashboard = () => {
               {/* Action Bar */}
               <div className="p-8 bg-background/50 backdrop-blur-xl border-t border-white/5 flex gap-4">
                 {!hasApplied(selectedJob.id) ? (
-                  <>
-                    <button 
-                      onClick={() => handleApply(selectedJob.id)} 
-                      className="flex-[2] py-5 rounded-2xl font-black text-white text-[10px] uppercase tracking-[0.3em] bg-primary shadow-2xl shadow-primary/30 hover:brightness-110 active:scale-[0.98] transition-all font-['Space_Grotesk']"
+                  <div className="flex gap-4 pt-4 w-full">
+                    <Button 
+                      onClick={() => openBiddingFlow(selectedJob)} 
+                      className="flex-1 rounded-2xl h-14 bg-primary text-white font-black uppercase tracking-widest shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-transform"
                     >
-                      Initialize Application
-                    </button>
-                    <button 
-                      onClick={() => handleApply(selectedJob.id, true)} 
-                      className="flex-1 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 bg-amber-500 text-black shadow-2xl shadow-amber-500/20 hover:brightness-110 active:scale-[0.95] transition-all font-['Space_Grotesk']"
+                       Submit Proposal
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => handleSaveJob(selectedJob.id)} 
+                      className="w-14 h-14 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10"
                     >
-                      <Zap className="w-4 h-4 fill-black" /> Quick
-                    </button>
-                  </>
+                      {isSaved(selectedJob.id) ? <BookmarkCheck className="w-6 h-6 text-primary" /> : <Bookmark className="w-6 h-6" />}
+                    </Button>
+                  </div>
                 ) : (
                   <button disabled className="flex-1 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/20 font-['Space_Grotesk'] cursor-not-allowed">
                     Operational Status: Applied
                   </button>
                 )}
-                
-                <button 
-                  onClick={() => handleSaveJob(selectedJob.id)} 
-                  className={`p-5 rounded-2xl border transition-all active:scale-[0.9] ${isSaved(selectedJob.id) ? 'bg-primary/10 border-primary text-primary shadow-inner shadow-primary/20' : 'bg-muted/40 border-white/10 text-muted-foreground hover:border-primary/40'}`}
-                >
-                  {isSaved(selectedJob.id) ? <BookmarkCheck className="w-6 h-6" /> : <Bookmark className="w-6 h-6" />}
-                </button>
               </div>
             </motion.div>
           </motion.div>
@@ -1353,6 +1412,9 @@ const WorkerDashboard = () => {
           />
         </DialogContent>
       </Dialog>
+      
+      {/* ─── AI CHATBOT ─── */}
+      <AIChatbot />
     </div>
   );
 };

@@ -61,7 +61,17 @@ async def get_squad(squad_id: str, request: Request):
 @squad_router.post("/{squad_id}/members")
 async def add_member(squad_id: str, request: Request, data: Dict[str, Any] = Body(...)):
     db = get_db()
-    # Mock adding a member
+    
+    # Verify the requested member actually exists before pushing to roster
+    member_user_id = data.get("user_id")
+    if not member_user_id:
+        raise HTTPException(status_code=400, detail="Missing user_id for new member")
+        
+    worker_verify = await db.worker_profiles.find_one({"user_id": member_user_id})
+    if not worker_verify:
+        raise HTTPException(status_code=404, detail=f"Worker with ID {member_user_id} not found registered on ShramSetu. They must create an account first.")
+    
+    # Fully dynamic addition
     update_result = await db.squads.update_one(
         {"_id": ObjectId(squad_id)},
         {

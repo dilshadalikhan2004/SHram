@@ -33,26 +33,50 @@ from earnings_routes import earnings_router
 from chat_routes import chat_router
 from handshake_routes import handshake_router
 from tracking_routes import tracking_router
+from portfolio_routes import portfolio_router
+from verification_routes import verification_router
+from offer_routes import offer_router
+from reputation_routes import reputation_router
 from cloudinary_utils import upload_to_cloudinary
-import google.generativeai as genai
-
-# Configure Gemini
-GENIMNI_KEY = os.environ.get("GEMINI_API_KEY")
-if GENIMNI_KEY:
-    genai.configure(api_key=GENIMNI_KEY)
-
+from google import genai
+import google.generativeai as legacy_genai # Keeping as fallback if needed elsewhere temporarily
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Configure Modern Gemini Client
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+ai_client = None
+# Lazy AI Client
+_ai_client = None
+def get_ai_client():
+    global _ai_client
+    if _ai_client is None and GEMINI_KEY:
+        try:
+            from google import genai
+            _ai_client = genai.Client(api_key=GEMINI_KEY)
+            logger.info("Gemini AI Client initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini AI Client: {str(e)}")
+    return _ai_client
 
 # JWT Config
 JWT_SECRET = os.environ.get('JWT_SECRET', 'f9b4c7d0e8a21f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a')
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', 24))
 
-# Create the main app
 app = FastAPI(title="ShramSetu API", version="2.0.3")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global Exception caught: {request.method} {request.url} - {type(exc).__name__}: {str(exc)}")
+    return Response(
+        content=json.dumps({"detail": f"Internal Server Error: {type(exc).__name__}"}),
+        status_code=500,
+        media_type="application/json"
+    )
+
 
 # CORS Configuration
 app.add_middleware(
@@ -101,7 +125,7 @@ async def get_translations(lang: str):
 async def debug_users():
     try:
         db = get_db()
-        if not db:
+        if db is None:
             return {"error": "No DB connection"}
         cursor = db.users.find({})
         users = await cursor.to_list(length=50)
@@ -192,27 +216,39 @@ async def shram_chatbot(request: Request):
         raise HTTPException(status_code=400, detail="Query is required")
         
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        cur_ai_client = get_ai_client()
+        if not cur_ai_client:
+            logger.error("Chatbot failed: Gemini AI Client not initialized")
+            return {"response": "AI Configuration Error: Please check server environment variables."}
+            
         contexual_prompt = f"""
         You are 'Shram Assistant', an AI helper for the ShramSetu platform.
         ShramSetu connects blue-collar workers (construction, plumbing, etc.) with employers in India.
         Provide helpful, concise, and professional advice in a friendly tone.
-        If a worker asks how to get more jobs, suggest completing their profile and uploading a video intro.
-        If an employer asks how to find better talent, suggest using the 'Top Candidates' AI ranking.
         Current User Query: {user_query}
         """
-        response = model.generate_content(contexual_prompt)
+        
+        response = cur_ai_client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=contexual_prompt
+        )
+        
         return {"response": response.text}
     except Exception as e:
-        print(f"Gemini Error: {str(e)}")
+        logger.error(f"Gemini API Error: {type(e).__name__} - {str(e)}")
         return {"response": "I'm having trouble connecting to my brain right now. Please try again later!"}
 
 
 from fastapi.responses import FileResponse
 
-@api_router.get("/files/uploads/{filename}")
-async def serve_uploaded_file(filename: str):
-    file_path = ROOT_DIR / "uploads" / filename
+@api_router.get("/files/{path:path}")
+async def serve_uploaded_file(path: str):
+    # Handle both 'uploads/filename' and just 'filename'
+    if path.startswith("uploads/"):
+        file_path = ROOT_DIR / path
+    else:
+        file_path = ROOT_DIR / "uploads" / path
+    
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     # Determine media type
@@ -351,13 +387,17 @@ api_router.include_router(auth_router)
 api_router.include_router(job_router, prefix="/jobs")
 api_router.include_router(profile_router)
 api_router.include_router(app_router, prefix="/applications")
-api_router.include_router(notification_router)
+api_router.include_router(notification_router, prefix="/notifications")
 api_router.include_router(payment_api_router)
 api_router.include_router(squad_router)
 api_router.include_router(earnings_router)
 api_router.include_router(chat_router)
 api_router.include_router(handshake_router, prefix="/handshake")
 api_router.include_router(tracking_router, prefix="/tracking")
+api_router.include_router(portfolio_router)
+api_router.include_router(verification_router)
+api_router.include_router(offer_router)
+api_router.include_router(reputation_router)
 
 # WebSocket Connection Manager
 class ConnectionManager:

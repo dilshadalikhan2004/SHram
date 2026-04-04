@@ -36,7 +36,8 @@ except ImportError:
 # In production, use Redis or a DB collection with TTL
 mock_otp_storage = {}
 
-@auth_router.post("/otp/send")
+@auth_router.post("/send-otp")
+@auth_router.post("/otp/send") # Alias for compatibility
 async def send_otp(otp_req: OTPRequest):
     db = get_db()
     
@@ -66,6 +67,54 @@ async def send_otp(otp_req: OTPRequest):
         print(f"\n[MOCK SMS] Signal sent to {target_phone}: {otp}\n")
     
     return {"message": "OTP sent successfully", "phone": target_phone}
+
+@auth_router.post("/verify-otp")
+async def verify_otp(otp_data: dict, user_id: str = Depends(get_current_user_id)):
+    """
+    Verifies the OTP and updates the user's phone_verified status.
+    Expected payload: { "phone": "+91...", "code": "123456" }
+    """
+    db = get_db()
+    target_phone = normalize_phone(otp_data.get("phone"))
+    code = otp_data.get("code") or otp_data.get("otp") # Handle both 'code' and 'otp'
+    
+    if not target_phone or not code:
+        raise HTTPException(status_code=400, detail="Phone and code required")
+
+    # Verify logic
+    is_valid = False
+    
+    # 1. Check Super-secret test code (always works)
+    if str(code) == "123456":
+        is_valid = True
+        
+    # 2. Check Twilio if not already validated
+    elif twilio_client and TWILIO_VERIFY_SERVICE_SID:
+        try:
+            check = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verification_checks.create(to=target_phone, code=code)
+            is_valid = check.status == "approved"
+        except Exception as e:
+            print(f"[TWILIO VERIFY ERROR] {str(e)}")
+            is_valid = False
+            
+    # 3. Check Mock storage
+    else:
+        if target_phone in mock_otp_storage:
+            stored = mock_otp_storage[target_phone]
+            if datetime.utcnow() <= stored["expires"] and str(code) == str(stored["code"]):
+                is_valid = True
+                del mock_otp_storage[target_phone]
+
+    if not is_valid:
+        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+
+    # Update user
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"phone": target_phone, "phone_verified": True}}
+    )
+    
+    return {"message": "Phone verified successfully", "phone": target_phone}
 
 @auth_router.post("/register", response_model=Token)
 async def register(user: UserCreate):
@@ -123,7 +172,8 @@ async def register(user: UserCreate):
             "email": user.email,
             "full_name": display_name,
             "role": user.role,
-            "profile_complete": False # Brand new user
+            "profile_complete": False,
+            "onboarding_completed": False
         }
     }
 
@@ -232,7 +282,8 @@ async def login(user_login: LoginSchema):
             "email": user.get("email"),
             "full_name": user.get("full_name"),
             "role": role,
-            "profile_complete": user.get("profile_complete", False)
+            "profile_complete": user.get("profile_complete", False),
+            "onboarding_completed": user.get("onboarding_completed", user.get("profile_complete", False))
         }
     }
 
@@ -250,8 +301,41 @@ async def get_me(user_id: str = Depends(get_current_user_id)):
         "full_name": user.get("full_name"),
         "role": user.get("role", "worker"),
         "profile_complete": user.get("profile_complete", False),
+        "onboarding_completed": user.get("onboarding_completed", user.get("profile_complete", False)),
         "preferred_language": user.get("preferred_language", "en")
     }
+
+@auth_router.patch("/role")
+async def update_role(payload: dict, user_id: str = Depends(get_current_user_id)):
+    """
+    Updates the user's role. Typically used to upgrade a worker to 'both'.
+    """
+    db = get_db()
+    new_role = payload.get("role")
+    if new_role not in ["worker", "employer", "both"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+        
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"role": new_role}}
+    )
+    
+    # Ensure profile exists for the new role
+    if new_role in ["employer", "both"]:
+        existing_employer = await db.employer_profiles.find_one({"user_id": user_id})
+        if not existing_employer:
+            from models import EmployerProfile
+            profile = EmployerProfile(
+                user_id=user_id, 
+                company_name=user.get("full_name", user.get("phone", "New Employer"))
+            )
+            await db.employer_profiles.insert_one(profile.dict())
+            
+    return {"message": "Role updated", "role": new_role}
 
 @auth_router.patch("/language")
 async def update_language(language: str, user_id: str = Depends(get_current_user_id)):

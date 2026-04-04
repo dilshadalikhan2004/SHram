@@ -11,42 +11,104 @@ async def get_earnings(request: Request, period: str = Query("all")):
     user_id = await get_current_user_id(request)
     db = get_db()
     
-    # Mock data for demonstration as per user's "fix dashboard" request
-    # In a real app, this would query a 'transactions' collection
     now = datetime.utcnow()
     
-    # Simple logic to filter results based on period
-    history = [
-        {"id": "t1", "amount": 1200, "date": (now - timedelta(days=2)).isoformat(), "source": "Construction Site #4", "type": "credit"},
-        {"id": "t2", "amount": 800, "date": (now - timedelta(days=5)).isoformat(), "source": "Electrician Service", "type": "credit"},
-        {"id": "t3", "amount": 2500, "date": (now - timedelta(days=10)).isoformat(), "source": "Wall Painting", "type": "credit"},
-        {"id": "t4", "amount": 1500, "date": (now - timedelta(days=15)).isoformat(), "source": "Plumbing Maintenance", "type": "credit"},
-    ]
-    
-    filtered_history = history
+    # Time boundary
+    boundary_time = None
     if period == "week":
-        week_ago = now - timedelta(days=7)
-        filtered_history = [t for t in history if datetime.fromisoformat(t["date"]) > week_ago]
+        boundary_time = now - timedelta(days=7)
     elif period == "month":
-        month_ago = now - timedelta(days=30)
-        filtered_history = [t for t in history if datetime.fromisoformat(t["date"]) > month_ago]
+        boundary_time = now - timedelta(days=30)
+    
+    # 1. Total Cleared Balance (Jobs completely finished and not yet withdrawn)
+    # Using 'completed' status to define released funds.
+    completed_apps_cursor = db.applications.find({
+        "worker_id": user_id,
+        "status": "completed"
+    })
+    
+    total_earned = 0
+    history = []
+    
+    async for app in completed_apps_cursor:
+        job = await db.jobs.find_one({"id": app.get("job_id")})
+        # Determine amount
+        amount = app.get("earned_amount") or (job.get("salary_paise", 0) / 100) if job else 0
+        total_earned += amount
+        
+        # Track history
+        completed_at = app.get("completed_at") or app.get("last_updated") or now
+        if isinstance(completed_at, str):
+            try:
+                completed_at = datetime.fromisoformat(completed_at.replace('Z', '+00:00'))
+            except:
+                completed_at = now
+        
+        history_item = {
+            "id": app.get("id"),
+            "amount": amount,
+            "date": completed_at.isoformat(),
+            "source": job.get("title", "Unknown Job") if job else "Unknown",
+            "type": "credit"
+        }
+        
+        if boundary_time is None or completed_at > boundary_time:
+            history.append(history_item)
+    
+    # 2. Pending Escrow (Jobs user is 'selected' for but not yet 'completed')
+    pending_apps_cursor = db.applications.find({
+        "worker_id": user_id,
+        "status": {"$in": ["selected", "in_progress"]}
+    })
+    
+    pending_release = 0
+    async for app in pending_apps_cursor:
+        job = await db.jobs.find_one({"id": app.get("job_id")})
+        amount = app.get("proposed_rate_paise", 0)/100 if app.get("proposed_rate_paise") else (job.get("salary_paise", 0) / 100 if job else 0)
+        pending_release += amount
+
+    # 3. Withdrawals calculation (mock for now since there's no withdrawal table, but simulating total logic)
+    withdrawals_cursor = db.withdrawals.find({"worker_id": user_id})
+    withdrawals_sum = 0
+    async for w in withdrawals_cursor:
+        withdrawals_sum += w.get("amount", 0)
+
+    current_balance = total_earned - withdrawals_sum
+        
+    # Sort history by date descending
+    history.sort(key=lambda x: x["date"], reverse=True)
         
     return {
-        "balance": 4500,
-        "total_earned": 12000,
-        "pending_release": 1500,
-        "withdrawals": 6000,
-        "history": filtered_history
+        "balance": current_balance,
+        "total_earned": total_earned,
+        "pending_release": pending_release,
+        "withdrawals": withdrawals_sum,
+        "history": history
     }
 
 @earnings_router.post("/withdraw")
 async def withdraw_earnings(request: Request, data: Dict[str, Any]):
     user_id = await get_current_user_id(request)
-    # Handle withdrawal logic
-    return {"status": "success", "message": "Withdrawal request initiated"}
+    db = get_db()
+    
+    amount = data.get("amount", 0)
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Invalid withdrawal amount")
+        
+    # Standardize a withdrawal document
+    withdrawal = {
+        "worker_id": user_id,
+        "amount": amount,
+        "requested_at": datetime.utcnow(),
+        "status": "processing"
+    }
+    
+    await db.withdrawals.insert_one(withdrawal)
+    
+    return {"status": "success", "message": f"Withdrawal request of ₹{amount} initiated."}
 
 @earnings_router.get("/certificate")
 async def get_income_certificate(request: Request):
     user_id = await get_current_user_id(request)
-    # Generate certificate logic
+    # Generate certificate logic (this remains an API footprint)
     return {"id": "cert-123", "url": "http://example.com/cert.pdf"}
