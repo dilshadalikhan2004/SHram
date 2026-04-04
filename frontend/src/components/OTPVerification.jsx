@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -7,8 +6,7 @@ import { Card } from './ui/card';
 import { Loader2, ShieldCheck, Timer, Phone, ArrowLeft, RefreshCw, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseApiError } from '../utils/errorUtils';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import api from '../lib/api';
 
 const OTPVerification = ({ phoneNumber: initialPhone, onVerified, onCancel }) => {
   const [phone, setPhone] = useState(initialPhone || '');
@@ -40,7 +38,7 @@ const OTPVerification = ({ phoneNumber: initialPhone, onVerified, onCancel }) =>
     setLoading(true);
     try {
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-      const res = await axios.post(`${API_URL}/api/auth/send-otp`, { phone: formattedPhone });
+      const res = await api.post('/auth/send-otp', { phone: formattedPhone });
       
       if (res.data.sandbox) {
         setSandbox(true);
@@ -85,12 +83,7 @@ const OTPVerification = ({ phoneNumber: initialPhone, onVerified, onCancel }) =>
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-      await axios.post(`${API_URL}/api/auth/verify-otp`, 
-        { phone: formattedPhone, code },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post('/auth/verify-otp', { phone: formattedPhone, code });
       toast.success('Phone verified successfully! ✅');
       onVerified?.();
     } catch (error) {

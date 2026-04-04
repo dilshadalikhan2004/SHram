@@ -81,10 +81,10 @@ export const portfolioApi = {
 };
 
 export const applicationsApi = {
-  create: (data) => axios.post(`${API_URL}/api/applications`, data), // Support bid_amount_paise, proposal_message
-  getWorkerApplications: () => axios.get(`${API_URL}/api/applications/worker`),
-  getJobApplications: (jobId) => axios.get(`${API_URL}/api/applications/job/${jobId}`),
-  updateStatus: (appId, status) => axios.patch(`${API_URL}/api/applications/${appId}/status`, { status }),
+  create: (data) => api.post('/applications', data),
+  getWorkerApplications: () => api.get('/applications/worker'),
+  getJobApplications: (jobId) => api.get(`/applications/job/${jobId}`),
+  updateStatus: (appId, status) => api.patch(`/applications/${appId}/status`, { status }),
 };
 
 export const profileApi = {
