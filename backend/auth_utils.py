@@ -9,7 +9,12 @@ from database import get_db
 # JWT Config
 JWT_SECRET = os.environ.get('JWT_SECRET', 'f9b4c7d0e8a21f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a')
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
-JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', 24))
+
+def _get_jwt_exp():
+    val = os.environ.get('JWT_EXPIRATION_HOURS', '24')
+    try: return int(val)
+    except: return 24
+JWT_EXPIRATION_HOURS = _get_jwt_exp()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

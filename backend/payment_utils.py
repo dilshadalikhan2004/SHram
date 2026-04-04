@@ -2,12 +2,22 @@ import os
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 
+def get_env_int(key: str, default: int) -> int:
+    val = os.environ.get(key)
+    if not val:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        print(f"WARNING: Environment variable {key} has invalid value '{val}'. Using default: {default}")
+        return default
+
 PLATFORM_FEE_PCT = float(os.environ.get("PLATFORM_FEE_PCT", 7.5))
-TDS_THRESHOLD_PAISE = int(os.environ.get("TDS_THRESHOLD_PAISE", 10_000_000))
+TDS_THRESHOLD_PAISE = get_env_int("TDS_THRESHOLD_PAISE", 10_000_000)
 TDS_RATE_WITH_PAN = float(os.environ.get("TDS_RATE_WITH_PAN", 1.0))
 TDS_RATE_WITHOUT_PAN = float(os.environ.get("TDS_RATE_WITHOUT_PAN", 20.0))
-SOS_CREDIT_PAISE = int(os.environ.get("SOS_CREDIT_AMOUNT_PAISE", 50_000))
-AUTO_RELEASE_HOURS = int(os.environ.get("ESCROW_AUTO_RELEASE_HOURS", 48))
+SOS_CREDIT_PAISE = get_env_int("SOS_CREDIT_AMOUNT_PAISE", 50_000)
+AUTO_RELEASE_HOURS = get_env_int("ESCROW_AUTO_RELEASE_HOURS", 48)
 
 def calculate_escrow_breakdown(gross_amount_paise: int) -> Dict[str, int]:
     """All paise calculations — never use floats for money."""

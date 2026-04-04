@@ -64,7 +64,12 @@ def get_ai_client():
 # JWT Config
 JWT_SECRET = os.environ.get('JWT_SECRET', 'f9b4c7d0e8a21f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a')
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
-JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', 24))
+
+def _get_jwt_exp():
+    val = os.environ.get('JWT_EXPIRATION_HOURS', '24')
+    try: return int(val)
+    except: return 24
+JWT_EXPIRATION_HOURS = _get_jwt_exp()
 
 app = FastAPI(title="ShramSetu API", version="2.0.3")
 
@@ -503,6 +508,10 @@ db = None
 if __name__ == "__main__":
     import uvicorn
     import os
-    port = int(os.environ.get("PORT", 8000))
+    def _get_port():
+        val = os.environ.get("PORT", "8000")
+        try: return int(val)
+        except: return 8000
+    port = _get_port()
     print(f"Starting server on 0.0.0.0:{port}...")
     uvicorn.run(app, host="0.0.0.0", port=port, access_log=True)
