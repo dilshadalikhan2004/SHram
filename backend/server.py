@@ -72,7 +72,15 @@ def _get_jwt_exp():
     except: return 24
 JWT_EXPIRATION_HOURS = _get_jwt_exp()
 
+from rate_limiter import limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 app = FastAPI(title="ShramSetu API", version="2.0.3")
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -227,6 +235,7 @@ async def upload_photo(file: UploadFile = File(...)):
     return {"photo_url": cloudinary_url}
 
 @api_router.post("/chatbot")
+@limiter.limit("5/minute")
 async def shram_chatbot(request: Request):
     data = await request.json()
     user_query = data.get("query")

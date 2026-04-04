@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
+from rate_limiter import limiter
 from bson import ObjectId
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -38,7 +39,8 @@ mock_otp_storage = {}
 
 @auth_router.post("/send-otp")
 @auth_router.post("/otp/send") # Alias for compatibility
-async def send_otp(otp_req: OTPRequest):
+@limiter.limit("5/minute")
+async def send_otp(otp_req: OTPRequest, request: Request):
     db = get_db()
     
     target_phone = normalize_phone(otp_req.phone)
@@ -69,7 +71,8 @@ async def send_otp(otp_req: OTPRequest):
     return {"message": "OTP sent successfully", "phone": target_phone}
 
 @auth_router.post("/verify-otp")
-async def verify_otp(otp_data: dict, user_id: str = Depends(get_current_user_id)):
+@limiter.limit("10/minute")
+async def verify_otp(otp_data: dict, request: Request, user_id: str = Depends(get_current_user_id)):
     """
     Verifies the OTP and updates the user's phone_verified status.
     Expected payload: { "phone": "+91...", "code": "123456" }
