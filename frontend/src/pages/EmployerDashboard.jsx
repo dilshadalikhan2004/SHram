@@ -204,20 +204,20 @@ const EmployerDashboard = () => {
       </div>
 
       {/* ─── TOP NAV ─── */}
-      <nav className="fixed top-0 left-0 w-full z-50 px-8 py-5 flex justify-between items-center glass border-b border-white/5 backdrop-blur-2xl shadow-2xl">
-        <div className="flex items-center gap-12">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
-              <Building2 className="w-6 h-6 text-primary" />
+      <nav className="fixed top-0 left-0 w-full z-50 px-4 md:px-8 py-4 md:py-5 flex justify-between items-center glass border-b border-white/5 backdrop-blur-2xl shadow-2xl">
+        <div className="flex items-center gap-6 md:gap-12">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 md:gap-4">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
+              <Building2 className="w-5 h-5 md:w-6 md:h-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-amber-500 font-['Space_Grotesk'] tracking-tighter uppercase">
-              SHRAMSETU<span className="text-foreground"> HQ</span>
+            <h1 className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-amber-500 font-['Space_Grotesk'] tracking-tighter uppercase whitespace-nowrap">
+              SHRAMSETU<span className="text-foreground hidden sm:inline"> HQ</span>
             </h1>
           </motion.div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="hidden lg:flex items-center h-11 px-4 rounded-xl bg-muted/20 border border-white/5 focus-within:border-primary/40 transition-all group">
+        <div className="flex items-center gap-2 md:gap-6">
+          <div className="hidden xl:flex items-center h-11 px-4 rounded-xl bg-muted/20 border border-white/5 focus-within:border-primary/40 transition-all group">
             <Search className="w-4 h-4 mr-3 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <input 
               className="bg-transparent border-none focus:outline-none text-xs w-64 font-['Space_Grotesk'] font-bold tracking-widest placeholder:text-muted-foreground/30" 
@@ -227,25 +227,25 @@ const EmployerDashboard = () => {
             />
           </div>
 
-          <div className="flex items-center gap-2 h-11 px-2 rounded-xl bg-muted/20 border border-white/5">
+          <div className="flex items-center gap-1 md:gap-2 h-10 md:h-11 px-1 md:px-2 rounded-xl bg-muted/20 border border-white/5">
             <LanguageSelector variant="ghost" />
-            <div className="w-px h-5 bg-white/5 mx-2" />
+            <div className="w-px h-5 bg-white/5 mx-1 md:mx-2" />
             <button onClick={toggleTheme} className="p-2 rounded-lg transition-all hover:bg-white/5 group">
-              {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-primary" />}
+              {theme === 'dark' ? <Sun className="w-4 h-4 md:w-5 md:h-5 text-amber-400" /> : <Moon className="w-4 h-4 md:w-5 md:h-5 text-primary" />}
             </button>
             <button onClick={() => setShowChat(!showChat)} className="relative p-2 rounded-lg transition-all hover:bg-primary/10 group">
-              <MessageSquare className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
+              <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground group-hover:text-primary" />
             </button>
-            <div className="w-px h-5 bg-white/5 mx-2" />
+            <div className="w-px h-5 bg-white/5 mx-1 md:mx-2" />
             <button onClick={handleLogout} className="p-2 rounded-lg transition-all hover:bg-rose-500/10 group">
-              <LogOut className="w-5 h-5 text-muted-foreground group-hover:text-rose-500" />
+              <LogOut className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground group-hover:text-rose-500" />
             </button>
           </div>
         </div>
       </nav>
 
       {/* ─── SIDEBAR ─── */}
-      <aside className={`fixed left-0 top-0 h-full z-40 flex flex-col pt-28 pb-10 px-6 bg-background/80 dark:bg-[#0A0A0B]/80 border-r border-white/5 dark:border-white/5 border-black/5 backdrop-blur-3xl transition-all duration-500 ${isSidebarOpen ? 'w-72' : 'w-24'}`}>
+      <aside className={`fixed left-0 top-0 h-full z-40 hidden lg:flex flex-col pt-28 pb-10 px-6 bg-background/80 dark:bg-[#0A0A0B]/80 border-r border-white/5 dark:border-white/5 border-black/5 backdrop-blur-3xl transition-all duration-500 ${isSidebarOpen ? 'w-72' : 'w-24'}`}>
         <div className="mb-4 px-2" />
 
         <nav className="space-y-3 flex-1">
@@ -285,8 +285,27 @@ const EmployerDashboard = () => {
         </div>
       </aside>
 
+      {/* ─── MOBILE BOTTOM NAV ─── */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 lg:hidden bg-background/80 backdrop-blur-xl border-t border-white/5 z-50 flex items-center justify-around px-2 pb-safe">
+        {sidebarItems.slice(0, 5).map(item => (
+          <button 
+            key={item.id} 
+            onClick={() => setSidebarTab(item.id)}
+            className={`flex flex-col items-center justify-center w-full h-full transition-all gap-1 relative ${
+              sidebarTab === item.id ? 'text-primary' : 'text-muted-foreground/60'
+            }`}
+          >
+            <item.icon className={`w-5 h-5 ${sidebarTab === item.id ? 'fill-primary/20' : ''}`} />
+            <span className="text-[8px] font-black uppercase tracking-widest">{item.label}</span>
+            {sidebarTab === item.id && (
+              <motion.div layoutId="mobile-nav-dot-employer" className="w-1 h-1 rounded-full bg-primary absolute bottom-1" />
+            )}
+          </button>
+        ))}
+      </nav>
+
       {/* ─── MAIN CONTENT ─── */}
-      <main className={`transition-all duration-500 pt-32 pb-20 px-8 ${isSidebarOpen ? 'pl-80' : 'pl-32'}`}>
+      <main className={`transition-all duration-500 pt-28 md:pt-32 pb-24 md:pb-20 px-4 md:px-8 ${isSidebarOpen ? 'lg:pl-80' : 'lg:pl-32'}`}>
         <AnimatePresence mode="wait">
           {sidebarTab === 'dashboard' && (
             <motion.div key="dashboard" variants={containerVariants} initial="hidden" animate="visible" className="space-y-12">
@@ -550,40 +569,40 @@ const EmployerDashboard = () => {
                   </AnimatePresence>
                </div>
 
-               
-               <div className="glass-card rounded-[2rem] p-6 border border-white/5">
+               <div className="glass-card rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 border border-white/5">
+
                   <div className="space-y-4">
                      {applicants.length > 0 ? applicants.map((app) => (
-                        <motion.div key={app._id || app.id} variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl bg-muted/20 border border-white/5 hover:border-primary/20 transition-all gap-4 group">
-                          <div className="flex items-center gap-4 flex-grow">
+                        <motion.div key={app._id || app.id} variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl md:rounded-2xl bg-muted/20 border border-white/5 hover:border-primary/20 transition-all gap-4 group relative overflow-hidden">
+                          <div className="flex items-start md:items-center gap-4 flex-grow">
                              {isBulkMode && (
                                <div 
                                 onClick={() => {
                                   const id = app._id || app.id;
                                   setSelectedApps(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
                                 }}
-                                className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${selectedApps.includes(app._id || app.id) ? 'bg-primary border-primary' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                                className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer mt-1 md:mt-0 ${selectedApps.includes(app._id || app.id) ? 'bg-primary border-primary' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
                                >
                                  {selectedApps.includes(app._id || app.id) && <CheckCircle className="w-5 h-5 text-white" />}
                                </div>
-                            )}
-                            <Avatar className="w-14 h-14 border-2 border-white/5 cursor-pointer shadow-lg shadow-black/20" onClick={() => navigate(`/worker/profile/${app.worker_id}`)}>
+                             )}
+                            <Avatar className="w-12 h-12 md:w-14 md:h-14 border-2 border-white/5 cursor-pointer shadow-lg shadow-black/20" onClick={() => navigate(`/worker/profile/${app.worker_id}`)}>
                               <AvatarImage src={getPhotoUrl(app.worker_profile?.avatar_url || app.worker_profile?.profile_photo)} />
                               <AvatarFallback className="bg-primary/10 text-primary font-bold">WK</AvatarFallback>
                             </Avatar>
-                            <div className="flex-grow">
-                              <div className="flex items-center gap-3 mb-1">
+                            <div className="flex-grow min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
                                 <h4 
-                                  className="text-base font-black font-['Space_Grotesk'] uppercase tracking-tight cursor-pointer hover:text-primary transition-colors"
+                                  className="text-sm md:text-base font-black font-['Space_Grotesk'] uppercase tracking-tight cursor-pointer hover:text-primary transition-colors truncate"
                                   onClick={() => navigate(`/worker/profile/${app.worker_id}`)}
                                 >
                                   {app.worker_name || app.worker_profile?.name || 'Candidate Matrix'}
                                 </h4>
-                                <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] font-black h-5 uppercase tracking-widest">
+                                <Badge className="bg-primary/20 text-primary border-primary/30 text-[9px] md:text-[10px] font-black h-5 uppercase tracking-widest w-fit">
                                    {app.match_score ? `${Math.round(app.match_score * 100)}% Match` : 'Scanning...'}
                                 </Badge>
                               </div>
-                              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-3">
+                              <p className="text-[9px] md:text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 md:mb-3">
                                 {app.job?.title || 'Active Transmission'}
                               </p>
                               

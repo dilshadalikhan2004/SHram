@@ -140,24 +140,24 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       {/* Left Panel: Brand Narrative */}
-      <div className="lg:w-1/2 bg-slate-950 p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden border-r border-white/5">
+      <div className="lg:w-1/2 bg-slate-950 p-6 lg:p-16 flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-white/5 min-h-[40vh] lg:min-h-screen">
         <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(0,102,255,0.15),transparent_70%)]" />
         
-        <div className="relative z-10">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-4 mb-24">
-            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shadow-lg shadow-primary/20">
-              <HardHat className="w-6 h-6 text-primary" />
+        <div className="relative z-10 py-4 lg:py-0">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-4 mb-12 lg:mb-24">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-primary/20 flex items-center justify-center shadow-lg shadow-primary/20">
+              <HardHat className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">ShramSetu</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-white tracking-tight">ShramSetu</h1>
           </motion.div>
           
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <h2 className="text-4xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tighter">
+            <h2 className="text-3xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tighter">
               India's Digital<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-400">Workforce</span><br />
               Infrastructure.
             </h2>
-            <p className="mt-8 text-lg text-slate-400 max-w-md leading-relaxed font-['Space_Grotesk']">
+            <p className="mt-4 lg:mt-8 text-base lg:text-lg text-slate-400 max-w-sm lg:max-w-md leading-relaxed font-['Space_Grotesk'] opacity-80 lg:opacity-100">
               Connecting high-craft skilled workers with high-speed projects. Verified. Secured. AI-Assisted.
             </p>
           </motion.div>
@@ -215,31 +215,31 @@ const AuthPage = () => {
             </div>
           ) : (
           <div className="space-y-3">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-4 text-center">Select Your Path</p>
-            <div className="grid grid-cols-2 gap-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-2 md:mb-4 text-center">Select Your Path</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <button 
                 onClick={() => setRole('worker')}
-                className={`group p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-4 ${role === 'worker' ? 'border-primary bg-primary/10' : 'border-muted/50 hover:border-primary/40'}`}
+                className={`group p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 md:gap-4 ${role === 'worker' ? 'border-primary bg-primary/10' : 'border-muted/50 hover:border-primary/40'}`}
               >
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${role === 'worker' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary'}`}>
-                  <HardHat className="w-6 h-6" />
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center transition-colors ${role === 'worker' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary'}`}>
+                  <HardHat className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
                 <div className="text-center">
-                  <p className={`font-bold text-sm tracking-widest uppercase ${role === 'worker' ? 'text-primary' : 'text-muted-foreground'}`}>I am a Worker</p>
-                  <p className="text-[10px] text-muted-foreground mt-1 font-medium">FIND SKILLED WORK</p>
+                  <p className={`font-bold text-xs md:text-sm tracking-widest uppercase ${role === 'worker' ? 'text-primary' : 'text-muted-foreground'}`}>I am a Worker</p>
+                  <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 md:mt-1 font-medium italic">FIND SKILLED WORK</p>
                 </div>
               </button>
               
               <button 
                 onClick={() => setRole('employer')}
-                className={`group p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-4 ${role === 'employer' ? 'border-cyan-500 bg-cyan-500/10' : 'border-muted/50 hover:border-cyan-500/40'}`}
+                className={`group p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 md:gap-4 ${role === 'employer' ? 'border-cyan-500 bg-cyan-500/10' : 'border-muted/50 hover:border-cyan-500/40'}`}
               >
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${role === 'employer' ? 'bg-cyan-500 text-white' : 'bg-muted text-muted-foreground group-hover:bg-cyan-500/20 group-hover:text-cyan-500'}`}>
-                  <Briefcase className="w-6 h-6" />
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center transition-colors ${role === 'employer' ? 'bg-cyan-500 text-white' : 'bg-muted text-muted-foreground group-hover:bg-cyan-500/20 group-hover:text-cyan-500'}`}>
+                  <Briefcase className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
                 <div className="text-center">
-                  <p className={`font-bold text-sm tracking-widest uppercase ${role === 'employer' ? 'text-cyan-500' : 'text-muted-foreground'}`}>I am an Employer</p>
-                  <p className="text-[10px] text-muted-foreground mt-1 font-medium">HIRE THE FORCE</p>
+                  <p className={`font-bold text-xs md:text-sm tracking-widest uppercase ${role === 'employer' ? 'text-cyan-500' : 'text-muted-foreground'}`}>I am an Employer</p>
+                  <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 md:mt-1 font-medium italic">HIRE THE FORCE</p>
                 </div>
               </button>
             </div>

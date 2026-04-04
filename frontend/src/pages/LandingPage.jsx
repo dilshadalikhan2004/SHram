@@ -88,20 +88,20 @@ const LandingPage = () => {
             </nav>
 
             {/* 2. Hero Section */}
-            <header className="relative pt-48 pb-32 px-8 overflow-hidden min-h-screen flex flex-col justify-center">
+            <header className="relative pt-32 md:pt-48 pb-20 md:pb-32 px-6 md:px-8 overflow-hidden min-h-screen flex flex-col justify-center">
                 <div className="absolute inset-0 bg-dot-grid pointer-events-none"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] hero-glow pointer-events-none"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] hero-glow pointer-events-none opacity-50 md:opacity-100"></div>
                 <div className="max-w-7xl mx-auto relative z-10 w-full">
-                    <p className="font-mono text-[#FF6B2B] mb-6 tracking-[0.2em] uppercase animate-fade-up" style={{ animationDelay: '0.1s' }}>// India's Labor Intelligence Platform</p>
-                    <h1 className="text-6xl md:text-[96px] leading-[1] font-black mb-8 flex flex-col animate-fade-up" style={{ animationDelay: '0.2s', fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif' }}>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] block mb-2">श्रमसेतु</span>
+                    <p className="font-mono text-[#FF6B2B] mb-4 md:mb-6 tracking-[0.1em] md:tracking-[0.2em] uppercase text-[10px] md:text-xs animate-fade-up" style={{ animationDelay: '0.1s' }}>// India's Labor Intelligence Platform</p>
+                    <h1 className="text-5xl sm:text-6xl md:text-[96px] lg:text-[110px] leading-[0.95] font-black mb-6 md:mb-8 flex flex-col animate-fade-up" style={{ animationDelay: '0.2s', fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif' }}>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] block mb-1 md:mb-2">श्रमसेतु</span>
                         <span className="text-[#1A1714] dark:text-[#F0EDE8]">ShramSetu</span>
                     </h1>
-                    <p className="text-2xl md:text-4xl font-light text-[#1A1714]/70 dark:text-gray-400 mb-6 animate-fade-up" style={{ animationDelay: '0.3s' }}>The bridge India's workforce has been waiting for.</p>
-                    <p className="max-w-2xl text-lg text-[#1A1714]/60 dark:text-gray-400 leading-relaxed mb-10 animate-fade-up" style={{ animationDelay: '0.4s' }}>An AI-powered, verified, multilingual platform connecting 450 million blue-collar workers with trusted employers — solving trust, payments, skilling, and financial inclusion.</p>
-                    <div className="flex flex-col sm:flex-row gap-4 mb-6 animate-fade-up" style={{ animationDelay: '0.5s' }}>
-                        <button onClick={handleHireEmployer} className="px-10 py-5 bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] rounded-sm font-mono font-bold text-white uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#FF6B2B]/20">Get Early Access</button>
-                        <button className="px-10 py-5 border border-[#1A1714]/20 dark:border-white/20 rounded-sm font-mono font-bold text-[#1A1714] dark:text-white uppercase tracking-widest hover:bg-black/5 dark:hover:bg-white/5 transition-colors">Watch Demo</button>
+                    <p className="text-xl sm:text-2xl md:text-4xl font-light text-[#1A1714]/70 dark:text-gray-400 mb-6 animate-fade-up" style={{ animationDelay: '0.3s' }}>The bridge India's workforce has been waiting for.</p>
+                    <p className="max-w-2xl text-base md:text-lg text-[#1A1714]/60 dark:text-gray-400 leading-relaxed mb-8 md:mb-10 animate-fade-up line-clamp-3 md:line-clamp-none" style={{ animationDelay: '0.4s' }}>An AI-powered, verified, multilingual platform connecting 450 million blue-collar workers with trusted employers — solving trust, payments, skilling, and financial inclusion.</p>
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6 animate-fade-up" style={{ animationDelay: '0.5s' }}>
+                        <button onClick={handleHireEmployer} className="px-8 md:px-10 py-4 md:py-5 bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] rounded-sm font-mono font-bold text-white uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#FF6B2B]/20 text-xs md:text-sm">Get Early Access</button>
+                        <button className="px-8 md:px-10 py-4 md:py-5 border border-[#1A1714]/20 dark:border-white/20 rounded-sm font-mono font-bold text-[#1A1714] dark:text-white uppercase tracking-widest hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-xs md:text-sm">Watch Demo</button>
                     </div>
                     {!isAuthenticated && (
                         <div className="animate-fade-up flex items-center gap-2 group cursor-pointer" style={{ animationDelay: '0.6s' }} onClick={() => navigate('/auth')}>
@@ -111,34 +111,34 @@ const LandingPage = () => {
                         </div>
                     )}
                     <div className="h-14"></div> {/* Spacer */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 animate-fade-up" style={{ animationDelay: '0.6s' }}>
-                        <div className="border-l border-[#1A1714]/10 dark:border-white/10 pl-6">
-                            <span className="font-mono text-3xl font-bold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent block mb-1">450M+</span>
-                            <span className="text-xs text-[#1A1714]/50 dark:text-gray-500 font-bold uppercase tracking-widest">Artisan Workers</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 animate-fade-up" style={{ animationDelay: '0.6s' }}>
+                        <div className="border-l border-[#1A1714]/10 dark:border-white/10 pl-4 md:pl-6">
+                            <span className="font-mono text-2xl md:text-3xl font-bold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent block mb-1">450M+</span>
+                            <span className="text-[10px] md:text-xs text-[#1A1714]/50 dark:text-gray-500 font-bold uppercase tracking-widest">Artisan Workers</span>
                         </div>
-                        <div className="border-l border-[#1A1714]/10 dark:border-white/10 pl-6">
-                            <span className="font-mono text-3xl font-bold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent block mb-1">₹8.5T</span>
-                            <span className="text-xs text-[#1A1714]/50 dark:text-gray-500 font-bold uppercase tracking-widest">Market Potential</span>
+                        <div className="border-l border-[#1A1714]/10 dark:border-white/10 pl-4 md:pl-6">
+                            <span className="font-mono text-2xl md:text-3xl font-bold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent block mb-1">₹8.5T</span>
+                            <span className="text-[10px] md:text-xs text-[#1A1714]/50 dark:text-gray-500 font-bold uppercase tracking-widest">Market Potential</span>
                         </div>
-                        <div className="border-l border-[#1A1714]/10 dark:border-white/10 pl-6">
-                            <span className="font-mono text-3xl font-bold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent block mb-1">5%</span>
-                            <span className="text-xs text-[#1A1714]/50 dark:text-gray-500 font-bold uppercase tracking-widest">Currently Trained</span>
+                        <div className="border-l border-[#1A1714]/10 dark:border-white/10 pl-4 md:pl-6">
+                            <span className="font-mono text-2xl md:text-3xl font-bold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent block mb-1">5%</span>
+                            <span className="text-[10px] md:text-xs text-[#1A1714]/50 dark:text-gray-500 font-bold uppercase tracking-widest">Currently Trained</span>
                         </div>
-                        <div className="border-l border-[#1A1714]/10 dark:border-white/10 pl-6">
-                            <span className="font-mono text-3xl font-bold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent block mb-1">22+</span>
-                            <span className="text-xs text-[#1A1714]/50 dark:text-gray-500 font-bold uppercase tracking-widest">Dialects Supported</span>
+                        <div className="border-l border-[#1A1714]/10 dark:border-white/10 pl-4 md:pl-6">
+                            <span className="font-mono text-2xl md:text-3xl font-bold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent block mb-1">22+</span>
+                            <span className="text-[10px] md:text-xs text-[#1A1714]/50 dark:text-gray-500 font-bold uppercase tracking-widest">Dialects Supported</span>
                         </div>
                     </div>
                 </div>
             </header>
 
             {/* 3. Vision Statement */}
-            <section id="problem" className="px-8 pb-32 reveal">
+            <section id="problem" className="px-6 md:px-8 pb-20 md:pb-32 reveal">
                 <div className="max-w-7xl mx-auto">
-                    <div className="bg-white dark:bg-[#111318] p-12 md:p-24 relative overflow-hidden group border border-[#1A1714]/5 dark:border-white/5">
+                    <div className="bg-white dark:bg-[#111318] p-8 md:p-24 relative overflow-hidden group border border-[#1A1714]/5 dark:border-white/5">
                         <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-[#FF6B2B] to-transparent opacity-50"></div>
                         <div className="max-w-4xl mx-auto text-center">
-                            <p className="text-3xl md:text-5xl font-bold leading-tight italic" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>
+                            <p className="text-2xl sm:text-3xl md:text-5xl font-bold leading-tight italic px-2" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>
                                 "ShramSetu is not just a job board; it is the <span className="text-[#FF6B2B]">digital scaffolding</span> for the backbone of modern India's growth."
                             </p>
                             <div className="mt-12 inline-flex items-center gap-4">

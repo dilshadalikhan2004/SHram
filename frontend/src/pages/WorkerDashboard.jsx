@@ -380,9 +380,28 @@ const WorkerDashboard = () => {
         </nav>
 
       </aside>
+ 
+      {/* ─── MOBILE BOTTOM NAV ─── */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 lg:hidden bg-background/80 backdrop-blur-xl border-t border-white/5 z-50 flex items-center justify-around px-2">
+        {sidebarItems.slice(0, 5).map(item => (
+          <button 
+            key={item.id} 
+            onClick={() => setSidebarTab(item.id)}
+            className={`flex flex-col items-center justify-center w-full h-full transition-all gap-1 relative ${
+              sidebarTab === item.id ? 'text-primary' : 'text-muted-foreground/60'
+            }`}
+          >
+            <item.icon className={`w-5 h-5 ${sidebarTab === item.id ? 'fill-primary/20' : ''}`} />
+            <span className="text-[8px] font-black uppercase tracking-widest">{item.label}</span>
+            {sidebarTab === item.id && (
+              <motion.div layoutId="mobile-nav-dot" className="w-1 h-1 rounded-full bg-primary absolute bottom-1" />
+            )}
+          </button>
+        ))}
+      </nav>
 
       {/* ─── MAIN CONTENT ─── */}
-      <main className="lg:ml-72 pt-28 pb-32 px-8 xl:px-16 max-w-[1600px] relative z-10">
+      <main className="lg:ml-72 pt-24 md:pt-28 pb-32 px-4 md:px-8 xl:px-16 max-w-[1600px] relative z-10">
         {/* ═══ DASHBOARD VIEW ═══ */}
         {sidebarTab === 'dashboard' && (
           <>
@@ -390,7 +409,7 @@ const WorkerDashboard = () => {
             <motion.section 
               initial={{ opacity: 0, scale: 0.98 }} 
               animate={{ opacity: 1, scale: 1 }} 
-              className="relative mb-12 rounded-[2.5rem] overflow-hidden p-10 xl:p-14 min-h-[350px] flex flex-col justify-end border border-white/10 glass-card shadow-3xl group"
+              className="relative mb-8 md:mb-12 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden p-6 md:p-10 xl:p-14 min-h-[300px] md:min-h-[350px] flex flex-col justify-end border border-white/10 glass-card shadow-3xl group"
             >
               {/* Animated Background Pulse */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent z-0 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
@@ -406,7 +425,7 @@ const WorkerDashboard = () => {
                   >
                     <Rocket className="w-3.5 h-3.5" /> {t('high_pulse')}
                   </motion.div>
-                  <h1 className="text-5xl xl:text-7xl font-black tracking-tighter leading-[0.85] font-['Space_Grotesk'] text-foreground uppercase">
+                  <h1 className="text-3xl sm:text-5xl xl:text-7xl font-black tracking-tighter leading-[0.9] font-['Space_Grotesk'] text-foreground uppercase">
                     {t('welcome_back')},<br />
                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-cyan-500">{user?.name?.split(' ')[0]}</span>
                   </h1>
@@ -528,15 +547,15 @@ const WorkerDashboard = () => {
                             animate="visible"
                             exit={{ opacity: 0, scale: 0.95 }}
                             whileHover={{ scale: 1.01 }}
-                            className="bg-[#0D1117]/80 backdrop-blur-xl rounded-[2.5rem] border border-white/5 shadow-2xl hover:border-primary/30 p-8 space-y-6 transition-all duration-500 group cursor-pointer relative overflow-hidden"
+                            className="bg-[#0D1117]/80 backdrop-blur-xl rounded-[1.5rem] md:rounded-[2.5rem] border border-white/5 shadow-2xl hover:border-primary/30 p-5 md:p-8 space-y-4 md:space-y-6 transition-all duration-500 group cursor-pointer relative overflow-hidden"
                             onClick={() => setSelectedJob(job)}
                           >
                             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                             
-                            <div className="relative z-10 flex justify-between items-start mb-2">
-                              <div className="flex items-center gap-4">
-                                <div className="p-4 rounded-2xl bg-muted/20 border border-white/5 group-hover:bg-primary/20 transition-colors shadow-inner">
-                                  <Briefcase className="w-8 h-8 text-primary shadow-sm" />
+                            <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start gap-4 mb-2">
+                              <div className="flex items-center gap-3 md:gap-4">
+                                <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-muted/20 border border-white/5 group-hover:bg-primary/20 transition-colors shadow-inner">
+                                  <Briefcase className="w-6 h-6 md:w-8 md:h-8 text-primary shadow-sm" />
                                 </div>
                                 <div>
                                   <h3 className="text-2xl font-black font-['Space_Grotesk'] leading-tight text-foreground group-hover:text-primary transition-colors tracking-tight">
