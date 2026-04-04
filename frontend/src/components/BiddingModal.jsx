@@ -98,6 +98,7 @@ const BiddingModal = ({ job, isOpen, onClose, onApply }) => {
                   <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-primary transition-colors group-focus-within:text-foreground" />
                   <input 
                     type="number"
+                    inputMode="decimal"
                     required
                     value={bidAmount}
                     onChange={(e) => setBidAmount(e.target.value)}

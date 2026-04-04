@@ -398,17 +398,17 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-2xl bg-slate-900 border border-slate-700/50 rounded-[32px] overflow-hidden shadow-2xl shadow-blue-500/10 flex flex-col h-[700px]"
+        className="w-full max-w-2xl bg-slate-900 border border-slate-700/50 rounded-2xl sm:rounded-[32px] overflow-hidden shadow-2xl shadow-blue-500/10 flex flex-col h-full max-h-[95vh] sm:h-[700px]"
       >
         {/* Header */}
-        <div className="p-8 pb-4">
-          <div className="flex justify-between items-center mb-8">
+        <div className="p-4 sm:p-8 pb-4">
+          <div className="flex justify-between items-center mb-4 sm:mb-8">
              <div>
-                <h2 className="text-2xl font-black text-white flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
                   {STEPS[currentStep].icon}
                   {STEPS[currentStep].title}
                 </h2>
@@ -416,39 +416,40 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
                   {STEPS.map((_, i) => (
                     <div 
                       key={i} 
-                      className={`h-1 rounded-full transition-all duration-500 ${i === currentStep ? 'w-8 bg-blue-500' : i < currentStep ? 'w-4 bg-blue-900' : 'w-4 bg-slate-800'}`} 
+                      className={`h-1 rounded-full transition-all duration-500 ${i === currentStep ? 'w-6 sm:w-8 bg-blue-500' : i < currentStep ? 'w-3 sm:w-4 bg-blue-900' : 'w-3 sm:w-4 bg-slate-800'}`} 
                     />
                   ))}
                 </div>
              </div>
-             <button type="button" onClick={onCancel} className="text-gray-600 hover:text-white transition-colors">
-               <ChevronRight className="w-6 h-6 rotate-90" />
+             <button type="button" onClick={onCancel} className="text-gray-600 hover:text-white transition-colors p-2">
+               <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 rotate-90" />
              </button>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -20, opacity: 0 }}
-              className="px-2"
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
+          <div className="flex-1 overflow-y-auto px-2 custom-scrollbar pb-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -20, opacity: 0 }}
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-auto p-8 border-t border-slate-800 bg-slate-900/50 flex justify-between gap-4">
+        <div className="mt-auto p-4 sm:p-8 border-t border-slate-800 bg-slate-900/50 flex justify-between gap-4">
            {currentStep > 0 && (
              <button 
               type="button"
               onClick={handleBack}
-              className="flex items-center gap-2 text-gray-400 hover:text-white font-bold transition-all px-4"
+              className="flex items-center gap-2 text-gray-400 hover:text-white font-bold transition-all px-2 sm:px-4"
              >
                 <ChevronLeft className="w-5 h-5" />
-                Back
+                <span className="hidden sm:inline">Back</span>
              </button>
            )}
            <div className="flex-1" />
@@ -456,9 +457,13 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
             type="button"
             onClick={handleNext}
             disabled={isDrafting}
-            className={`bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-blue-600/20 active:scale-95 transition-all text-lg ${currentStep === 0 && 'hidden'}`}
+            className={`bg-blue-600 hover:bg-blue-500 text-white px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-blue-600/20 active:scale-95 transition-all text-base sm:text-lg ${currentStep === 0 && 'hidden'}`}
            >
-              {currentStep === STEPS.length - 1 ? 'Confirm & Go Live' : 'Continue'}
+              {currentStep === STEPS.length - 1 ? (
+                <span className="text-sm sm:text-lg">Confirm & Go Live</span>
+              ) : (
+                <span>Continue</span>
+              )}
               <ChevronRight className="w-5 h-5" />
            </button>
         </div>

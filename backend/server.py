@@ -84,9 +84,21 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # CORS Configuration
+cors_origins_raw = os.environ.get('CORS_ORIGINS', '')
+if cors_origins_raw:
+    origins = [o.strip() for o in cors_origins_raw.split(',') if o.strip()]
+else:
+    # Safe defaults including localhost and production Vercel
+    origins = [
+        "https://s-hram.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5173",  # Vite default
+        "http://127.0.0.1:3000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

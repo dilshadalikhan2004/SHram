@@ -20,6 +20,12 @@ const OTPVerification = ({ phoneNumber: initialPhone, onVerified, onCancel }) =>
   const [sandbox, setSandbox] = useState(false);
 
   useEffect(() => {
+    if (step === 'otp') {
+      setTimeout(() => document.getElementById('otp-0')?.focus(), 100);
+    }
+  }, [step]);
+
+  useEffect(() => {
     if (timeLeft <= 0) return;
     const timer = setInterval(() => setTimeLeft(t => t - 1), 1000);
     return () => clearInterval(timer);

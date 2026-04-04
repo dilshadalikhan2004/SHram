@@ -159,14 +159,14 @@ const ChatPanel = ({ onClose, initialUserId = null }) => {
   }, [messages, language]);
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full sm:w-[420px] z-50 bg-[#0A0A0C] border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col">
+    <div className="fixed inset-0 sm:inset-y-0 sm:right-0 w-full sm:w-[420px] h-[100dvh] z-[100] bg-[#0A0A0C] border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col">
       {/* Header Overhaul */}
-      <div className="p-4 border-b border-white/10 bg-[#121215]/80 backdrop-blur-xl flex-shrink-0">
+      <div className="p-3 sm:p-4 border-b border-white/10 bg-[#121215]/80 backdrop-blur-xl flex-shrink-0">
         <div className="flex items-center justify-between">
           {selectedUser ? (
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => setSelectedUser(null)} className="hover:bg-white/5 rounded-full text-white/50">
-                <ArrowLeft className="w-5 h-5" />
+              <Button variant="ghost" size="icon" onClick={() => setSelectedUser(null)} className="hover:bg-white/5 rounded-full text-white/50 w-10 h-10 -ml-1">
+                <ArrowLeft className="w-6 h-6" />
               </Button>
               <div className="relative">
                 <Avatar className="w-12 h-12 border-2 border-white/10 shadow-lg">
