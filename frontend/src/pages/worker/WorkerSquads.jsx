@@ -18,6 +18,9 @@ const WorkerSquads = () => {
   const [selectedSquad, setSelectedSquad] = useState(null);
   const [viewingSquadId, setViewingSquadId] = useState(null);
   const [invitingSquadId, setInvitingSquadId] = useState(null);
+  const [inviteOpenForSquadId, setInviteOpenForSquadId] = useState(null);
+  const [inviteUserId, setInviteUserId] = useState('');
+  const [inviteSplit, setInviteSplit] = useState('0');
 
   useEffect(() => { fetchSquads(); }, []);
 
@@ -61,18 +64,27 @@ const WorkerSquads = () => {
   };
 
   const handleInvite = async (squadId) => {
-    const userId = window.prompt('Enter worker user ID to invite');
-    if (!userId || !userId.trim()) return;
-
+    if (!inviteUserId.trim()) {
+      toast.error('Worker user ID is required');
+      return;
+    }
+    const splitValue = Number(inviteSplit);
+    if (!Number.isFinite(splitValue) || splitValue < 0 || splitValue > 100) {
+      toast.error('Split must be between 0 and 100');
+      return;
+    }
     setInvitingSquadId(squadId);
     try {
       await squadsApi.addMember(squadId, {
-        user_id: userId.trim(),
+        user_id: inviteUserId.trim(),
         role: 'member',
-        split_percentage: 0
+        split_percentage: splitValue
       });
-      toast.success('Invite sent! Member added to squad.');
+      toast.success('Member added to squad.');
       await fetchSquads();
+      setInviteOpenForSquadId(null);
+      setInviteUserId('');
+      setInviteSplit('0');
       if (selectedSquad?.id === squadId) {
         const res = await squadsApi.getSquad(squadId);
         setSelectedSquad(res.data);
@@ -137,8 +149,8 @@ const WorkerSquads = () => {
           </div>
 
           <div className="grid gap-3">
-            {(selectedSquad.members || []).map((member, i) => (
-              <div key={`${member.user_id || i}`} className="p-4 rounded-2xl bg-muted/20 border border-white/10 flex items-center justify-between gap-3">
+            {(selectedSquad.members || []).map((member) => (
+              <div key={`${member.user_id}-${member.role || 'member'}`} className="p-4 rounded-2xl bg-muted/20 border border-white/10 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-muted/30 border border-white/10 flex items-center justify-center text-xs font-black text-foreground font-['Space_Grotesk']">
                     {member.name?.[0] || '?'}
@@ -193,8 +205,8 @@ const WorkerSquads = () => {
 
                   {/* Members */}
                   <div className="flex -space-x-3">
-                    {(squad.members || []).slice(0, 5).map((m, i) => (
-                      <div key={i} className="w-10 h-10 rounded-full bg-muted/30 border-2 border-background flex items-center justify-center text-xs font-black text-foreground font-['Space_Grotesk']">
+                    {(squad.members || []).slice(0, 5).map((m) => (
+                      <div key={`${m.user_id}-${m.role || 'member'}`} className="w-10 h-10 rounded-full bg-muted/30 border-2 border-background flex items-center justify-center text-xs font-black text-foreground font-['Space_Grotesk']">
                         {m.name?.[0] || '?'}
                       </div>
                     ))}
@@ -217,7 +229,11 @@ const WorkerSquads = () => {
 
                 <div className="flex md:flex-col gap-3">
                   <button
-                    onClick={() => handleInvite(squad.id)}
+                    onClick={() => {
+                      setInviteOpenForSquadId(squad.id);
+                      setInviteUserId('');
+                      setInviteSplit('0');
+                    }}
                     disabled={invitingSquadId === squad.id}
                     className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 bg-muted/40 border border-white/10 text-foreground hover:border-primary/50 transition-all font-['Space_Grotesk'] disabled:opacity-60"
                   >
@@ -232,6 +248,43 @@ const WorkerSquads = () => {
                   </button>
                 </div>
               </div>
+              {inviteOpenForSquadId === squad.id && (
+                <div className="relative z-10 mt-4 p-4 rounded-2xl bg-muted/20 border border-white/10 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 font-['Space_Grotesk']">Invite Member</p>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <input
+                      value={inviteUserId}
+                      onChange={(e) => setInviteUserId(e.target.value)}
+                      className="w-full p-3 rounded-xl bg-background/50 border border-white/10 text-foreground font-['Space_Grotesk'] font-bold text-sm focus:outline-none focus:border-primary/40 placeholder:text-muted-foreground/40"
+                      placeholder="Worker user ID"
+                    />
+                    <input
+                      value={inviteSplit}
+                      onChange={(e) => setInviteSplit(e.target.value)}
+                      type="number"
+                      min="0"
+                      max="100"
+                      className="w-full p-3 rounded-xl bg-background/50 border border-white/10 text-foreground font-['Space_Grotesk'] font-bold text-sm focus:outline-none focus:border-primary/40 placeholder:text-muted-foreground/40"
+                      placeholder="Split %"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleInvite(squad.id)}
+                      disabled={invitingSquadId === squad.id}
+                      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-primary text-white font-['Space_Grotesk'] shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-60"
+                    >
+                      {invitingSquadId === squad.id ? 'Inviting...' : 'Add Member'}
+                    </button>
+                    <button
+                      onClick={() => setInviteOpenForSquadId(null)}
+                      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-muted/40 border border-white/10 text-foreground font-['Space_Grotesk']"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
