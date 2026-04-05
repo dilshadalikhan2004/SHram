@@ -80,7 +80,12 @@ memory/test_credentials.md
 
 # Mobile development
 android-sdk/-e 
-# Environment files
+# Environment files (keep secrets out of git)
 *.env
 *.env.*
+# Allow non-secret frontend env files
+!frontend/.env
+!frontend/.env.production
+# Allow example/template env files
+!**/.env.example
 frontend/node_modules/.cache/default-development/2.pack
