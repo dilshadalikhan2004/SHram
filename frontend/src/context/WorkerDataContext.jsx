@@ -62,8 +62,6 @@ export const WorkerDataProvider = ({ children }) => {
   const fetchData = useCallback(async () => {
     setLoading(true);
 
-    // Build params with only meaningful (non-placeholder) values so that default
-    // UI state never accidentally over-filters the backend query.
     const filterParams = {};
     if (appliedFilters.category && appliedFilters.category !== 'all') {
       filterParams.category = appliedFilters.category;
@@ -77,36 +75,43 @@ export const WorkerDataProvider = ({ children }) => {
     if (appliedFilters.urgency === 'urgent') {
       filterParams.urgency = 'urgent';
     }
+
+    // IMPORTANT: backend expects q, not search
     if (searchQuery && searchQuery.trim()) {
-      filterParams.search = searchQuery.trim();
+      filterParams.q = searchQuery.trim();
     }
 
-    // Detect whether any real (non-default) filters are active.
     const hasActiveFilters = Object.keys(filterParams).length > 0;
 
     try {
-      let jobsPromise = jobsApi.list(filterParams).catch(() => ({ data: [] }));
+      const token = localStorage.getItem('token');
 
       const [jobsRes, profileRes, appsRes, statsRes, notifRes, catRes, savedRes] = await Promise.all([
-        jobsPromise,
+        jobsApi.list(filterParams).catch(() => ({ data: [] })),
         profileApi.getWorkerProfile().catch(() => ({ data: null })),
         applicationsApi.getWorkerApplications().catch(() => ({ data: [] })),
         profileApi.getWorkerStats().catch(() => ({ data: { profile_views: 0 } })),
-        axios.get(`${API_URL}/api/notifications`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).catch(() => ({ data: [] })),
+        axios.get(`${API_URL}/api/notifications`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/categories`).catch(() => ({ data: { categories: [] } })),
         jobsApi.getSaved().catch(() => ({ data: [] })),
       ]);
 
-      let jobsData = jobsRes.data || [];
+      let jobsData = Array.isArray(jobsRes.data) ? jobsRes.data : [];
 
-      // Fallback: if filtered fetch returned nothing and real filters were active,
-      // do a second unfiltered fetch so workers always see available jobs.
+      // Fallback 1: if filters active and no data, retry unfiltered
       if (jobsData.length === 0 && hasActiveFilters) {
         const fallbackRes = await jobsApi.list({}).catch(() => ({ data: [] }));
-        jobsData = fallbackRes.data || [];
+        jobsData = Array.isArray(fallbackRes.data) ? fallbackRes.data : [];
       }
 
-      // Normalize each job to handle mixed/inconsistent field schemas from the backend.
+      // Fallback 2: try recommended endpoint
+      if (jobsData.length === 0) {
+        const recRes = await axios.get(`${API_URL}/api/jobs/recommended`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => ({ data: [] }));
+        jobsData = Array.isArray(recRes.data) ? recRes.data : [];
+      }
+
       setJobs(jobsData.map(normalizeJob));
       setProfile(profileRes.data);
       setApplications(appsRes.data || []);
@@ -116,8 +121,9 @@ export const WorkerDataProvider = ({ children }) => {
       setSavedJobs(savedRes.data || []);
 
       if (profileRes.data) {
-        setIsOnline(profileRes.data.is_online === true);
-        localStorage.setItem('worker_is_online', JSON.stringify(profileRes.data.is_online === true));
+        const online = profileRes.data.is_online === true;
+        setIsOnline(online);
+        localStorage.setItem('worker_is_online', JSON.stringify(online));
       }
     } catch (err) {
       toast.error(parseApiError(err, "Failed to sync dashboard"));
@@ -199,12 +205,17 @@ export const WorkerDataProvider = ({ children }) => {
   }, [fetchData]);
 
   // ── Derived ──
-  const filteredJobs = jobs.filter(job => {
-    if (!searchQuery.trim()) return true;
-    const keywords = searchQuery.toLowerCase().split(/\s+/).filter(k => k.length > 0);
-    const searchable = [job.title, job.location, job.description || '', job.category || '', ...(job.requirements || [])].join(' ').toLowerCase();
-    return keywords.some(kw => searchable.includes(kw));
-  }).sort((a, b) => calculateMatchScore(b) - calculateMatchScore(a));
+  const filteredJobs = jobs
+    .filter(job => {
+      // backend already filters by q; keep this as a UI fallback only
+      if (!searchQuery.trim()) return true;
+      const keywords = searchQuery.toLowerCase().split(/\s+/).filter(k => k.length > 0);
+      const searchable = [job.title, job.location, job.description || '', job.category || '', ...(job.requirements || [])]
+        .join(' ')
+        .toLowerCase();
+      return keywords.some(kw => searchable.includes(kw));
+    })
+    .sort((a, b) => calculateMatchScore(b) - calculateMatchScore(a));
 
   const profileStrength = profile ? [
     profile.skills?.length > 0 ? 20 : 0,
@@ -243,15 +254,11 @@ export const WorkerDataProvider = ({ children }) => {
   }, []);
 
   const value = {
-    // Data
     profile, setProfile, jobs, applications, savedJobs, notifications,
     stats, workerStats, categories, loading, filteredJobs, profileStrength,
-    // UI State
     searchQuery, setSearchQuery, isOnline, appliedFilters, setAppliedFilters,
-    // Actions
     fetchData, handleSaveJob, handleToggleOnline, handleApply, handleRequestRelease,
     clearFilters,
-    // Helpers
     calculateMatchScore, hasApplied, isSaved, unreadNotifications,
     getStatusColor, getMatchColor, getMatchBg, getTimeAgo, getPhotoUrl,
   };
