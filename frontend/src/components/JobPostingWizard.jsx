@@ -37,7 +37,7 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
     description: '',
     category: 'construction',
     requirements: '',
-    min_experience: 0,
+    experience_required: 0,
     team_size: 1,
     hire_type: 'individual',
     location: '',
@@ -86,8 +86,21 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
       const token = localStorage.getItem('token');
       const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
       const payload = {
-        ...formData,
-        requirements: formData.requirements.split(',').map(s => s.trim()).filter(Boolean)
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        location: formData.location,
+        lat: formData.latitude,
+        lng: formData.longitude,
+        salary_paise: parseInt(formData.salary_paise, 10) || 0,
+        salary_type: formData.salary_type,
+        requirements: formData.requirements.split(',').map(s => s.trim()).filter(Boolean),
+        is_urgent: formData.is_urgent,
+        team_size: formData.team_size,
+        hire_type: formData.hire_type,
+        start_date: formData.start_date || null,
+        estimated_duration: formData.estimated_duration,
+        experience_required: formData.experience_required || 0,
       };
       await axios.post(`${API_URL}/api/jobs/`, payload, {
         headers: { Authorization: `Bearer ${token}` }

@@ -114,6 +114,7 @@ class JobCreate(BaseModel):
     hire_type: str = "individual"
     start_date: Optional[datetime] = None
     estimated_duration: str = ""
+    experience_required: Optional[int] = 0
 
 # --- APPLICATION MODELS ---
 class Application(BaseModel):
