@@ -19,7 +19,7 @@ import LocationPicker from '../components/LocationPicker';
 import OTPVerification from '../components/OTPVerification';
 import { parseApiError } from '../utils/errorUtils';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 const BUSINESS_TYPES = [
   'Construction', 'Real Estate', 'Manufacturing', 'Logistics', 
@@ -59,7 +59,6 @@ const EmployerProfileSetup = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
         const res = await axios.get(`${API_URL}/api/employer/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });

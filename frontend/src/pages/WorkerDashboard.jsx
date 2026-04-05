@@ -43,7 +43,7 @@ import {
 } from '../components/ui/dialog';
 import { profileApi, applicationsApi, jobsApi } from '../lib/api';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 // Framer Motion Variants for Smooth Sequences
 const containerVariants = {

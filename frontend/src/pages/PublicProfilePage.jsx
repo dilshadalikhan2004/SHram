@@ -39,7 +39,7 @@ const PublicProfilePage = () => {
     try {
       // In a real app, we'd have a public profile endpoint
       // For now, we'll try to fetch the worker profile
-      const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/worker/profile/${id}`);
+      const res = await axios.get(`https://api.shramsetu.in/api/worker/profile/${id}`);
       setProfile(res.data);
       
       const portfolioRes = await portfolioApi.getUser(id);

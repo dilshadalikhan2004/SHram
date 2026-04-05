@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Progress } from './ui/progress';
 import { Video, Upload, Trash2, Play, Pause, Loader2, CheckCircle, X } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 const VideoIntroUpload = ({ currentVideo, onUploadSuccess, onDelete }) => {
   const [uploading, setUploading] = useState(false);

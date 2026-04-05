@@ -18,7 +18,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../context/TranslationContext';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API_URL = "https://api.shramsetu.in";
 
 const ChatPanel = ({ onClose, initialUserId = null }) => {
   const { user } = useAuth();

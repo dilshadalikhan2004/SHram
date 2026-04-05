@@ -326,7 +326,7 @@ function App() {
       });
 
       // Save to backend
-      const API_URL = process.env.REACT_APP_BACKEND_URL;
+      const API_URL = "https://api.shramsetu.in";
       const token = localStorage.getItem('token');
       if (token) {
         await axios.post(`${API_URL}/api/notifications/subscribe`, subscription, {

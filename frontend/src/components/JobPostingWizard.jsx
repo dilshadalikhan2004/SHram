@@ -18,6 +18,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import LocationPicker from './LocationPicker';
 
+const API_URL = "https://api.shramsetu.in";
+
 const STEPS = [
   { id: 'ai', title: 'AI Assist', icon: <Sparkles className="w-5 h-5" /> },
   { id: 'basic', title: 'Basic Info', icon: <Briefcase className="w-5 h-5" /> },
@@ -55,7 +57,6 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
     setIsDrafting(true);
     try {
       const token = localStorage.getItem('token');
-      const API_URL = "https://api.shramsetu.in" || 'http://localhost:8000';
       const res = await axios.post(`${API_URL}/api/jobs/draft`, { query: aiQuery }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -84,7 +85,6 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem('token');
-      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
       const payload = {
         title: formData.title,
         description: formData.description,
@@ -102,7 +102,7 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
         estimated_duration: formData.estimated_duration,
         experience_required: formData.experience_required || 0,
       };
-      await axios.post(`${API_URL}/api/jobs/`, payload, {
+      await axios.post(`${API_URL}/api/jobs`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       onComplete();
