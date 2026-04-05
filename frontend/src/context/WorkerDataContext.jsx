@@ -9,6 +9,21 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const WorkerDataContext = createContext(null);
 
+// Normalize a job object so that both old and new backend field schemas render correctly.
+const normalizeJob = (job) => {
+  let pay_amount = job.pay_amount;
+  if (pay_amount == null && job.salary_paise != null) {
+    pay_amount = job.salary_paise / 100;
+  }
+  return {
+    ...job,
+    id: job.id || job._id,
+    pay_amount,
+    pay_type: job.pay_type || job.salary_type,
+    vacancies: job.vacancies || job.team_size || 1,
+  };
+};
+
 export const useWorkerData = () => {
   const ctx = useContext(WorkerDataContext);
   if (!ctx) throw new Error('useWorkerData must be used within WorkerDataProvider');
@@ -91,7 +106,8 @@ export const WorkerDataProvider = ({ children }) => {
         jobsData = fallbackRes.data || [];
       }
 
-      setJobs(jobsData);
+      // Normalize each job to handle mixed/inconsistent field schemas from the backend.
+      setJobs(jobsData.map(normalizeJob));
       setProfile(profileRes.data);
       setApplications(appsRes.data || []);
       setWorkerStats(statsRes.data || { profile_views: 0 });
