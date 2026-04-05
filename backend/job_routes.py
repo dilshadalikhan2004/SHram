@@ -118,7 +118,7 @@ async def list_jobs(
     # Hydrate with virtual fields
     for job in jobs:
         # Applicant count
-        count = await db.applications.count_documents({"job_id": job["id"]})
+        count = await db.applications.count_documents({"job_id": job.get("id") or str(job.get("_id"))})
         job["applicant_count"] = count
         
         # Employer rating integration
