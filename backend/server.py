@@ -63,7 +63,12 @@ def get_ai_client():
     return _ai_client
 
 # JWT Config
-JWT_SECRET = os.environ.get('JWT_SECRET', 'f9b4c7d0e8a21f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a')
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    raise ValueError(
+        "JWT_SECRET environment variable is not set. "
+        "Set a strong secret before starting the server."
+    )
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 
 def _get_jwt_exp():
@@ -144,38 +149,6 @@ async def get_translations(lang: str):
     Falls back to English if the language is not supported.
     """
     return TRANSLATIONS.get(lang, TRANSLATIONS["en"])
-
-# TEMP DEBUG: List users to diagnose login issues — REMOVE BEFORE PRODUCTION
-@api_router.get("/debug/users")
-
-async def debug_users():
-    try:
-        db = get_db()
-        if db is None:
-            return {"error": "No DB connection"}
-        cursor = db.users.find({})
-        users = await cursor.to_list(length=50)
-        result = []
-        for u in users:
-            result.append({
-                "_id": str(u.get("_id")),
-                "phone": u.get("phone"),
-                "email": u.get("email"),
-                "full_name": u.get("full_name"),
-                "role": u.get("role"),
-                "has_password": bool(u.get("password")),
-                "has_hashed_password": bool(u.get("hashed_password")),
-                "all_fields": [k for k in u.keys() if k not in ("password", "hashed_password")],
-            })
-        return {"count": len(result), "users": result}
-    except Exception as e:
-        return {"error": str(e)}
-
-@api_router.get("/translations/{language}")
-async def get_translations(language: str):
-    if language not in TRANSLATIONS:
-        language = "en"
-    return TRANSLATIONS[language]
 
 @api_router.get("/categories")
 async def get_categories():
@@ -289,7 +262,7 @@ async def serve_uploaded_file(path: str):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     # Determine media type
-    ext = filename.rsplit(".", 1)[-1].lower()
+    ext = file_path.name.rsplit(".", 1)[-1].lower()
     media_types = {"webm": "video/webm", "mp4": "video/mp4", "jpg": "image/jpeg", "png": "image/png"}
     return FileResponse(str(file_path), media_type=media_types.get(ext, "application/octet-stream"))
 
