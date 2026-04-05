@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const sendOtp = async (phone) => {
-    await axios.post(`${API_URL}/api/auth/otp/send/`, { phone });
+    await axios.post(`${API_URL}/api/auth/otp/send`, { phone });
     return true;
   };
 
