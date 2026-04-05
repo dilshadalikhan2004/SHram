@@ -138,8 +138,9 @@ async def create_job(job_in: JobCreate, request: Request):
 
     new_job = Job(
         employer_id=user_id,
-        **job_in.dict()
+        **job_in.dict(exclude={"status"})
     )
+    new_job.status = "open"
     
     # Calculate estimated escrow (100% of budget for simple demo)
     new_job.escrow_amount_paise = new_job.salary_paise * (new_job.team_size or 1)
@@ -310,3 +311,20 @@ async def unsave_job(job_id: str, request: Request):
         {"$pull": {"job_ids": job_id}}
     )
     return {"success": True}
+
+@job_router.post("/migrate/fix-status")
+async def migrate_fix_job_status(request: Request):
+    """Migration endpoint: sets status='open' on any jobs missing a valid status value.
+    Requires X-Admin-Secret header matching the ADMIN_SECRET environment variable."""
+    admin_secret = os.environ.get("ADMIN_SECRET")
+    if not admin_secret:
+        raise HTTPException(status_code=503, detail="Admin secret not configured")
+    if request.headers.get("X-Admin-Secret") != admin_secret:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    db = get_db()
+    valid_statuses = ["open", "matched", "completed", "cancelled"]
+    result = await db.jobs.update_many(
+        {"status": {"$nin": valid_statuses}},
+        {"$set": {"status": "open"}}
+    )
+    return {"fixed": result.modified_count}
