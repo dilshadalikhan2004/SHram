@@ -3,7 +3,6 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Phone, Shield, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
@@ -13,12 +12,14 @@ const API_URL = "https://api.shramsetu.in";
 
 const PhoneVerification = ({ isVerified, onVerified }) => {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState('phone'); // phone, otp, success
+  const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const inputRefs = useRef([]);
+
+  const verified = Boolean(isVerified);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -78,15 +79,12 @@ const PhoneVerification = ({ isVerified, onVerified }) => {
   };
 
   const handleOtpChange = (index, value) => {
-    if (value.length > 1) {
-      value = value[0];
-    }
-    
+    if (value.length > 1) value = value[0];
+
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -105,7 +103,7 @@ const PhoneVerification = ({ isVerified, onVerified }) => {
     setCountdown(0);
   };
 
-  if (isVerified) {
+  if (verified) {
     return (
       <Badge variant="outline" className="gap-1 text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20">
         <CheckCircle className="w-3 h-3" />
