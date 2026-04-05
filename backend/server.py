@@ -102,8 +102,10 @@ cors_origins_raw = os.environ.get('CORS_ORIGINS', '')
 if cors_origins_raw:
     origins = [o.strip() for o in cors_origins_raw.split(',') if o.strip()]
 else:
-    # Safe defaults including localhost and production Vercel
+    # Safe defaults including localhost and production domains
     origins = [
+        "https://www.shramsetu.in",
+        "https://shramsetu.in",
         "https://s-hram.vercel.app",
         "http://localhost:3000",
         "http://localhost:5173",  # Vite default
