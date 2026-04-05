@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_URL = "https://api.shramsetu.in";
-const api = axios.create({ baseURL: `${API_URL}/api` });
+const api = axios.create({ baseURL: `${API_URL}/api/` });
 
 // Attach token to every request
 api.interceptors.request.use((config) => {

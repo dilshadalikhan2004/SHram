@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/auth/me`);
+      const response = await axios.get(`${API_URL}/api/auth/me/`);
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user:', error);
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
 
   // Accepts a clean payload object — caller decides what fields to include
   const login = async (payload) => {
-    const response = await axios.post(`${API_URL}/api/auth/login`, payload);
+    const response = await axios.post(`${API_URL}/api/auth/login/`, payload);
     const { access_token, user: userData } = response.data;
     localStorage.setItem('token', access_token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
