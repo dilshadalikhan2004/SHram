@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 // Translation context
 const TranslationContext = createContext(null);
@@ -42,7 +42,7 @@ export const TranslationProvider = ({ children }) => {
   const changeLanguage = async (lang) => {
     setLanguage(lang);
     localStorage.setItem('language', lang);
-    
+
     // Update user preference if logged in
     const token = localStorage.getItem('token');
     if (token) {

@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { parseApiError } from '../utils/errorUtils';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 const EmployerDataContext = createContext(null);
 
@@ -36,7 +36,7 @@ export const EmployerDataProvider = ({ children }) => {
   // ── Data Fetching ──
   const fetchData = useCallback(async () => {
     if (!user || (user.role !== 'employer' && user.role !== 'both')) return;
-    
+
     setLoading(true);
     const token = localStorage.getItem('token');
     const headers = { Authorization: `Bearer ${token}` };
@@ -56,28 +56,28 @@ export const EmployerDataProvider = ({ children }) => {
       setNotifications(notifRes.data || []);
 
       if (statsRes.data?.data) {
-          const sd = statsRes.data.data;
-          setStats({
-              active_jobs: sd.active_hiring || 0,
-              total_hired: sd.total_hires || 0,
-              pending_payments: sd.pending_payments || 0,
-              attendance_today: sd.attendance_today || 0,
-              force_breakdown: sd.force_breakdown || [],
-              ai_insight: sd.ai_insight || ""
-          });
-          setRecentActivity(sd.recent_activity || []);
+        const sd = statsRes.data.data;
+        setStats({
+          active_jobs: sd.active_hiring || 0,
+          total_hired: sd.total_hires || 0,
+          pending_payments: sd.pending_payments || 0,
+          attendance_today: sd.attendance_today || 0,
+          force_breakdown: sd.force_breakdown || [],
+          ai_insight: sd.ai_insight || ""
+        });
+        setRecentActivity(sd.recent_activity || []);
       } else {
-          // Fallback if stat endpoint fails
-          const activeJobs = (jobsRes.data || []).filter(j => j.status === 'open').length;
-          const hiredCount = (appsRes.data || []).filter(a => a.status === 'accepted' || a.status === 'selected').length;
-          setStats({
-            active_jobs: activeJobs,
-            total_hired: hiredCount,
-            pending_payments: 0,
-            attendance_today: 0,
-            force_breakdown: [],
-            ai_insight: "Real-time AI uplink unavailable."
-          });
+        // Fallback if stat endpoint fails
+        const activeJobs = (jobsRes.data || []).filter(j => j.status === 'open').length;
+        const hiredCount = (appsRes.data || []).filter(a => a.status === 'accepted' || a.status === 'selected').length;
+        setStats({
+          active_jobs: activeJobs,
+          total_hired: hiredCount,
+          pending_payments: 0,
+          attendance_today: 0,
+          force_breakdown: [],
+          ai_insight: "Real-time AI uplink unavailable."
+        });
       }
 
     } catch (err) {

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkles, 
-  Briefcase, 
-  MapPin, 
-  Users, 
-  IndianRupee, 
-  CheckCircle, 
-  ChevronRight, 
+import {
+  Sparkles,
+  Briefcase,
+  MapPin,
+  Users,
+  IndianRupee,
+  CheckCircle,
+  ChevronRight,
   ChevronLeft,
   AlertCircle,
   Zap,
@@ -31,7 +31,7 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isDrafting, setIsDrafting] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -55,7 +55,7 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
     setIsDrafting(true);
     try {
       const token = localStorage.getItem('token');
-      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+      const API_URL = "https://api.shramsetu.in" || 'http://localhost:8000';
       const res = await axios.post(`${API_URL}/api/jobs/draft`, { query: aiQuery }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -139,7 +139,7 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
               </button>
             </div>
             <div className="text-center text-gray-500 text-sm">
-              <button 
+              <button
                 type="button"
                 onClick={() => setCurrentStep(1)}
                 className="hover:text-blue-400 transition-colors underline flex items-center gap-1 mx-auto"
@@ -181,13 +181,13 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
                   </select>
                 </div>
                 <div className="flex items-end pb-1">
-                   <div 
+                  <div
                     onClick={() => setFormData({ ...formData, is_urgent: !formData.is_urgent })}
                     className={`w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${formData.is_urgent ? 'border-orange-500 bg-orange-500/10 text-orange-500' : 'border-slate-700 text-gray-500 hover:border-slate-600'}`}
-                   >
-                     <Zap className={`w-5 h-5 ${formData.is_urgent ? 'fill-orange-500 animate-pulse' : ''}`} />
-                     <span className="font-bold">URGENT</span>
-                   </div>
+                  >
+                    <Zap className={`w-5 h-5 ${formData.is_urgent ? 'fill-orange-500 animate-pulse' : ''}`} />
+                    <span className="font-bold">URGENT</span>
+                  </div>
                 </div>
               </div>
               <div>
@@ -225,18 +225,18 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
               <div>
                 <label className="text-sm font-medium text-gray-400 mb-2 block">Team Size</label>
                 <div className="flex items-center bg-slate-900/50 border border-slate-700 rounded-xl">
-                   <button 
+                  <button
                     type="button"
                     onClick={() => setFormData(f => ({ ...f, team_size: Math.max(1, f.team_size - 1) }))}
                     className="p-4 text-gray-400 hover:text-white transition-colors"
                   >-</button>
-                   <input 
+                  <input
                     type="number"
                     value={formData.team_size}
                     onChange={(e) => setFormData({ ...formData, team_size: parseInt(e.target.value) || 1 })}
                     className="flex-1 bg-transparent text-center text-white font-bold outline-none"
-                   />
-                   <button 
+                  />
+                  <button
                     type="button"
                     onClick={() => setFormData(f => ({ ...f, team_size: f.team_size + 1 }))}
                     className="p-4 text-gray-400 hover:text-white transition-colors"
@@ -260,47 +260,47 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
       case 'location':
         return (
           <div className="space-y-6">
-             <div className="h-[250px] w-full rounded-2xl overflow-hidden border border-slate-700 group relative">
-                <LocationPicker 
-                  value={formData.location}
-                  onChange={(address) => setFormData(f => ({ ...f, location: address }))}
-                  onCoordinatesChange={(lat, lng) => setFormData(f => ({ ...f, latitude: lat, longitude: lng }))}
-                />
-                {!formData.location && (
-                  <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
-                     <p className="bg-slate-900/80 px-4 py-2 rounded-full text-blue-400 text-sm font-medium border border-blue-500/30">
-                        Pin the job location on the map
-                     </p>
-                  </div>
-                )}
-             </div>
-             <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-400 mb-2 block">Start Date</label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={formData.start_date}
-                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      className="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-                    />
-                    <Calendar className="absolute right-4 top-4 w-5 h-5 text-gray-500 pointer-events-none" />
-                  </div>
+            <div className="h-[250px] w-full rounded-2xl overflow-hidden border border-slate-700 group relative">
+              <LocationPicker
+                value={formData.location}
+                onChange={(address) => setFormData(f => ({ ...f, location: address }))}
+                onCoordinatesChange={(lat, lng) => setFormData(f => ({ ...f, latitude: lat, longitude: lng }))}
+              />
+              {!formData.location && (
+                <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
+                  <p className="bg-slate-900/80 px-4 py-2 rounded-full text-blue-400 text-sm font-medium border border-blue-500/30">
+                    Pin the job location on the map
+                  </p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-400 mb-2 block">Estimated Duration</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={formData.estimated_duration}
-                      onChange={(e) => setFormData({ ...formData, estimated_duration: e.target.value })}
-                      placeholder="e.g. 5 days, 1 month"
-                      className="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-4 pl-12 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                    />
-                    <Clock className="absolute left-4 top-4 w-5 h-5 text-gray-500" />
-                  </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-400 mb-2 block">Start Date</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                  />
+                  <Calendar className="absolute right-4 top-4 w-5 h-5 text-gray-500 pointer-events-none" />
                 </div>
-             </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-400 mb-2 block">Estimated Duration</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.estimated_duration}
+                    onChange={(e) => setFormData({ ...formData, estimated_duration: e.target.value })}
+                    placeholder="e.g. 5 days, 1 month"
+                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-4 pl-12 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  />
+                  <Clock className="absolute left-4 top-4 w-5 h-5 text-gray-500" />
+                </div>
+              </div>
+            </div>
           </div>
         );
 
@@ -312,36 +312,36 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
               <label className="text-lg font-bold text-white mb-4 block">Set your budget</label>
               <div className="relative mb-6">
                 <input
-                   type="number"
-                   value={formData.salary_paise / 100}
-                   onChange={(e) => setFormData({ ...formData, salary_paise: parseInt(e.target.value) * 100 })}
-                   className="w-full bg-transparent border-b-2 border-slate-700 text-center text-4xl font-black text-white focus:border-emerald-500 outline-none pb-2 transition-all"
+                  type="number"
+                  value={formData.salary_paise / 100}
+                  onChange={(e) => setFormData({ ...formData, salary_paise: parseInt(e.target.value) * 100 })}
+                  className="w-full bg-transparent border-b-2 border-slate-700 text-center text-4xl font-black text-white focus:border-emerald-500 outline-none pb-2 transition-all"
                 />
                 <span className="absolute left-0 top-1 text-2xl text-gray-600">₹</span>
               </div>
               <div className="flex gap-2 p-1 bg-slate-900/50 border border-slate-700 rounded-xl">
-                  {['daily', 'fixed'].map(type => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, salary_type: type })}
-                      className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold capitalize transition-all ${formData.salary_type === type ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:text-white'}`}
-                    >
-                      {type}
-                    </button>
-                  ))}
+                {['daily', 'fixed'].map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, salary_type: type })}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-bold capitalize transition-all ${formData.salary_type === type ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    {type}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 text-left max-w-md mx-auto">
-               <div className="flex gap-4">
-                  <AlertCircle className="w-6 h-6 text-amber-500 shrink-0" />
-                  <div>
-                    <p className="text-amber-500 font-bold mb-1 italic">Escrow Deposit</p>
-                    <p className="text-gray-400 text-sm leading-relaxed">
-                      To hire instantly, you will need to lock <span className="text-white font-bold">₹{((formData.salary_paise * formData.team_size) / 100).toLocaleString()}</span> in safe Escrow once you go live.
-                    </p>
-                  </div>
-               </div>
+              <div className="flex gap-4">
+                <AlertCircle className="w-6 h-6 text-amber-500 shrink-0" />
+                <div>
+                  <p className="text-amber-500 font-bold mb-1 italic">Escrow Deposit</p>
+                  <p className="text-gray-400 text-sm leading-relaxed">
+                    To hire instantly, you will need to lock <span className="text-white font-bold">₹{((formData.salary_paise * formData.team_size) / 100).toLocaleString()}</span> in safe Escrow once you go live.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -349,59 +349,59 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
       case 'review':
         return (
           <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-             <div className="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 space-y-4">
-                <div className="flex justify-between items-start">
-                   <div>
-                      <h4 className="text-2xl font-black text-white mb-1">{formData.title || 'Untitled Job'}</h4>
-                      <div className="flex items-center gap-2 text-gray-400 text-sm">
-                        <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider">{formData.category}</span>
-                        <span>•</span>
-                        <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {formData.location || 'Location pinning pending'}</div>
-                      </div>
-                   </div>
-                   {formData.is_urgent && (
-                     <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-black italic animate-bounce">URGENT</span>
-                   )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 py-2">
-                   <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Budget</p>
-                      <p className="text-white font-bold">₹{formData.salary_paise / 100} / {formData.salary_type}</p>
-                   </div>
-                   <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Duration</p>
-                      <p className="text-white font-bold">{formData.estimated_duration || 'Not set'}</p>
-                   </div>
-                   <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Total Team</p>
-                      <p className="text-white font-bold">{formData.team_size} {formData.hire_type}(s)</p>
-                   </div>
-                   <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Starts On</p>
-                      <p className="text-white font-bold">{formData.start_date || 'ASAP'}</p>
-                   </div>
-                </div>
-
+            <div className="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 space-y-4">
+              <div className="flex justify-between items-start">
                 <div>
-                   <p className="text-[10px] text-gray-500 uppercase font-bold mb-2">Detailed Scope</p>
-                   <p className="text-gray-400 text-sm leading-relaxed">{formData.description || 'No description provided.'}</p>
+                  <h4 className="text-2xl font-black text-white mb-1">{formData.title || 'Untitled Job'}</h4>
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
+                    <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider">{formData.category}</span>
+                    <span>•</span>
+                    <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {formData.location || 'Location pinning pending'}</div>
+                  </div>
                 </div>
-                
-                {formData.requirements && (
-                   <div>
-                      <p className="text-[10px] text-gray-500 uppercase font-bold mb-2">Required Skills</p>
-                      <div className="flex flex-wrap gap-2">
-                        {formData.requirements.split(',').map((s, i) => (
-                           <span key={i} className="bg-slate-800 px-3 py-1 rounded-lg text-xs text-white border border-slate-700">{s.trim()}</span>
-                        ))}
-                      </div>
-                   </div>
+                {formData.is_urgent && (
+                  <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-black italic animate-bounce">URGENT</span>
                 )}
-             </div>
-             <p className="text-center text-xs text-gray-500 px-6">
-                By clicking "Confirm & Go Live", you agree to post this listing and acknowledge that match-matching AI will begin immediate scouting.
-             </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 py-2">
+                <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Budget</p>
+                  <p className="text-white font-bold">₹{formData.salary_paise / 100} / {formData.salary_type}</p>
+                </div>
+                <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Duration</p>
+                  <p className="text-white font-bold">{formData.estimated_duration || 'Not set'}</p>
+                </div>
+                <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Total Team</p>
+                  <p className="text-white font-bold">{formData.team_size} {formData.hire_type}(s)</p>
+                </div>
+                <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Starts On</p>
+                  <p className="text-white font-bold">{formData.start_date || 'ASAP'}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase font-bold mb-2">Detailed Scope</p>
+                <p className="text-gray-400 text-sm leading-relaxed">{formData.description || 'No description provided.'}</p>
+              </div>
+
+              {formData.requirements && (
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase font-bold mb-2">Required Skills</p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.requirements.split(',').map((s, i) => (
+                      <span key={i} className="bg-slate-800 px-3 py-1 rounded-lg text-xs text-white border border-slate-700">{s.trim()}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-center text-xs text-gray-500 px-6">
+              By clicking "Confirm & Go Live", you agree to post this listing and acknowledge that match-matching AI will begin immediate scouting.
+            </p>
           </div>
         );
 
@@ -412,7 +412,7 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="w-full max-w-2xl bg-slate-900 border border-slate-700/50 rounded-2xl sm:rounded-[32px] overflow-hidden shadow-2xl shadow-blue-500/10 flex flex-col h-full max-h-[95vh] sm:h-[700px]"
@@ -420,23 +420,23 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
         {/* Header */}
         <div className="p-4 sm:p-8 pb-4">
           <div className="flex justify-between items-center mb-4 sm:mb-8">
-             <div>
-                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
-                  {STEPS[currentStep].icon}
-                  {STEPS[currentStep].title}
-                </h2>
-                <div className="flex gap-1 mt-2">
-                  {STEPS.map((_, i) => (
-                    <div 
-                      key={i} 
-                      className={`h-1 rounded-full transition-all duration-500 ${i === currentStep ? 'w-6 sm:w-8 bg-blue-500' : i < currentStep ? 'w-3 sm:w-4 bg-blue-900' : 'w-3 sm:w-4 bg-slate-800'}`} 
-                    />
-                  ))}
-                </div>
-             </div>
-             <button type="button" onClick={onCancel} className="text-gray-600 hover:text-white transition-colors p-2">
-               <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 rotate-90" />
-             </button>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                {STEPS[currentStep].icon}
+                {STEPS[currentStep].title}
+              </h2>
+              <div className="flex gap-1 mt-2">
+                {STEPS.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1 rounded-full transition-all duration-500 ${i === currentStep ? 'w-6 sm:w-8 bg-blue-500' : i < currentStep ? 'w-3 sm:w-4 bg-blue-900' : 'w-3 sm:w-4 bg-slate-800'}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <button type="button" onClick={onCancel} className="text-gray-600 hover:text-white transition-colors p-2">
+              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 rotate-90" />
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-2 custom-scrollbar pb-6">
@@ -455,30 +455,30 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
 
         {/* Footer */}
         <div className="mt-auto p-4 sm:p-8 border-t border-slate-800 bg-slate-900/50 flex justify-between gap-4">
-           {currentStep > 0 && (
-             <button 
+          {currentStep > 0 && (
+            <button
               type="button"
               onClick={handleBack}
               className="flex items-center gap-2 text-gray-400 hover:text-white font-bold transition-all px-2 sm:px-4"
-             >
-                <ChevronLeft className="w-5 h-5" />
-                <span className="hidden sm:inline">Back</span>
-             </button>
-           )}
-           <div className="flex-1" />
-           <button 
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+          )}
+          <div className="flex-1" />
+          <button
             type="button"
             onClick={handleNext}
             disabled={isDrafting}
             className={`bg-blue-600 hover:bg-blue-500 text-white px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-blue-600/20 active:scale-95 transition-all text-base sm:text-lg ${currentStep === 0 && 'hidden'}`}
-           >
-              {currentStep === STEPS.length - 1 ? (
-                <span className="text-sm sm:text-lg">Confirm & Go Live</span>
-              ) : (
-                <span>Continue</span>
-              )}
-              <ChevronRight className="w-5 h-5" />
-           </button>
+          >
+            {currentStep === STEPS.length - 1 ? (
+              <span className="text-sm sm:text-lg">Confirm & Go Live</span>
+            ) : (
+              <span>Continue</span>
+            )}
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       </motion.div>
     </div>

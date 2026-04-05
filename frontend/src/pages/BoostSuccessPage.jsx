@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { CheckCircle, Rocket, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 const BoostSuccessPage = () => {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ const BoostSuccessPage = () => {
 
     try {
       const response = await axios.get(`${API_URL}/api/boost/status/${sessionId}`);
-      
+
       if (response.data.status === 'paid') {
         setStatus('success');
         toast.success('Job boost activated!');

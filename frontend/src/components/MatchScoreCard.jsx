@@ -5,7 +5,7 @@ import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Target, MapPin, Clock, Sparkles } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 const MatchScoreCard = ({ jobId }) => {
   const [matchData, setMatchData] = useState(null);
@@ -16,7 +16,7 @@ const MatchScoreCard = ({ jobId }) => {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get(`${API_URL}/api/jobs/match/${jobId}`, {
-            headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` }
         });
         setMatchData(response.data);
       } catch (error) {
@@ -60,7 +60,7 @@ const MatchScoreCard = ({ jobId }) => {
     <Card className="relative overflow-hidden border-2 border-primary/20">
       {/* Animated border glow effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-pulse" />
-      
+
       <CardContent className="p-6 relative">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-5 h-5 text-primary" />
@@ -100,7 +100,7 @@ const MatchScoreCard = ({ jobId }) => {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <motion.span 
+              <motion.span
                 className={`text-3xl font-bold ${getScoreColor(matchData.score)}`}
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -115,7 +115,7 @@ const MatchScoreCard = ({ jobId }) => {
           {/* Match Details */}
           <div className="flex-1 space-y-4">
             <p className="text-sm text-muted-foreground">{matchData.explanation}</p>
-            
+
             <div className="grid grid-cols-3 gap-2">
               <div className="text-center p-2 bg-muted rounded-lg">
                 <Target className="w-4 h-4 mx-auto mb-1 text-blue-500" />
