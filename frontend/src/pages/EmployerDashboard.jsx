@@ -385,14 +385,14 @@ const EmployerDashboard = () => {
                                 </span>
                                 <span className="flex items-center gap-1.5 text-[10px] text-amber-400 font-bold uppercase tracking-widest">
                                   <IndianRupee className="w-3.5 h-3.5" />
-                                  {job.pay_amount}/{job.pay_type}
+                                  {job.pay_amount ?? (job.salary_paise ? job.salary_paise / 100 : 0)}/{job.pay_type ?? job.salary_type ?? 'daily'}
                                 </span>
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
                             <Badge variant="outline" className="rounded-lg h-9 px-4 font-bold border-white/5 bg-muted/20 text-xs tracking-widest uppercase">
-                              {job.vacancies} OPENINGS
+                              {job.vacancies ?? job.team_size ?? 1} OPENINGS
                             </Badge>
                             <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center border border-white/5 group-hover:bg-primary/10 group-hover:border-primary/30 transition-all">
                               <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
@@ -483,13 +483,13 @@ const EmployerDashboard = () => {
                       
                       <div className="space-y-2 mt-4 mb-6">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                          <IndianRupee className="w-3.5 h-3.5" /> <span className="text-amber-400">{job.pay_amount}/{job.pay_type}</span>
+                          <IndianRupee className="w-3.5 h-3.5" /> <span className="text-amber-400">{job.pay_amount ?? (job.salary_paise ? job.salary_paise / 100 : 0)}/{job.pay_type ?? job.salary_type ?? 'daily'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
                            <MapPin className="w-3.5 h-3.5" /> {job.location}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                          <Users className="w-3.5 h-3.5" /> {job.vacancies} {t('openings_label')}
+                          <Users className="w-3.5 h-3.5" /> {job.vacancies ?? job.team_size ?? 1} {t('openings_label')}
                         </div>
                       </div>
                       

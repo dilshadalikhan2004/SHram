@@ -44,7 +44,7 @@ export const EmployerDataProvider = ({ children }) => {
     try {
       const [profileRes, jobsRes, appsRes, notifRes, statsRes] = await Promise.all([
         axios.get(`${API_URL}/api/employer/profile`, { headers }).catch(() => ({ data: null })),
-        axios.get(`${API_URL}/api/jobs/my-jobs`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API_URL}/api/jobs/employer`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/applications/employer`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/notifications`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/stats/employer`, { headers }).catch(() => ({ data: null }))
