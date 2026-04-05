@@ -21,7 +21,7 @@ export const WebSocketProvider = ({ children }) => {
   const connect = useCallback(() => {
     if (!token || wsRef.current) return;
 
-    const wsUrl = process.env.REACT_APP_BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+    const wsUrl = "wss://api.shramsetu.in";
     const ws = new WebSocket(`${wsUrl}/ws/${token}`);
 
     ws.onopen = () => {

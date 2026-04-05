@@ -6,7 +6,7 @@ import { Card } from './ui/card';
 import { MapPin, Loader2, Navigation, X, Check, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 const defaultCenter = { lat: 20.5937, lng: 78.9629 }; // India center
 

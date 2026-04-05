@@ -11,7 +11,7 @@ const OnboardDone = () => {
     const finalizeOnboarding = async () => {
       try {
         const token = localStorage.getItem('token');
-        await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/worker/profile/onboarding-progress`, {
+        await fetch(`https://api.shramsetu.in/api/worker/profile/onboarding-progress`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ step: 'done', data: {} })

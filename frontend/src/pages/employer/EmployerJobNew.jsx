@@ -16,7 +16,7 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import LocationPicker from '../../components/LocationPicker';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 const EmployerJobNew = () => {
   const navigate = useNavigate();
@@ -76,7 +76,7 @@ const EmployerJobNew = () => {
           ? formData.requirements.split(',').map(s => s.trim()).filter(Boolean)
           : formData.requirements
       };
-      await axios.post(`${API_URL}/api/jobs/`, payload, {
+      await axios.post(`${API_URL}/api/jobs`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success("🚀 Mission Deployed to the Shram-Matrix!");

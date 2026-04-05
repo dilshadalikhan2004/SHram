@@ -84,7 +84,7 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem('token');
-      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+      const API_URL = "https://api.shramsetu.in";
       const payload = {
         title: formData.title,
         description: formData.description,
@@ -102,7 +102,7 @@ const JobPostingWizard = ({ onComplete, onCancel }) => {
         estimated_duration: formData.estimated_duration,
         experience_required: formData.experience_required || 0,
       };
-      await axios.post(`${API_URL}/api/jobs/`, payload, {
+      await axios.post(`${API_URL}/api/jobs`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       onComplete();

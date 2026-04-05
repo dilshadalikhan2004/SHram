@@ -12,7 +12,7 @@ import {
   CheckCircle, Bookmark, BookmarkCheck, XCircle, Clock, ArrowLeft
 } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 const WorkerJobDetail = () => {
   const { id } = useParams();

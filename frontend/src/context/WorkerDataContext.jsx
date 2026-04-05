@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { parseApiError } from '../utils/errorUtils';
 import { profileApi, applicationsApi, jobsApi } from '../lib/api';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = "https://api.shramsetu.in";
 
 const WorkerDataContext = createContext(null);
 
