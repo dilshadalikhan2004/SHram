@@ -66,6 +66,29 @@ const itemVariants = {
   }
 };
 
+/**
+ * Normalize a raw job object returned by the backend so that the rendering
+ * code can rely on a single set of canonical field names regardless of
+ * whether the record came from the old or new schema.
+ *
+ * Canonical → raw fallbacks
+ *   id         : id | _id
+ *   pay_amount : pay_amount | salary_paise / 100
+ *   pay_type   : pay_type | salary_type
+ *   vacancies  : vacancies | team_size | 1
+ */
+const normalizeJob = (job) => ({
+  ...job,
+  id: job.id || (job._id ? String(job._id) : undefined),
+  pay_amount: job.pay_amount != null
+    ? job.pay_amount
+    : job.salary_paise != null
+      ? job.salary_paise / 100
+      : undefined,
+  pay_type: job.pay_type || job.salary_type,
+  vacancies: job.vacancies || job.team_size || 1,
+});
+
 const WorkerDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -141,7 +164,7 @@ const WorkerDashboard = () => {
         jobsApi.getSaved().catch(() => ({ data: [] })),
       ]);
 
-      setJobs(jobsRes.data || []);
+      setJobs((jobsRes.data || []).map(normalizeJob));
       setProfile(profileRes.data);
       setApplications(appsRes.data || []);
       setWorkerStats(statsRes.data || { profile_views: 0 });
@@ -591,8 +614,8 @@ const WorkerDashboard = () => {
                                   <IndianRupee className="w-5 h-5 text-primary" />
                                 </div>
                                 <div>
-                                  <p className="font-black text-2xl tracking-tighter text-foreground">{job.salary_paise ? job.salary_paise / 100 : job.pay_amount}</p>
-                                  <p className="text-[9px] font-black tracking-widest text-muted-foreground uppercase opacity-60">/{job.salary_type || job.pay_type}</p>
+                                  <p className="font-black text-2xl tracking-tighter text-foreground">{job.pay_amount}</p>
+                                  <p className="text-[9px] font-black tracking-widest text-muted-foreground uppercase opacity-60">/{job.pay_type}</p>
                                 </div>
                               </div>
                               <div className="w-[1px] h-12 bg-white/5 hidden sm:block" />
@@ -1039,7 +1062,7 @@ const WorkerDashboard = () => {
                           <div className="space-y-0.5">
                             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Allocation</p>
                             <span className="text-sm font-black text-foreground font-['Space_Grotesk'] flex items-center gap-1.5">
-                              <IndianRupee className="w-3 h-3 text-primary" /> ₹{job.salary_paise ? job.salary_paise / 100 : 0}/{job.salary_type || 'daily'}
+                              <IndianRupee className="w-3 h-3 text-primary" /> ₹{job.pay_amount != null ? job.pay_amount : 0}/{job.pay_type || 'daily'}
                             </span>
                           </div>
                         </div>
