@@ -356,8 +356,8 @@ const EmployerDashboard = () => {
                         <h3 className="text-[10px] uppercase font-black tracking-[0.3em] text-primary font-['Space_Grotesk']">Active Mission Telemetry</h3>
                       </div>
                       <div className="grid grid-cols-1 gap-4">
-                        {jobs.filter(job => applicants.some(app => app.job_id === job._id && app.status === 'in_progress')).map(job => (
-                          <LiveMissionTracker key={job._id} jobId={job._id} role="employer" isActive={true} />
+                        {jobs.filter(job => applicants.some(app => (app.job_id === job.id || app.job_id === job._id) && app.status === 'in_progress')).map(job => (
+                          <LiveMissionTracker key={job.id || job._id} jobId={job.id || job._id} role="employer" isActive={true} />
                         ))}
                       </div>
                     </motion.div>
@@ -367,7 +367,7 @@ const EmployerDashboard = () => {
                     {jobs.length > 0 ? (
                       jobs.slice(0, 5).map((job, i) => (
                         <motion.div 
-                          key={job._id} 
+                          key={job.id || job._id} 
                           variants={itemVariants}
                           className="glass-card p-6 rounded-3xl border border-white/5 hover:border-primary/20 transition-all flex items-center justify-between group cursor-pointer"
                           onClick={() => { setSelectedJob(job); setSidebarTab('jobs'); }}
