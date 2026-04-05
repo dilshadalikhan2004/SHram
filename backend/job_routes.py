@@ -174,6 +174,11 @@ async def get_employer_jobs(request: Request):
     jobs = await cursor.to_list(length=50)
     return mongo_list_to_dict(jobs)
 
+@job_router.get("/my-jobs", response_model=List[Job])
+async def get_my_jobs_alias(request: Request):
+    """Backward-compatible alias for GET /employer."""
+    return await get_employer_jobs(request)
+
 @job_router.get("/match/{job_id}")
 async def get_job_match_score(job_id: str, request: Request):
     """Calculates AI match score and analysis between current worker and job."""
