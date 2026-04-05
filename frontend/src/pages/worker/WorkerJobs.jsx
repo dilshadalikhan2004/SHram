@@ -18,11 +18,11 @@ const WorkerJobs = () => {
   const navigate = useNavigate();
   const { t, language } = useTranslation();
   const {
-     filteredJobs, categories, searchQuery, setSearchQuery,
-     appliedFilters, setAppliedFilters, clearFilters,
-     calculateMatchScore, isSaved, handleSaveJob, loading,
-     getMatchColor, getMatchBg
-   } = useWorkerData();
+    filteredJobs, categories, searchQuery, setSearchQuery,
+    appliedFilters, setAppliedFilters, clearFilters,
+    calculateMatchScore, isSaved, handleSaveJob, loading,
+    getMatchColor, getMatchBg
+  } = useWorkerData();
 
   const [viewMode, setViewMode] = useState('list');
   const [selectedCategory, setSelectedCategory] = useState('all');
