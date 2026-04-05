@@ -92,7 +92,9 @@ const LandingPage = () => {
                 <div className="absolute inset-0 bg-dot-grid pointer-events-none"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] hero-glow pointer-events-none opacity-50 md:opacity-100"></div>
                 <div className="max-w-7xl mx-auto relative z-10 w-full">
-                    <p className="font-mono text-[#FF6B2B] mb-4 md:mb-6 tracking-[0.1em] md:tracking-[0.2em] uppercase text-[10px] md:text-xs animate-fade-up" style={{ animationDelay: '0.1s' }}>// INDIA’S LABOR INTELLIGENCE PLATFORM</p>
+                    <p className="font-mono text-[#FF6B2B] mb-4 md:mb-6 tracking-[0.1em] md:tracking-[0.2em] uppercase text-[10px] md:text-xs animate-fade-up" style={{ animationDelay: '0.1s' }}>
+                        // INDIA’S LABOR INTELLIGENCE PLATFORM
+                    </p>
                     <h1 className="text-5xl sm:text-6xl md:text-[96px] lg:text-[110px] leading-[0.95] font-black mb-6 md:mb-8 flex flex-col animate-fade-up" style={{ animationDelay: '0.2s', fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif' }}>
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] block mb-1 md:mb-2">श्रमसेतु</span>
                         <span className="text-[#1A1714] dark:text-[#F0EDE8]">ShramSetu</span>
@@ -157,7 +159,9 @@ const LandingPage = () => {
             <section className="px-8 py-32 bg-[#1A1714]/5 dark:bg-[#111318]/30 reveal">
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-16">
-                        <p className="font-mono text-[#FF6B2B] mb-4 tracking-widest uppercase">// THE FRICTION</p>
+                        <p className="font-mono text-[#FF6B2B] mb-4 tracking-widest uppercase">
+                            // THE FRICTION
+                        </p>
                         <h2 className="text-4xl font-extrabold" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Systemic Challenges</h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
