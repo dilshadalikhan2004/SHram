@@ -106,7 +106,7 @@ const LandingPage = () => {
                         <button className="px-8 md:px-10 py-4 md:py-5 border border-[#1A1714]/20 dark:border-white/20 rounded-sm font-mono font-bold text-[#1A1714] dark:text-white uppercase tracking-widest hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-xs md:text-sm">Watch Demo</button>
                     </div>
                     {!isAuthenticated && (
-                        <div className="animate-fade-up flex items-center gap-2 group cursor-pointer" style={{ animationDelay: '0.6s' }} onClick={() => navigate('/auth')>
+                        <div className="animate-fade-up flex items-center gap-2 group cursor-pointer" style={{ animationDelay: '0.6s' }} onClick={() => navigate('/auth')}>
                             <span className="text-xs font-mono text-[#1A1714]/40 dark:text-gray-500 uppercase tracking-widest">Already have an account?</span>
                             <span className="text-xs font-mono text-[#FF6B2B] font-bold uppercase tracking-widest group-hover:underline underline-offset-4">Sign In Here</span>
                             <span className="material-symbols-outlined text-[10px] text-[#FF6B2B] group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
