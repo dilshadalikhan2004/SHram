@@ -10,7 +10,7 @@ import VideoIntroRecorder from '../../components/VideoIntroRecorder';
 import { toast } from 'sonner';
 import {
   User, MapPin, IndianRupee, Award, Video, CheckCircle,
-  ChevronRight, Trash2, ShieldCheck
+  ChevronRight, Trash2, ShieldCheck, Star, BriefcaseBusiness, BadgeCheck, Image as ImageIcon
 } from 'lucide-react';
 
 const API_URL = "https://api.shramsetu.in";
@@ -18,7 +18,16 @@ const API_URL = "https://api.shramsetu.in";
 const WorkerProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { profile, setProfile, stats, fetchData, getPhotoUrl, loading } = useWorkerData();
+  const { profile, setProfile, stats, fetchData, loading } = useWorkerData();
+
+  const verifiedSkills = Array.isArray(profile?.verified_skills) ? profile.verified_skills : [];
+  const workPhotos = Array.isArray(profile?.work_photos) ? profile.work_photos : [];
+  const workVideos = Array.isArray(profile?.work_videos) ? profile.work_videos : [];
+
+  const completedJobs = profile?.total_jobs_completed ?? stats?.jobs_completed ?? 0;
+  const avgRating = profile?.rating ?? stats?.avg_rating ?? 0;
+  const reliabilityScore = profile?.reliability_score ?? 50;
+  const rehireRate = profile?.rehire_rate ?? stats?.rehire_rate ?? null;
 
   if (loading) {
     return (
@@ -39,14 +48,14 @@ const WorkerProfile = () => {
           Your profile data hasn't synchronized yet or is incomplete.
         </p>
         <div className="flex flex-col gap-3">
-          <button 
-            onClick={() => fetchData()} 
+          <button
+            onClick={() => fetchData()}
             className="w-full py-4 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-xs hover:brightness-110 transition-all font-['Space_Grotesk']"
           >
             Retry Synchronization
           </button>
-          <button 
-            onClick={() => navigate('/worker/onboard')} 
+          <button
+            onClick={() => navigate('/worker/onboard')}
             className="w-full py-4 rounded-xl bg-muted/40 text-foreground font-black uppercase tracking-widest text-xs hover:bg-muted/60 transition-all font-['Space_Grotesk']"
           >
             Return to Onboarding
@@ -150,46 +159,96 @@ const WorkerProfile = () => {
                 <div className="relative aspect-video rounded-3xl overflow-hidden bg-black/40 group/video shadow-2xl border border-white/5">
                   <video src={profile.video_intro?.startsWith('http') ? profile.video_intro : `${API_URL}${profile.video_intro}`} controls className="w-full h-full object-contain" />
                   <div className="absolute top-4 right-4 opacity-0 group-hover/video:opacity-100 transition-opacity">
-                    <button onClick={() => setProfile({...profile, video_intro: null})} className="p-3 rounded-xl bg-red-500 text-white shadow-xl active:scale-95 transition-all">
+                    <button onClick={() => setProfile({ ...profile, video_intro: null })} className="p-3 rounded-xl bg-red-500 text-white shadow-xl active:scale-95 transition-all">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="rounded-3xl overflow-hidden border border-dashed border-white/10 bg-muted/5">
-                  <VideoIntroRecorder onComplete={(url) => { setProfile({...profile, video_intro: url}); toast.success('🎬 Video updated!'); }} />
+                  <VideoIntroRecorder onComplete={(url) => { setProfile({ ...profile, video_intro: url }); toast.success('🎬 Video updated!'); }} />
                 </div>
               )}
             </div>
           </div>
 
-          {/* Skills Verification */}
+          {/* Skills Verification + Real Evidence */}
           <div className="p-10 glass-card rounded-[2.5rem] border-primary/20 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex items-center justify-between mb-8 relative z-10">
               <div className="flex items-center gap-4">
-                <div className="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20"><Award className="w-6 h-6 text-green-500" /></div>
+                <div className="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20">
+                  <ShieldCheck className="w-6 h-6 text-green-500" />
+                </div>
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-[0.2em] text-green-500/60 font-['Space_Grotesk']">Certification</p>
-                  <h3 className="font-black text-xl font-['Space_Grotesk'] text-foreground tracking-tight">Skills Verification</h3>
+                  <h3 className="font-black text-xl font-['Space_Grotesk'] text-foreground tracking-tight">Skills & Work Proof</h3>
                 </div>
               </div>
               <div className="hidden sm:block text-right">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Verified</p>
-                <p className="text-lg font-black text-foreground font-['Space_Grotesk']">{profile.verified_skills?.length || 0}</p>
+                <p className="text-lg font-black text-foreground font-['Space_Grotesk']">{verifiedSkills.length}</p>
               </div>
             </div>
+
+            {/* Evidence stats (safe fallback defaults) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 relative z-10">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60">Jobs</p>
+                <p className="text-lg font-black flex items-center gap-2"><BriefcaseBusiness className="w-4 h-4 text-primary" />{completedJobs}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60">Rating</p>
+                <p className="text-lg font-black flex items-center gap-2"><Star className="w-4 h-4 text-amber-400" />{Number(avgRating || 0).toFixed(1)}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60">Reliability</p>
+                <p className="text-lg font-black flex items-center gap-2"><BadgeCheck className="w-4 h-4 text-emerald-400" />{Math.round(reliabilityScore)}%</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60">Samples</p>
+                <p className="text-lg font-black flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-primary" />{workPhotos.length}
+                  <span className="text-muted-foreground/60">/</span>
+                  <Video className="w-4 h-4 text-primary" />{workVideos.length + (profile.video_intro ? 1 : 0)}
+                </p>
+              </div>
+            </div>
+
             <div className="relative z-10 space-y-6">
               <div className="flex flex-wrap gap-3">
-                {profile.verified_skills?.map(skill => (
+                {verifiedSkills.map(skill => (
                   <span key={skill} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-green-500/10 text-green-500 border border-green-500/20 font-['Space_Grotesk']">
                     <CheckCircle className="w-3.5 h-3.5" /> {skill}
                   </span>
                 ))}
+                {verifiedSkills.length === 0 && (
+                  <span className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-muted/30 text-muted-foreground border border-white/10 font-['Space_Grotesk']">
+                    No verified skills yet
+                  </span>
+                )}
               </div>
-              <button onClick={() => navigate('/worker/skills-assessment')} className="w-full py-5 rounded-2xl font-black text-white text-[10px] uppercase tracking-[0.3em] bg-primary shadow-xl shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all font-['Space_Grotesk']">
-                Take Skills Test <ChevronRight className="w-4 h-4 ml-2 inline" />
-              </button>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  onClick={() => navigate('/worker/portfolio')}
+                  className="w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] bg-muted/30 border border-white/10 text-foreground hover:border-primary/40 transition-all font-['Space_Grotesk']"
+                >
+                  View Work Evidence <ChevronRight className="w-4 h-4 ml-2 inline" />
+                </button>
+                <button
+                  onClick={() => navigate('/worker/skills-assessment')}
+                  className="w-full py-5 rounded-2xl font-black text-white text-[10px] uppercase tracking-[0.3em] bg-primary shadow-xl shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all font-['Space_Grotesk']"
+                >
+                  Take Skills Test <ChevronRight className="w-4 h-4 ml-2 inline" />
+                </button>
+              </div>
+
+              {rehireRate !== null && rehireRate !== undefined && (
+                <p className="text-xs text-muted-foreground font-['Manrope']">
+                  Rehire rate: <span className="text-foreground font-bold">{Math.round(rehireRate)}%</span>
+                </p>
+              )}
             </div>
           </div>
         </div>
