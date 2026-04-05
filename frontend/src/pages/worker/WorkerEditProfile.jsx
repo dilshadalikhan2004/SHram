@@ -26,9 +26,10 @@ const WorkerEditProfile = () => {
     experience_years: ''
   });
 
+  // keep raw textarea text so user can type spaces/commas naturally
+  const [skillsText, setSkillsText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Helpers for robust skill handling (string/array/object forms)
   const normalizeSkills = (skills) => {
     if (!skills) return [];
     if (Array.isArray(skills)) {
@@ -54,7 +55,7 @@ const WorkerEditProfile = () => {
         skills: normalizedSkills,
         category: profile.category || '',
         location: profile.location || '',
-        // FIX: keep daily_rate in RUPEES in UI
+        // rupees in UI
         daily_rate:
           profile.daily_rate !== null && profile.daily_rate !== undefined
             ? String(profile.daily_rate)
@@ -64,23 +65,33 @@ const WorkerEditProfile = () => {
             ? String(profile.experience_years)
             : ''
       });
+
+      setSkillsText(normalizedSkills.join(', '));
     }
   }, [profile, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Do NOT strip spaces from bio/location/name etc.
+    // no space stripping here
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // critical fix: keep full raw input, parse array separately
   const handleSkillsChange = (e) => {
-    // Keep spaces in multi-word skills; split only by commas
-    const skillsArray = e.target.value
+    const raw = e.target.value;
+    setSkillsText(raw);
+
+    const skillsArray = raw
       .split(',')
       .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+      .filter(Boolean);
 
     setFormData((prev) => ({ ...prev, skills: skillsArray }));
+  };
+
+  // protect textareas from parent/global key handlers
+  const allowTextPunctuation = (e) => {
+    e.stopPropagation();
   };
 
   const handleSubmit = async (e) => {
@@ -90,12 +101,10 @@ const WorkerEditProfile = () => {
     try {
       const payload = {
         ...formData,
-        // FIX: send as rupees (NO *100 conversion here)
+        skills: normalizeSkills(skillsText),
+        // keep as rupees
         daily_rate: formData.daily_rate ? parseFloat(formData.daily_rate) : 0,
-        // allow decimals if needed
-        experience_years: formData.experience_years ? parseFloat(formData.experience_years) : 0,
-        // ensure clean array
-        skills: normalizeSkills(formData.skills)
+        experience_years: formData.experience_years ? parseFloat(formData.experience_years) : 0
       };
 
       await profileApi.updateWorkerProfile(payload);
@@ -136,18 +145,12 @@ const WorkerEditProfile = () => {
           <div className="p-2 rounded-lg bg-muted/20 border border-white/5 group-hover:border-primary/30 transition-all">
             <ChevronLeft className="w-5 h-5" />
           </div>
-          <span className="text-xs font-black uppercase tracking-widest font-['Space_Grotesk']">
-            Back to Profile
-          </span>
+          <span className="text-xs font-black uppercase tracking-widest font-['Space_Grotesk']">Back to Profile</span>
         </button>
 
         <div className="text-right">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary font-['Space_Grotesk']">
-            System Command
-          </p>
-          <h2 className="text-3xl font-black font-['Space_Grotesk'] text-foreground tracking-tighter uppercase">
-            Modify Dossier
-          </h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary font-['Space_Grotesk']">System Command</p>
+          <h2 className="text-3xl font-black font-['Space_Grotesk'] text-foreground tracking-tighter uppercase">Modify Dossier</h2>
         </div>
       </div>
 
@@ -160,16 +163,12 @@ const WorkerEditProfile = () => {
             <div className="p-3 rounded-2xl bg-primary/20 border border-primary/30 text-primary">
               <User className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-black font-['Space_Grotesk'] text-foreground uppercase tracking-tight">
-              Personal Information
-            </h3>
+            <h3 className="text-xl font-black font-['Space_Grotesk'] text-foreground uppercase tracking-tight">Personal Information</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">
-                Full Name
-              </label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Full Name</label>
               <div className="relative group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                   <User className="w-4 h-4" />
@@ -187,9 +186,7 @@ const WorkerEditProfile = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">
-                Location / Jurisdiction
-              </label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Location / Jurisdiction</label>
               <div className="relative group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                   <MapPin className="w-4 h-4" />
@@ -216,17 +213,13 @@ const WorkerEditProfile = () => {
             <div className="p-3 rounded-2xl bg-blue-500/20 border border-blue-500/30 text-blue-400">
               <Briefcase className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-black font-['Space_Grotesk'] text-foreground uppercase tracking-tight">
-              Skill Matrix
-            </h3>
+            <h3 className="text-xl font-black font-['Space_Grotesk'] text-foreground uppercase tracking-tight">Skill Matrix</h3>
           </div>
 
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">
-                  Primary Trade
-                </label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Primary Trade</label>
                 <div className="relative group">
                   <select
                     name="category"
@@ -236,7 +229,7 @@ const WorkerEditProfile = () => {
                     required
                   >
                     <option value="" disabled className="bg-background">Select Sector</option>
-                    {categories.map((cat) => (
+                    {categories.map(cat => (
                       <option key={cat.id} value={cat.id} className="bg-background">
                         {cat.name}
                       </option>
@@ -249,9 +242,7 @@ const WorkerEditProfile = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">
-                  Years of Field Ops
-                </label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Years of Field Ops</label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                     <Award className="w-4 h-4" />
@@ -277,8 +268,10 @@ const WorkerEditProfile = () => {
               </label>
               <textarea
                 name="skills"
-                value={formData.skills.join(', ')}
+                value={skillsText}
                 onChange={handleSkillsChange}
+                onKeyDown={allowTextPunctuation}
+                onKeyUp={allowTextPunctuation}
                 className="w-full min-h-[100px] p-6 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all outline-none text-sm font-bold font-['Space_Grotesk'] placeholder:text-muted-foreground/20 resize-none"
                 placeholder="Ex: House Wiring, MCB Installation, PVC Piping..."
               />
@@ -294,16 +287,12 @@ const WorkerEditProfile = () => {
             <div className="p-3 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400">
               <IndianRupee className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-black font-['Space_Grotesk'] text-foreground uppercase tracking-tight">
-              Strategic Intel
-            </h3>
+            <h3 className="text-xl font-black font-['Space_Grotesk'] text-foreground uppercase tracking-tight">Strategic Intel</h3>
           </div>
 
           <div className="space-y-8">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">
-                Target Daily Rate (₹)
-              </label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Target Daily Rate (₹)</label>
               <div className="relative group w-full md:w-1/2">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">₹</div>
                 <input
@@ -320,9 +309,7 @@ const WorkerEditProfile = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">
-                Professional Summary (Bio)
-              </label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Professional Summary (Bio)</label>
               <div className="relative group">
                 <div className="absolute left-4 top-6 text-muted-foreground group-focus-within:text-primary transition-colors">
                   <FileText className="w-4 h-4" />
@@ -331,6 +318,8 @@ const WorkerEditProfile = () => {
                   name="bio"
                   value={formData.bio}
                   onChange={handleChange}
+                  onKeyDown={allowTextPunctuation}
+                  onKeyUp={allowTextPunctuation}
                   className="w-full min-h-[150px] pl-12 pr-6 py-6 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all outline-none text-sm font-bold font-['Space_Grotesk'] placeholder:text-muted-foreground/20 resize-none"
                   placeholder="Tell employers about your expertise and work history..."
                 />
