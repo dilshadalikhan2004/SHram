@@ -59,7 +59,6 @@ const EmployerProfileSetup = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const API_URL = "https://api.shramsetu.in";
         const res = await axios.get(`${API_URL}/api/employer/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
