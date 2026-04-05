@@ -29,6 +29,9 @@ const WorkerProfile = () => {
   const reliabilityScore = profile?.reliability_score ?? 50;
   const rehireRate = profile?.rehire_rate ?? stats?.rehire_rate ?? null;
 
+  // ✅ merged verification source
+  const phoneVerified = Boolean(profile?.phone_verified ?? user?.phone_verified ?? false);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-20 gap-4">
@@ -81,9 +84,7 @@ const WorkerProfile = () => {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
-        {/* LEFT COLUMN */}
         <div className="xl:col-span-2 space-y-8">
-          {/* Main Profile Card */}
           <div className="p-8 lg:p-10 glass-card rounded-[2.5rem] border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-8 mb-10 relative z-10">
@@ -97,7 +98,13 @@ const WorkerProfile = () => {
                   </h3>
                   <div className="flex flex-col gap-2 mt-1 items-center sm:items-start">
                     <p className="text-sm font-medium text-muted-foreground/60 font-['Space_Grotesk']">{profile.phone || user?.phone}</p>
-                    <PhoneVerification isVerified={profile.phone_verified} onVerified={() => { setProfile({ ...profile, phone_verified: true }); fetchData(); }} />
+                    <PhoneVerification
+                      isVerified={phoneVerified}
+                      onVerified={() => {
+                        setProfile({ ...profile, phone_verified: true });
+                        fetchData();
+                      }}
+                    />
                   </div>
                 </div>
               </div>
@@ -148,7 +155,6 @@ const WorkerProfile = () => {
             )}
           </div>
 
-          {/* Video Intro */}
           <div className="p-8 lg:p-10 glass-card rounded-[2.5rem] border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex items-center gap-4 mb-8 relative z-10">
@@ -177,7 +183,6 @@ const WorkerProfile = () => {
             </div>
           </div>
 
-          {/* Skills Verification + Evidence */}
           <div className="p-8 lg:p-10 glass-card rounded-[2.5rem] border-primary/20 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex items-center justify-between mb-8 relative z-10">
@@ -257,14 +262,13 @@ const WorkerProfile = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN */}
         <div className="space-y-8">
           <div className="p-6 lg:p-8 glass-card rounded-[2.5rem] border-white/5">
             <ReliabilityScore
               score={profile.reliability_score || 50}
               jobsCompleted={profile.total_jobs_completed || 0}
               acceptanceRate={profile.acceptance_rate || 100}
-              phoneVerified={profile.phone_verified}
+              phoneVerified={phoneVerified}
             />
           </div>
 
