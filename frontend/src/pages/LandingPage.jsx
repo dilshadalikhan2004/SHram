@@ -81,7 +81,7 @@ const LandingPage = () => {
                     <button onClick={toggleTheme} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300 rounded-full">
                         {!isDarkMode ? <span className="material-symbols-outlined">dark_mode</span> : <span className="material-symbols-outlined">light_mode</span>}
                     </button>
-                    <button onClick={() => navigate('/auth')} className="hidden md:block px-6 py-2 border border-[#FF6B2B]/20 text-[#FF6B2B] text-xs font-bold rounded hover:bg-[#FF6B2B]/5 transition-colors uppercase tracking-widest">
+                    <button onClick={() => navigate('/auth')} className="hidden md:block px-6 py-2 border border-[#FF6B2B]/20 text-[#FF6B2B] text-xs font-bold rounded hover:bg-[#FF6B2B]/5 transition-colors">
                         Sign In
                     </button>
                 </div>
@@ -92,19 +92,21 @@ const LandingPage = () => {
                 <div className="absolute inset-0 bg-dot-grid pointer-events-none"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] hero-glow pointer-events-none opacity-50 md:opacity-100"></div>
                 <div className="max-w-7xl mx-auto relative z-10 w-full">
-                    <p className="font-mono text-[#FF6B2B] mb-4 md:mb-6 tracking-[0.1em] md:tracking-[0.2em] uppercase text-[10px] md:text-xs animate-fade-up" style={{ animationDelay: '0.1s' }}>// India's Labor Intelligence Platform</p>
+                    <p className="font-mono text-[#FF6B2B] mb-4 md:mb-6 tracking-[0.1em] md:tracking-[0.2em] uppercase text-[10px] md:text-xs animate-fade-up" style={{ animationDelay: '0.1s' }}>// INDIA’S LABOR INTELLIGENCE PLATFORM</p>
                     <h1 className="text-5xl sm:text-6xl md:text-[96px] lg:text-[110px] leading-[0.95] font-black mb-6 md:mb-8 flex flex-col animate-fade-up" style={{ animationDelay: '0.2s', fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif' }}>
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] block mb-1 md:mb-2">श्रमसेतु</span>
                         <span className="text-[#1A1714] dark:text-[#F0EDE8]">ShramSetu</span>
                     </h1>
                     <p className="text-xl sm:text-2xl md:text-4xl font-light text-[#1A1714]/70 dark:text-gray-400 mb-6 animate-fade-up" style={{ animationDelay: '0.3s' }}>The bridge India's workforce has been waiting for.</p>
-                    <p className="max-w-2xl text-base md:text-lg text-[#1A1714]/60 dark:text-gray-400 leading-relaxed mb-8 md:mb-10 animate-fade-up line-clamp-3 md:line-clamp-none" style={{ animationDelay: '0.4s' }}>An AI-powered, verified, multilingual platform connecting 450 million blue-collar workers with trusted employers — solving trust, payments, skilling, and financial inclusion.</p>
+                    <p className="max-w-2xl text-base md:text-lg text-[#1A1714]/60 dark:text-gray-400 leading-relaxed mb-8 md:mb-10 animate-fade-up line-clamp-3 md:line-clamp-none" style={{ animationDelay: '0.4s' }}>
+                        An AI-powered, verified, multilingual platform connecting 450 million blue-collar workers with trusted employers — solving trust, payments, skilling, and financial inclusion.
+                    </p>
                     <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6 animate-fade-up" style={{ animationDelay: '0.5s' }}>
-                        <button onClick={handleHireEmployer} className="px-8 md:px-10 py-4 md:py-5 bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] rounded-sm font-mono font-bold text-white uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#FF6B2B]/20 text-xs md:text-sm">Get Early Access</button>
+                        <button onClick={handleHireEmployer} className="px-8 md:px-10 py-4 md:py-5 bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] rounded-sm font-mono font-bold text-white uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#FF6B2B]/20 text-xs md:text-sm">Hire Workers</button>
                         <button className="px-8 md:px-10 py-4 md:py-5 border border-[#1A1714]/20 dark:border-white/20 rounded-sm font-mono font-bold text-[#1A1714] dark:text-white uppercase tracking-widest hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-xs md:text-sm">Watch Demo</button>
                     </div>
                     {!isAuthenticated && (
-                        <div className="animate-fade-up flex items-center gap-2 group cursor-pointer" style={{ animationDelay: '0.6s' }} onClick={() => navigate('/auth')}>
+                        <div className="animate-fade-up flex items-center gap-2 group cursor-pointer" style={{ animationDelay: '0.6s' }} onClick={() => navigate('/auth')>
                             <span className="text-xs font-mono text-[#1A1714]/40 dark:text-gray-500 uppercase tracking-widest">Already have an account?</span>
                             <span className="text-xs font-mono text-[#FF6B2B] font-bold uppercase tracking-widest group-hover:underline underline-offset-4">Sign In Here</span>
                             <span className="material-symbols-outlined text-[10px] text-[#FF6B2B] group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
@@ -137,7 +139,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="bg-white dark:bg-[#111318] p-8 md:p-24 relative overflow-hidden group border border-[#1A1714]/5 dark:border-white/5">
                         <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-[#FF6B2B] to-transparent opacity-50"></div>
-                        <div className="max-w-4xl mx-auto text-center">
+                        <div class="max-w-4xl mx-auto text-center">
                             <p className="text-2xl sm:text-3xl md:text-5xl font-bold leading-tight italic px-2" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>
                                 "ShramSetu is not just a job board; it is the <span className="text-[#FF6B2B]">digital scaffolding</span> for the backbone of modern India's growth."
                             </p>
@@ -171,22 +173,22 @@ const LandingPage = () => {
                         </div>
                         <div className="bg-white dark:bg-[#111318] p-10 border border-[#1A1714]/5 dark:border-white/5">
                             <span className="font-mono text-[#FF6B2B]/30 text-4xl block mb-6">03</span>
-                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Language Barriers</h3>
+                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif}}>Language Barriers</h3>
                             <p className="text-[#1A1714]/60 dark:text-gray-400 leading-relaxed">Technology remains inaccessible to 400M+ users due to complex interfaces and lack of local dialect support.</p>
                         </div>
                         <div className="bg-white dark:bg-[#111318] p-10 border border-[#1A1714]/5 dark:border-white/5">
                             <span className="font-mono text-[#FF6B2B]/30 text-4xl block mb-6">04</span>
-                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>No Credit Trail</h3>
+                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif}}>No Credit Trail</h3>
                             <p className="text-[#1A1714]/60 dark:text-gray-400 leading-relaxed">A cash-heavy economy leaves no data for workers to secure formal loans, insurance, or social benefits.</p>
                         </div>
                         <div className="bg-white dark:bg-[#111318] p-10 border border-[#1A1714]/5 dark:border-white/5">
                             <span className="font-mono text-[#FF6B2B]/30 text-4xl block mb-6">05</span>
-                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Safety Blindspots</h3>
+                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif}}>Safety Blindspots</h3>
                             <p className="text-[#1A1714]/60 dark:text-gray-400 leading-relaxed">Informal sectors lack real-time safety auditing and rapid response emergency systems for site accidents.</p>
                         </div>
                         <div className="bg-white dark:bg-[#111318] p-10 border border-[#1A1714]/5 dark:border-white/5">
                             <span className="font-mono text-[#FF6B2B]/30 text-4xl block mb-6">06</span>
-                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Geography of Desperation</h3>
+                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif}}>Geography of Desperation</h3>
                             <p className="text-[#1A1714]/60 dark:text-gray-400 leading-relaxed">Workers move blindly across states without guaranteed shelter or pre-assigned work contracts.</p>
                         </div>
                     </div>
@@ -201,7 +203,7 @@ const LandingPage = () => {
                         <h2 className="text-4xl font-extrabold" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Next-Gen Capabilities</h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#FF6B2B]/20 transition-all duration-300 relative overflow-hidden group">
+                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#FF6B2B]/20 relative group transition-all duration-300">
                             <div className="absolute top-0 left-0 w-full h-1 bg-[#FF6B2B] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
                             <div className="mb-6 bg-[#FF6B2B]/10 w-16 h-16 flex items-center justify-center rounded-xl group-hover:scale-110 transition-transform duration-300">
                                 <span className="material-symbols-outlined text-4xl text-[#FF6B2B]">badge</span>
@@ -213,7 +215,7 @@ const LandingPage = () => {
                                 <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[14px] text-[#FF6B2B]">check_circle</span> Tamper-proof history</li>
                             </ul>
                         </div>
-                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#38debb]/20 transition-all duration-300 relative overflow-hidden group">
+                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#38debb]/20 relative group transition-all duration-300">
                             <div className="absolute top-0 left-0 w-full h-1 bg-[#38debb] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
                             <div className="mb-6 bg-[#38debb]/10 w-16 h-16 flex items-center justify-center rounded-xl group-hover:scale-110 transition-transform duration-300">
                                 <span className="material-symbols-outlined text-4xl text-[#38debb]">location_on</span>
@@ -225,7 +227,7 @@ const LandingPage = () => {
                                 <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[14px] text-[#38debb]">check_circle</span> Tool-set matching</li>
                             </ul>
                         </div>
-                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#a0caff]/20 transition-all duration-300 relative overflow-hidden group">
+                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#a0caff]/20 relative group transition-all duration-300">
                             <div className="absolute top-0 left-0 w-full h-1 bg-[#a0caff] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
                             <div className="mb-6 bg-[#a0caff]/10 w-16 h-16 flex items-center justify-center rounded-xl group-hover:scale-110 transition-transform duration-300">
                                 <span className="material-symbols-outlined text-4xl text-[#a0caff]">handshake</span>
@@ -237,7 +239,7 @@ const LandingPage = () => {
                                 <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[14px] text-[#a0caff]">check_circle</span> Zero-fraud check-ins</li>
                             </ul>
                         </div>
-                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#3B82F6]/20 transition-all duration-300 relative overflow-hidden group">
+                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#3B82F6]/20 relative group transition-all duration-300">
                             <div className="absolute top-0 left-0 w-full h-1 bg-[#3B82F6] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
                             <div className="mb-6 bg-[#3B82F6]/10 w-16 h-16 flex items-center justify-center rounded-xl group-hover:scale-110 transition-transform duration-300">
                                 <span className="material-symbols-outlined text-4xl text-[#3B82F6]">account_balance</span>
@@ -249,7 +251,7 @@ const LandingPage = () => {
                                 <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[14px] text-[#3B82F6]">check_circle</span> Score-based interest</li>
                             </ul>
                         </div>
-                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#F59E0B]/20 transition-all duration-300 relative overflow-hidden group">
+                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#F59E0B]/20 relative group transition-all duration-300">
                             <div className="absolute top-0 left-0 w-full h-1 bg-[#F59E0B] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
                             <div className="mb-6 bg-[#F59E0B]/10 w-16 h-16 flex items-center justify-center rounded-xl group-hover:scale-110 transition-transform duration-300">
                                 <span className="material-symbols-outlined text-4xl text-[#F59E0B]">verified_user</span>
@@ -261,7 +263,7 @@ const LandingPage = () => {
                                 <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[14px] text-[#F59E0B]">check_circle</span> Instant claim support</li>
                             </ul>
                         </div>
-                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#10B981]/20 transition-all duration-300 relative overflow-hidden group">
+                        <div className="bg-white dark:bg-[#111318] p-8 rounded-2xl border border-[#1A1714]/10 dark:border-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#10B981]/20 relative group transition-all duration-300">
                             <div className="absolute top-0 left-0 w-full h-1 bg-[#10B981] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
                             <div className="mb-6 bg-[#10B981]/10 w-16 h-16 flex items-center justify-center rounded-xl group-hover:scale-110 transition-transform duration-300">
                                 <span className="material-symbols-outlined text-4xl text-[#10B981]">home</span>
@@ -490,54 +492,62 @@ const LandingPage = () => {
             <section id="pricing" className="px-8 py-32 bg-white dark:bg-[#0A0C0F] reveal">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-20">
-                        <p className="font-mono text-[#38debb] mb-4 tracking-widest uppercase">// COMMERCIAL MODELS</p>
-                        <h2 className="text-4xl font-extrabold" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Sustainable Growth for All</h2>
+                        <p className="font-mono text-[#38debb] mb-4 tracking-widest uppercase">// PAY‑PER‑HIRE PRICING</p>
+                        <h2 className="text-4xl font-extrabold" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Fair Pricing, Only When You Hire</h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {/* Worker Plan */}
                         <div className="bg-[#1A1714]/5 dark:bg-[#111318] p-10 flex flex-col h-full border border-[#1A1714]/5 dark:border-white/5">
                             <h3 className="text-xl font-bold mb-2">Worker</h3>
-                            <p className="text-[#1A1714]/50 dark:text-gray-400 text-sm mb-8">Empowering the individual artisan.</p>
+                            <p className="text-[#1A1714]/50 dark:text-gray-400 text-sm mb-8">Pay only after you get hired.</p>
                             <div className="mb-8">
-                                <span className="text-4xl font-bold">Free</span>
-                                <span className="text-sm text-[#1A1714]/50">/ lifetime</span>
+                                <span className="text-4xl font-bold">₹49</span>
+                                <span className="text-sm text-[#1A1714]/50">/ hire</span>
+                                <p className="text-xs text-[#1A1714]/50 dark:text-gray-500 mt-2">No monthly subscription. Only on successful hire.</p>
                             </div>
                             <ul className="space-y-4 mb-12 flex-grow">
                                 <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#38debb] text-sm">check_circle</span> Digital Verified Profile</li>
                                 <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#38debb] text-sm">check_circle</span> Direct UPI Payments</li>
-                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#38debb] text-sm">check_circle</span> Basic Safety Training</li>
+                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#38debb] text-sm">check_circle</span> Pay Only When Hired</li>
                             </ul>
-                            <button onClick={() => navigate('/auth')} className="w-full py-4 border border-[#1A1714]/20 dark:border-white/20 font-mono uppercase text-xs tracking-widest hover:bg-black/5 dark:hover:bg-white/5 transition-colors">Start Journey</button>
+                            <button onClick={() => navigate('/auth?role=worker')} className="w-full py-4 border border-[#1A1714]/20 dark:border-white/20 font-mono uppercase text-xs tracking-widest hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                Start Journey
+                            </button>
                         </div>
                         {/* Employer Plan */}
                         <div className="bg-[#1A1714]/5 dark:bg-[#111318] p-10 flex flex-col h-full border-2 border-[#FF6B2B] relative shadow-2xl">
                             <div className="absolute -top-4 right-8 bg-[#FF6B2B] text-white px-4 py-1 font-mono text-[10px] tracking-widest">SYSTEM_RECOMMENDED</div>
                             <h3 className="text-xl font-bold mb-2">Employer</h3>
-                            <p className="text-[#1A1714]/50 dark:text-gray-400 text-sm mb-8">For contractors and site leads.</p>
+                            <p className="text-[#1A1714]/50 dark:text-gray-400 text-sm mb-8">Post jobs free. Pay only when you hire.</p>
                             <div className="mb-8">
-                                <span className="text-4xl font-bold">₹2,999</span>
-                                <span className="text-sm text-[#1A1714]/50">/ month</span>
+                                <span className="text-4xl font-bold">₹199</span>
+                                <span className="text-sm text-[#1A1714]/50">/ hire</span>
+                                <p className="text-xs text-[#1A1714]/50 dark:text-gray-500 mt-2">No subscription. Only on successful hire.</p>
                             </div>
                             <ul className="space-y-4 mb-12 flex-grow">
-                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#FF6B2B] text-sm">check_circle</span> Unlimited Job Postings</li>
-                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#FF6B2B] text-sm">check_circle</span> AI Skill Verification</li>
-                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#FF6B2B] text-sm">check_circle</span> Automated Payroll Hub</li>
+                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#FF6B2B] text-sm">check_circle</span> Unlimited Job Posting</li>
+                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#FF6B2B] text-sm">check_circle</span> Verified Worker Access</li>
+                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#FF6B2B] text-sm">check_circle</span> AI Matching & Shortlist Tools</li>
                             </ul>
-                            <button onClick={() => navigate('/auth')} className="w-full py-4 bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] text-white font-mono uppercase text-xs tracking-widest hover:opacity-90 transition-opacity">Subscribe Now</button>
+                            <button onClick={() => navigate('/auth?role=employer')} className="w-full py-4 bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] text-white font-mono uppercase text-xs tracking-widest hover:opacity-90 transition-opacity">
+                                Subscribe Now
+                            </button>
                         </div>
                         {/* Enterprise Plan */}
                         <div className="bg-[#1A1714]/5 dark:bg-[#111318] p-10 flex flex-col h-full border border-[#1A1714]/5 dark:border-white/5">
                             <h3 className="text-xl font-bold mb-2">Enterprise</h3>
-                            <p className="text-[#1A1714]/50 dark:text-gray-400 text-sm mb-8">For multi-state corporations.</p>
+                            <p className="text-[#1A1714]/50 dark:text-gray-400 text-sm mb-8">For large contractors and high‑volume hiring.</p>
                             <div className="mb-8">
                                 <span className="text-4xl font-bold">Custom</span>
                             </div>
                             <ul className="space-y-4 mb-12 flex-grow">
-                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#38debb] text-sm">check_circle</span> Fleet Housing Network</li>
-                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#38debb] text-sm">check_circle</span> ESG Reporting Dashboard</li>
+                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#38debb] text-sm">check_circle</span> Bulk Hiring Workflows</li>
+                                <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#38debb] text-sm">check_circle</span> Dedicated Success Manager</li>
                                 <li className="flex items-center gap-3 text-sm"><span className="material-symbols-outlined text-[#38debb] text-sm">check_circle</span> Full API Integration</li>
                             </ul>
-                            <button className="w-full py-4 border border-[#1A1714]/20 dark:border-white/20 font-mono uppercase text-xs tracking-widest hover:bg-black/5 dark:hover:bg-white/5 transition-colors">Contact Sales</button>
+                            <button className="w-full py-4 border border-[#1A1714]/20 dark:border-white/20 font-mono uppercase text-xs tracking-widest hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                Contact Sales
+                            </button>
                         </div>
                     </div>
                 </div>
