@@ -11,6 +11,7 @@ import axios from 'axios';
 import { useEmployerData } from '../../context/EmployerDataContext';
 import { Button } from '../../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { DetailPageSkeleton } from '../../components/loading/PageSkeletons';
 import { toast } from 'sonner';
 
 const API_URL = "https://api.shramsetu.in";
@@ -121,7 +122,7 @@ const EmployerJobDetail = () => {
     }
   };
 
-  if (loading) return <div className="p-20 text-center animate-pulse uppercase tracking-[0.4em] font-black text-[10px] text-muted-foreground/30">Syncing Mission Intelligence...</div>;
+  if (loading) return <DetailPageSkeleton />;
   if (!job) return <div className="p-20 text-center uppercase tracking-widest text-rose-500 font-black">Mission Data Corrupted or Non-Existent</div>;
 
   const pendingApplicants = applicants.filter(a => a.status === 'pending');

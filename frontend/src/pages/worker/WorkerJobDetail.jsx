@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/button';
 import MatchScoreCard from '../../components/MatchScoreCard';
 import BidSuggestion from '../../components/BidSuggestion';
 import BiddingModal from '../../components/BiddingModal';
+import { DetailPageSkeleton } from '../../components/loading/PageSkeletons';
 import {
   MapPin, IndianRupee, Building2, Zap, Star, Users, ArrowLeft, Bookmark, BookmarkCheck
 } from 'lucide-react';
@@ -94,11 +95,7 @@ const WorkerJobDetail = () => {
     fetchJob();
   }, [id, jobs, fetchData]);
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loading) return <DetailPageSkeleton />;
 
   if (!job) return (
     <div className="text-center py-32">

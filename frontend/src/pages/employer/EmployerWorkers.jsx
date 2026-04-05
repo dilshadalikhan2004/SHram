@@ -4,6 +4,7 @@ import { Users, CheckCircle, XCircle, Clock, Star, Zap, Award, IndianRupee, MapP
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
+import { WorkersGridSkeleton } from '../../components/loading/PageSkeletons';
 
 const API_URL = "https://api.shramsetu.in";
 
@@ -75,10 +76,7 @@ const EmployerWorkers = () => {
             
             {/* MAIN CONTENT GRID */}
             {loading ? (
-                <div className="glass-card p-20 rounded-[3.5rem] flex flex-col items-center justify-center min-h-[450px]">
-                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6" />
-                    <p className="text-xs font-black uppercase tracking-widest text-primary/60 animate-pulse">Establishing Uplink...</p>
-                </div>
+                <WorkersGridSkeleton />
             ) : applications.length === 0 ? (
                 <div className="glass-card p-20 rounded-[3.5rem] border-white/5 flex flex-col items-center justify-center min-h-[450px] text-center space-y-8 relative overflow-hidden">
                     <div className="absolute inset-0 bg-primary/5 opacity-20 pointer-events-none" />

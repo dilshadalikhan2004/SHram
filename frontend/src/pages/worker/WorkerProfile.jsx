@@ -7,6 +7,7 @@ import ReliabilityScore from '../../components/ReliabilityScore';
 import PhoneVerification from '../../components/PhoneVerification';
 import KYCPanel from '../../components/KYCPanel';
 import VideoIntroRecorder from '../../components/VideoIntroRecorder';
+import { ProfilePageSkeleton } from '../../components/loading/PageSkeletons';
 import { toast } from 'sonner';
 import {
   User, MapPin, IndianRupee, Video, CheckCircle,
@@ -32,14 +33,7 @@ const WorkerProfile = () => {
   // ✅ merged verification source
   const phoneVerified = Boolean(profile?.phone_verified ?? user?.phone_verified ?? false);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-20 gap-4">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-muted-foreground animate-pulse font-['Space_Grotesk']">Synchronizing Profile...</p>
-      </div>
-    );
-  }
+  if (loading) return <ProfilePageSkeleton />;
 
   if (!profile) return (
     <div className="text-center py-32 space-y-6">

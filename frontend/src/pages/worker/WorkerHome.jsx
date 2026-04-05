@@ -11,6 +11,7 @@ import BidSuggestion from '../../components/BidSuggestion';
 import LiveMissionTracker from '../../components/LiveMissionTracker';
 import BiddingModal from '../../components/BiddingModal';
 import JobMapView from '../../components/JobMapView';
+import { DashboardPageSkeleton } from '../../components/loading/PageSkeletons';
 import {
   Briefcase, MapPin, IndianRupee, ChevronRight, Building2, Star,
   Users, Search, Zap, Sparkles, Plus, Activity, Target, ShieldCheck,
@@ -56,11 +57,7 @@ const WorkerHome = () => {
   // Redirection is now handled centrally by ProtectedRoute in App.js
   // to avoid infinite loops and maintain a single source of truth.
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loading) return <DashboardPageSkeleton withSidebar={true} />;
 
   return (
     <>

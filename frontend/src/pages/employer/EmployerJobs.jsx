@@ -9,12 +9,13 @@ import { useNavigate } from 'react-router-dom';
 import { useEmployerData } from '../../context/EmployerDataContext';
 import { Button } from '../../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { ListPageSkeleton } from '../../components/loading/PageSkeletons';
 
 const EmployerJobs = () => {
   const navigate = useNavigate();
   const { myJobs, loading } = useEmployerData();
 
-  if (loading) return <div className="p-20 text-center animate-pulse uppercase tracking-[0.4em] font-black text-[10px] text-muted-foreground/30 italic">Decrypting Mission Logs...</div>;
+  if (loading) return <ListPageSkeleton withTabs={true} cards={4} />;
 
   const JobCard = ({ job }) => (
     <motion.div 
