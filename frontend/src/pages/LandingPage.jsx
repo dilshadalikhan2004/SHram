@@ -177,22 +177,22 @@ const LandingPage = () => {
                         </div>
                         <div className="bg-white dark:bg-[#111318] p-10 border border-[#1A1714]/5 dark:border-white/5">
                             <span className="font-mono text-[#FF6B2B]/30 text-4xl block mb-6">03</span>
-                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif}}>Language Barriers</h3>
+                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Language Barriers</h3>
                             <p className="text-[#1A1714]/60 dark:text-gray-400 leading-relaxed">Technology remains inaccessible to 400M+ users due to complex interfaces and lack of local dialect support.</p>
                         </div>
                         <div className="bg-white dark:bg-[#111318] p-10 border border-[#1A1714]/5 dark:border-white/5">
                             <span className="font-mono text-[#FF6B2B]/30 text-4xl block mb-6">04</span>
-                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif}}>No Credit Trail</h3>
+                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>No Credit Trail</h3>
                             <p className="text-[#1A1714]/60 dark:text-gray-400 leading-relaxed">A cash-heavy economy leaves no data for workers to secure formal loans, insurance, or social benefits.</p>
                         </div>
                         <div className="bg-white dark:bg-[#111318] p-10 border border-[#1A1714]/5 dark:border-white/5">
                             <span className="font-mono text-[#FF6B2B]/30 text-4xl block mb-6">05</span>
-                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif}}>Safety Blindspots</h3>
+                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Safety Blindspots</h3>
                             <p className="text-[#1A1714]/60 dark:text-gray-400 leading-relaxed">Informal sectors lack real-time safety auditing and rapid response emergency systems for site accidents.</p>
                         </div>
                         <div className="bg-white dark:bg-[#111318] p-10 border border-[#1A1714]/5 dark:border-white/5">
                             <span className="font-mono text-[#FF6B2B]/30 text-4xl block mb-6">06</span>
-                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif}}>Geography of Desperation</h3>
+                            <h3 className="text-xl font-bold mb-4" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>Geography of Desperation</h3>
                             <p className="text-[#1A1714]/60 dark:text-gray-400 leading-relaxed">Workers move blindly across states without guaranteed shelter or pre-assigned work contracts.</p>
                         </div>
                     </div>
