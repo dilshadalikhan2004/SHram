@@ -15,6 +15,9 @@ const WorkerSquads = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [newSquadName, setNewSquadName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [selectedSquad, setSelectedSquad] = useState(null);
+  const [viewingSquadId, setViewingSquadId] = useState(null);
+  const [invitingSquadId, setInvitingSquadId] = useState(null);
 
   useEffect(() => { fetchSquads(); }, []);
 
@@ -42,6 +45,42 @@ const WorkerSquads = () => {
       toast.error(parseApiError(err, 'Failed to create squad'));
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleView = async (squadId) => {
+    setViewingSquadId(squadId);
+    try {
+      const res = await squadsApi.getSquad(squadId);
+      setSelectedSquad(res.data);
+    } catch (err) {
+      toast.error(parseApiError(err, 'Failed to load squad'));
+    } finally {
+      setViewingSquadId(null);
+    }
+  };
+
+  const handleInvite = async (squadId) => {
+    const userId = window.prompt('Enter worker user ID to invite');
+    if (!userId || !userId.trim()) return;
+
+    setInvitingSquadId(squadId);
+    try {
+      await squadsApi.addMember(squadId, {
+        user_id: userId.trim(),
+        role: 'member',
+        split_percentage: 0
+      });
+      toast.success('Invite sent! Member added to squad.');
+      await fetchSquads();
+      if (selectedSquad?.id === squadId) {
+        const res = await squadsApi.getSquad(squadId);
+        setSelectedSquad(res.data);
+      }
+    } catch (err) {
+      toast.error(parseApiError(err, 'Failed to invite member'));
+    } finally {
+      setInvitingSquadId(null);
     }
   };
 
@@ -78,6 +117,41 @@ const WorkerSquads = () => {
             <button onClick={handleCreate} disabled={creating} className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-primary text-white font-['Space_Grotesk'] shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50">
               {creating ? 'Creating...' : 'Create'}
             </button>
+          </div>
+        </motion.div>
+      )}
+
+      {selectedSquad && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-8 glass-card rounded-[2.5rem] border-primary/20 space-y-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 font-['Space_Grotesk']">Squad Detail</p>
+              <h3 className="font-black text-2xl font-['Space_Grotesk'] text-foreground tracking-tight">{selectedSquad.name}</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 font-['Space_Grotesk'] mt-1">
+                {selectedSquad.member_count || selectedSquad.members?.length || 0} members
+              </p>
+            </div>
+            <button onClick={() => setSelectedSquad(null)} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-muted/40 border border-white/10 text-foreground font-['Space_Grotesk']">
+              Back
+            </button>
+          </div>
+
+          <div className="grid gap-3">
+            {(selectedSquad.members || []).map((member, i) => (
+              <div key={`${member.user_id || i}`} className="p-4 rounded-2xl bg-muted/20 border border-white/10 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-muted/30 border border-white/10 flex items-center justify-center text-xs font-black text-foreground font-['Space_Grotesk']">
+                    {member.name?.[0] || '?'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-black font-['Space_Grotesk']">{member.name || member.user_id}</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 font-['Space_Grotesk']">
+                      {member.role || 'member'} • {member.split_percentage ?? 0}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </motion.div>
       )}
@@ -142,11 +216,19 @@ const WorkerSquads = () => {
                 </div>
 
                 <div className="flex md:flex-col gap-3">
-                  <button className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 bg-muted/40 border border-white/10 text-foreground hover:border-primary/50 transition-all font-['Space_Grotesk']">
-                    <UserPlus className="w-4 h-4" /> Invite
+                  <button
+                    onClick={() => handleInvite(squad.id)}
+                    disabled={invitingSquadId === squad.id}
+                    className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 bg-muted/40 border border-white/10 text-foreground hover:border-primary/50 transition-all font-['Space_Grotesk'] disabled:opacity-60"
+                  >
+                    <UserPlus className="w-4 h-4" /> {invitingSquadId === squad.id ? 'Inviting...' : 'Invite'}
                   </button>
-                  <button className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all font-['Space_Grotesk']">
-                    View <ChevronRight className="w-4 h-4" />
+                  <button
+                    onClick={() => handleView(squad.id)}
+                    disabled={viewingSquadId === squad.id}
+                    className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all font-['Space_Grotesk'] disabled:opacity-60"
+                  >
+                    {viewingSquadId === squad.id ? 'Loading...' : 'View'} <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
