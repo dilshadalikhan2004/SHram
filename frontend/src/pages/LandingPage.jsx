@@ -139,7 +139,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="bg-white dark:bg-[#111318] p-8 md:p-24 relative overflow-hidden group border border-[#1A1714]/5 dark:border-white/5">
                         <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-[#FF6B2B] to-transparent opacity-50"></div>
-                        <div class="max-w-4xl mx-auto text-center">
+                        <div className="max-w-4xl mx-auto text-center">
                             <p className="text-2xl sm:text-3xl md:text-5xl font-bold leading-tight italic px-2" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>
                                 "ShramSetu is not just a job board; it is the <span className="text-[#FF6B2B]">digital scaffolding</span> for the backbone of modern India's growth."
                             </p>
