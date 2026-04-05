@@ -9,20 +9,14 @@ import {
 import { useEmployerData } from '../../context/EmployerDataContext';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { DashboardPageSkeleton } from '../../components/loading/PageSkeletons';
 import { useNavigate } from 'react-router-dom';
 
 const EmployerHome = () => {
   const navigate = useNavigate();
   const { stats, loading, myJobs, applicants, recentActivity } = useEmployerData();
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-muted-foreground font-['Space_Grotesk'] uppercase tracking-widest font-black text-xs animate-pulse">Initializing Control Center...</p>
-      </div>
-    );
-  }
+  if (loading) return <DashboardPageSkeleton withSidebar={true} />;
 
   const quickStats = [
     { label: 'Active Missions', value: stats.active_jobs, icon: Briefcase, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },

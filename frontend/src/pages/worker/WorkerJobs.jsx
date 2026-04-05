@@ -6,6 +6,7 @@ import { useTranslation } from '../../context/TranslationContext';
 import { Button } from '../../components/ui/button';
 import JobMapView from '../../components/JobMapView';
 import VoiceSearchButton from '../../components/VoiceSearchButton';
+import { ListPageSkeleton } from '../../components/loading/PageSkeletons';
 import {
   Search, MapPin, IndianRupee, Briefcase, Building2, Star, Users,
   ChevronRight, Zap, LayoutDashboard, Bookmark, BookmarkCheck, Mic
@@ -17,11 +18,11 @@ const WorkerJobs = () => {
   const navigate = useNavigate();
   const { t, language } = useTranslation();
   const {
-    filteredJobs, categories, searchQuery, setSearchQuery,
-    appliedFilters, setAppliedFilters, clearFilters,
-    calculateMatchScore, isSaved, handleSaveJob,
-    getMatchColor, getMatchBg
-  } = useWorkerData();
+     filteredJobs, categories, searchQuery, setSearchQuery,
+     appliedFilters, setAppliedFilters, clearFilters,
+     calculateMatchScore, isSaved, handleSaveJob, loading,
+     getMatchColor, getMatchBg
+   } = useWorkerData();
 
   const [viewMode, setViewMode] = useState('list');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -31,6 +32,8 @@ const WorkerJobs = () => {
   const displayedJobs = selectedCategory === 'all'
     ? filteredJobs
     : filteredJobs.filter(j => j.category === selectedCategory);
+
+  if (loading) return <ListPageSkeleton cards={4} />;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
