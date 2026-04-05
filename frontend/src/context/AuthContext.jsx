@@ -51,12 +51,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const sendOtp = async (phone) => {
-    await axios.post(`${API_URL}/api/auth/otp/send`, { phone });
+    await axios.post(`${API_URL}/api/auth/otp/send/`, { phone });
     return true;
   };
 
   const register = async (userData) => {
-    const response = await axios.post(`${API_URL}/api/auth/register`, userData);
+    const response = await axios.post(`${API_URL}/api/auth/register/`, userData);
     const { access_token, user: newUser } = response.data;
     localStorage.setItem('token', access_token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const switchRole = async (newRole) => {
-    const response = await axios.patch(`${API_URL}/api/auth/role`, { role: newRole });
+    const response = await axios.patch(`${API_URL}/api/auth/role/`, { role: newRole });
     if (response.data.role) {
       setUser(prev => ({ ...prev, role: response.data.role }));
     }
