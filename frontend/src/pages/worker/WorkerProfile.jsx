@@ -9,7 +9,7 @@ import KYCPanel from '../../components/KYCPanel';
 import VideoIntroRecorder from '../../components/VideoIntroRecorder';
 import { toast } from 'sonner';
 import {
-  User, MapPin, IndianRupee, Award, Video, CheckCircle,
+  User, MapPin, IndianRupee, Video, CheckCircle,
   ChevronRight, Trash2, ShieldCheck, Star, BriefcaseBusiness, BadgeCheck, Image as ImageIcon
 } from 'lucide-react';
 
@@ -45,7 +45,7 @@ const WorkerProfile = () => {
           Dossier Not Found
         </h3>
         <p className="text-sm text-muted-foreground mb-6 font-['Manrope']">
-          Your profile data hasn't synchronized yet or is incomplete.
+          Your profile data hasn&apos;t synchronized yet or is incomplete.
         </p>
         <div className="flex flex-col gap-3">
           <button
@@ -66,7 +66,7 @@ const WorkerProfile = () => {
   );
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 pb-32">
       <div className="flex items-end justify-between mb-2">
         <div className="space-y-1">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary font-['Space_Grotesk']">Personnel Database</p>
@@ -80,10 +80,11 @@ const WorkerProfile = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+        {/* LEFT COLUMN */}
+        <div className="xl:col-span-2 space-y-8">
           {/* Main Profile Card */}
-          <div className="p-10 glass-card rounded-[2.5rem] border-white/5 relative overflow-hidden group">
+          <div className="p-8 lg:p-10 glass-card rounded-[2.5rem] border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-8 mb-10 relative z-10">
               <div className="flex items-center gap-6">
@@ -100,12 +101,15 @@ const WorkerProfile = () => {
                   </div>
                 </div>
               </div>
-              <button onClick={() => navigate('/worker/profile/edit')} className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-muted/40 border border-white/10 text-foreground hover:border-primary/50 transition-all font-['Space_Grotesk']">
+              <button
+                onClick={() => navigate('/worker/profile/edit')}
+                className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-muted/40 border border-white/10 text-foreground hover:border-primary/50 transition-all font-['Space_Grotesk']"
+              >
                 Edit Profile
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10 relative z-10">
               <div className="space-y-2">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Skills</p>
                 <div className="flex flex-wrap gap-2">
@@ -145,7 +149,7 @@ const WorkerProfile = () => {
           </div>
 
           {/* Video Intro */}
-          <div className="p-10 glass-card rounded-[2.5rem] border-white/5 relative overflow-hidden group">
+          <div className="p-8 lg:p-10 glass-card rounded-[2.5rem] border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex items-center gap-4 mb-8 relative z-10">
               <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20"><Video className="w-6 h-6 text-primary" /></div>
@@ -154,7 +158,8 @@ const WorkerProfile = () => {
                 <h3 className="font-black text-xl font-['Space_Grotesk'] text-foreground tracking-tight italic">Video Introduction</h3>
               </div>
             </div>
-            <div className="relative z-10">
+
+            <div className="relative z-10 max-w-[860px] mx-auto">
               {profile.video_intro ? (
                 <div className="relative aspect-video rounded-3xl overflow-hidden bg-black/40 group/video shadow-2xl border border-white/5">
                   <video src={profile.video_intro?.startsWith('http') ? profile.video_intro : `${API_URL}${profile.video_intro}`} controls className="w-full h-full object-contain" />
@@ -165,15 +170,15 @@ const WorkerProfile = () => {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-3xl overflow-hidden border border-dashed border-white/10 bg-muted/5">
+                <div className="rounded-3xl overflow-hidden border border-dashed border-white/10 bg-muted/5 p-3 md:p-4">
                   <VideoIntroRecorder onComplete={(url) => { setProfile({ ...profile, video_intro: url }); toast.success('🎬 Video updated!'); }} />
                 </div>
               )}
             </div>
           </div>
 
-          {/* Skills Verification + Real Evidence */}
-          <div className="p-10 glass-card rounded-[2.5rem] border-primary/20 relative overflow-hidden group">
+          {/* Skills Verification + Evidence */}
+          <div className="p-8 lg:p-10 glass-card rounded-[2.5rem] border-primary/20 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 blur-[100px] -mr-32 -mt-32 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex items-center justify-between mb-8 relative z-10">
               <div className="flex items-center gap-4">
@@ -191,7 +196,6 @@ const WorkerProfile = () => {
               </div>
             </div>
 
-            {/* Evidence stats (safe fallback defaults) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 relative z-10">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60">Jobs</p>
@@ -253,15 +257,18 @@ const WorkerProfile = () => {
           </div>
         </div>
 
-        {/* Right Column */}
+        {/* RIGHT COLUMN */}
         <div className="space-y-8">
-          <ReliabilityScore
-            score={profile.reliability_score || 50}
-            jobsCompleted={profile.total_jobs_completed || 0}
-            acceptanceRate={profile.acceptance_rate || 100}
-            phoneVerified={profile.phone_verified}
-          />
-          <div className="glass-card rounded-[2.5rem] border-white/5 shadow-2xl relative group p-6">
+          <div className="p-6 lg:p-8 glass-card rounded-[2.5rem] border-white/5">
+            <ReliabilityScore
+              score={profile.reliability_score || 50}
+              jobsCompleted={profile.total_jobs_completed || 0}
+              acceptanceRate={profile.acceptance_rate || 100}
+              phoneVerified={profile.phone_verified}
+            />
+          </div>
+
+          <div className="p-6 lg:p-8 glass-card rounded-[2.5rem] border-white/5 shadow-2xl relative group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] -mr-16 -mt-16 opacity-0 group-hover:opacity-100 transition-opacity" />
             <KYCPanel />
           </div>
