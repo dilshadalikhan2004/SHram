@@ -37,7 +37,7 @@ const WorkerHome = () => {
     isOnline, handleToggleOnline, profileStrength, loading,
     calculateMatchScore, hasApplied, isSaved, handleSaveJob, handleApply,
     getMatchColor, getMatchBg, getPhotoUrl,
-    categories, searchQuery, setSearchQuery, appliedFilters, setAppliedFilters
+    categories, searchQuery, setSearchQuery, appliedFilters, setAppliedFilters, clearFilters
   } = useWorkerData();
 
   const [viewMode, setViewMode] = useState('list');
@@ -280,7 +280,7 @@ const WorkerHome = () => {
                 <div className="w-16 h-16 rounded-full bg-muted/20 flex items-center justify-center mx-auto mb-6"><Search className="w-8 h-8 text-muted-foreground/40" /></div>
                 <h3 className="text-xl font-bold">No jobs match your criteria</h3>
                 <p className="text-muted-foreground max-w-sm mx-auto">Try adjusting your filters or expanding your search.</p>
-                <Button variant="ghost" onClick={() => setAppliedFilters({ category: 'all', minPay: '', maxPay: '', urgency: 'all', distance: 20 })} className="text-primary font-bold">Clear Filters</Button>
+                <Button variant="ghost" onClick={clearFilters} className="text-primary font-bold">Clear Filters</Button>
               </div>
             )}
           </div>
