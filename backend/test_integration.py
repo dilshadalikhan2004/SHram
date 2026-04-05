@@ -98,6 +98,78 @@ async def run_tests():
         except Exception as e:
             print(f"FAILED ❌ {e}")
             
+        # 5. Test worker jobs feed - category=all should not filter jobs
+        print("[Test 5] Testing worker jobs feed: category=all returns jobs... ", end="")
+        try:
+            # First post a job as employer so there is at least one job
+            post_res = await client.post(
+                "/api/jobs",
+                json={
+                    "title": "Test Job For Filter",
+                    "description": "Integration test job",
+                    "category": "construction",
+                    "location": "Mumbai",
+                    "salary_paise": 50000,
+                    "salary_type": "daily"
+                },
+                headers={"Authorization": f"Bearer {employer_tok}"}
+            )
+            if post_res.status_code not in [200, 201]:
+                print(f"SKIPPED ⚠️ (could not create test job: {post_res.status_code})")
+            else:
+                # Query with category=all - should not filter out the job we just posted
+                list_res = await client.get("/api/jobs?category=all")
+                if list_res.status_code == 200:
+                    jobs_list = list_res.json()
+                    if isinstance(jobs_list, list) and len(jobs_list) >= 1:
+                        print("PASSED ✅ (category=all returns jobs without over-filtering)")
+                    else:
+                        print(f"FAILED ❌ (expected >=1 job, got {len(jobs_list) if isinstance(jobs_list, list) else '?'})")
+                else:
+                    print(f"FAILED ❌ {list_res.status_code}: {list_res.text}")
+        except Exception as e:
+            print(f"FAILED ❌ {e}")
+
+        # 6. Test worker jobs feed - legacy/blank-status jobs appear in listing
+        print("[Test 6] Testing worker jobs feed: blank-status jobs are visible... ", end="")
+        try:
+            from database import get_db
+            db_ref = get_db()
+            if db_ref is None:
+                print("SKIPPED ⚠️ (no DB connection)")
+            else:
+                legacy_job_id = str(uuid.uuid4())
+                inserted_doc = {
+                    "id": legacy_job_id,
+                    "employer_id": employer_id,
+                    "title": "Legacy Status Test Job",
+                    "description": "Job with empty status field",
+                    "category": "plumbing",
+                    "location": "Delhi",
+                    "salary_paise": 30000,
+                    "salary_type": "daily",
+                    # Deliberately omit 'status' to simulate a legacy record
+                }
+                await db_ref.jobs.insert_one(inserted_doc)
+                # Confirm the record truly has no 'status' field in DB
+                stored = await db_ref.jobs.find_one({"id": legacy_job_id})
+                has_no_status = stored is not None and "status" not in stored
+                list_res = await client.get("/api/jobs")
+                found = False
+                if list_res.status_code == 200:
+                    jobs_list = list_res.json()
+                    found = any(j.get("id") == legacy_job_id for j in jobs_list)
+                # Cleanup regardless
+                await db_ref.jobs.delete_one({"id": legacy_job_id})
+                if found and has_no_status:
+                    print("PASSED ✅ (legacy job with missing status appears in worker listing)")
+                elif not has_no_status:
+                    print("FAILED ❌ (test setup error: inserted job unexpectedly has a status field)")
+                else:
+                    print("FAILED ❌ (legacy job with missing status NOT found in worker listing)")
+        except Exception as e:
+            print(f"FAILED ❌ {e}")
+
     print("\n====================================")
     print("✅ Testing sequence complete!")
     print("====================================")

@@ -75,28 +75,41 @@ async def list_jobs(
     search: Optional[str] = None
 ):
     db = get_db()
-    query = {"status": "open"}
-    
-    if category and category != 'all':
-        query["category"] = category
-    
+    # Build filter clauses to combine with $and so that the status clause and
+    # optional search clause can both use $or without conflicting.
+    and_clauses = []
+
+    # Include jobs that are explicitly "open" or that have a missing/null/empty status
+    # (legacy records created before the status field was enforced).
+    and_clauses.append({"$or": [
+        {"status": "open"},
+        {"status": {"$exists": False}},
+        {"status": None},
+        {"status": ""}
+    ]})
+
+    # Only filter by category when a real category (not "all" or empty) is provided.
+    if category and category.strip().lower() != 'all':
+        and_clauses.append({"category": category})
+
     if min_pay:
-        query["salary_paise"] = {"$gte": min_pay}
+        and_clauses.append({"salary_paise": {"$gte": min_pay}})
     if max_pay:
-        if "salary_paise" in query:
-            query["salary_paise"]["$lte"] = max_pay
-        else:
-            query["salary_paise"] = {"$lte": max_pay}
-            
+        and_clauses.append({"salary_paise": {"$lte": max_pay}})
+
+    # Only apply urgency filter when the value is exactly "urgent".
     if urgency == 'urgent':
-        query["is_urgent"] = True
-    
-    if search:
-        query["$or"] = [
-            {"title": {"$regex": search, "$options": "i"}},
-            {"description": {"$regex": search, "$options": "i"}},
-            {"location": {"$regex": search, "$options": "i"}}
-        ]
+        and_clauses.append({"is_urgent": True})
+
+    # Ignore blank/whitespace-only search strings.
+    if search and search.strip():
+        and_clauses.append({"$or": [
+            {"title": {"$regex": search.strip(), "$options": "i"}},
+            {"description": {"$regex": search.strip(), "$options": "i"}},
+            {"location": {"$regex": search.strip(), "$options": "i"}}
+        ]})
+
+    query = {"$and": and_clauses} if len(and_clauses) > 1 else (and_clauses[0] if and_clauses else {})
     
     # Sort by is_boosted then posted_at
     cursor = db.jobs.find(query).sort([("is_boosted", -1), ("posted_at", -1)])

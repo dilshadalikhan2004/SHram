@@ -18,7 +18,7 @@ const WorkerJobs = () => {
   const { t, language } = useTranslation();
   const {
     filteredJobs, categories, searchQuery, setSearchQuery,
-    appliedFilters, setAppliedFilters,
+    appliedFilters, setAppliedFilters, clearFilters,
     calculateMatchScore, isSaved, handleSaveJob,
     getMatchColor, getMatchBg
   } = useWorkerData();
@@ -148,6 +148,9 @@ const WorkerJobs = () => {
               <Search className="w-12 h-12 text-muted-foreground/20 mx-auto" />
               <h3 className="text-xl font-bold text-foreground">No jobs found</h3>
               <p className="text-muted-foreground text-sm">Try changing your filters or search terms.</p>
+              <Button variant="ghost" onClick={clearFilters} className="text-primary font-bold">
+                Clear Filters
+              </Button>
             </div>
           )}
         </div>

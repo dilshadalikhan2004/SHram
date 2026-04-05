@@ -46,17 +46,34 @@ export const WorkerDataProvider = ({ children }) => {
   // ── Data Fetching ──
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const filterParams = {
-      category: appliedFilters.category,
-      min_pay: appliedFilters.minPay ? parseInt(appliedFilters.minPay) * 100 : undefined,
-      max_pay: appliedFilters.maxPay ? parseInt(appliedFilters.maxPay) * 100 : undefined,
-      urgency: appliedFilters.urgency,
-      search: searchQuery
-    };
+
+    // Build params with only meaningful (non-placeholder) values so that default
+    // UI state never accidentally over-filters the backend query.
+    const filterParams = {};
+    if (appliedFilters.category && appliedFilters.category !== 'all') {
+      filterParams.category = appliedFilters.category;
+    }
+    if (appliedFilters.minPay && !isNaN(parseInt(appliedFilters.minPay))) {
+      filterParams.min_pay = parseInt(appliedFilters.minPay) * 100;
+    }
+    if (appliedFilters.maxPay && !isNaN(parseInt(appliedFilters.maxPay))) {
+      filterParams.max_pay = parseInt(appliedFilters.maxPay) * 100;
+    }
+    if (appliedFilters.urgency === 'urgent') {
+      filterParams.urgency = 'urgent';
+    }
+    if (searchQuery && searchQuery.trim()) {
+      filterParams.search = searchQuery.trim();
+    }
+
+    // Detect whether any real (non-default) filters are active.
+    const hasActiveFilters = Object.keys(filterParams).length > 0;
 
     try {
+      let jobsPromise = jobsApi.list(filterParams).catch(() => ({ data: [] }));
+
       const [jobsRes, profileRes, appsRes, statsRes, notifRes, catRes, savedRes] = await Promise.all([
-        jobsApi.list(filterParams).catch(() => ({ data: [] })),
+        jobsPromise,
         profileApi.getWorkerProfile().catch(() => ({ data: null })),
         applicationsApi.getWorkerApplications().catch(() => ({ data: [] })),
         profileApi.getWorkerStats().catch(() => ({ data: { profile_views: 0 } })),
@@ -65,7 +82,16 @@ export const WorkerDataProvider = ({ children }) => {
         jobsApi.getSaved().catch(() => ({ data: [] })),
       ]);
 
-      setJobs(jobsRes.data || []);
+      let jobsData = jobsRes.data || [];
+
+      // Fallback: if filtered fetch returned nothing and real filters were active,
+      // do a second unfiltered fetch so workers always see available jobs.
+      if (jobsData.length === 0 && hasActiveFilters) {
+        const fallbackRes = await jobsApi.list({}).catch(() => ({ data: [] }));
+        jobsData = fallbackRes.data || [];
+      }
+
+      setJobs(jobsData);
       setProfile(profileRes.data);
       setApplications(appsRes.data || []);
       setWorkerStats(statsRes.data || { profile_views: 0 });
@@ -193,6 +219,13 @@ export const WorkerDataProvider = ({ children }) => {
     return path.startsWith('http') ? path : `${API_URL}/api/files/${path}`; 
   };
 
+  const DEFAULT_FILTERS = { category: 'all', minPay: '', maxPay: '', urgency: 'all', distance: 20 };
+
+  const clearFilters = useCallback(() => {
+    setAppliedFilters(DEFAULT_FILTERS);
+    setSearchQuery('');
+  }, []);
+
   const value = {
     // Data
     profile, setProfile, jobs, applications, savedJobs, notifications,
@@ -201,6 +234,7 @@ export const WorkerDataProvider = ({ children }) => {
     searchQuery, setSearchQuery, isOnline, appliedFilters, setAppliedFilters,
     // Actions
     fetchData, handleSaveJob, handleToggleOnline, handleApply, handleRequestRelease,
+    clearFilters,
     // Helpers
     calculateMatchScore, hasApplied, isSaved, unreadNotifications,
     getStatusColor, getMatchColor, getMatchBg, getTimeAgo, getPhotoUrl,
