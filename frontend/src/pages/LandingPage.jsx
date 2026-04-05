@@ -132,8 +132,9 @@ const LandingPage = () => {
                         </div>
                     </div>
                 </div>
-            </header>
-            
-            /* REST OF FILE UNCHANGED FROM CURRENT VERSION */
+                       </header>
+        </div>
+    );
+};
 
 export default LandingPage;
