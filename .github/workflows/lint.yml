@@ -36,12 +36,11 @@ jobs:
           else
             RANGE="${{ github.event.before }}...${{ github.sha }}"
           fi
-          FILES=$(git diff --name-only "$RANGE" -- '*.py' | grep '^backend/' | sed 's#^backend/##' | tr '\n' ' ' || true)
+          FILES=$(git diff --name-only "$RANGE" -- '*.py' | grep '^backend/' | tr '\n' ' ' || true)
           echo "files=$FILES" >> "$GITHUB_OUTPUT"
 
       - name: Run flake8
         if: steps.py_changed.outputs.files != ''
-        working-directory: backend
         run: flake8 ${{ steps.py_changed.outputs.files }} --max-line-length=120 --extend-ignore=E501 --exclude=__pycache__,tests
 
       - name: Skip flake8 (no changed Python files)
@@ -76,13 +75,12 @@ jobs:
           else
             RANGE="${{ github.event.before }}...${{ github.sha }}"
           fi
-          FILES=$(git diff --name-only "$RANGE" -- '*.js' '*.jsx' | grep '^frontend/src/' | sed 's#^frontend/##' | tr '\n' ' ' || true)
+          FILES=$(git diff --name-only "$RANGE" -- '*.js' '*.jsx' | grep '^frontend/src/' | tr '\n' ' ' || true)
           echo "files=$FILES" >> "$GITHUB_OUTPUT"
 
       - name: Run ESLint
         if: steps.js_changed.outputs.files != ''
-        working-directory: frontend
-        run: npx eslint ${{ steps.js_changed.outputs.files }} --max-warnings 0
+        run: cd frontend && npx eslint ${{ steps.js_changed.outputs.files }} --max-warnings 0
 
       - name: Skip ESLint (no changed JS/JSX files)
         if: steps.js_changed.outputs.files == ''
