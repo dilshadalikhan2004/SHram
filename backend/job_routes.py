@@ -22,7 +22,6 @@ GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 # Lazy AI Client
 _ai_client = None
 
-
 def get_ai_client():
     global _ai_client
     if _ai_client is None and GEMINI_KEY:
@@ -220,6 +219,24 @@ async def get_job_match_score(job_id: str, request: Request):
 
     profile = await db.worker_profiles.find_one({"user_id": user_id}) or {}
 
+    def normalize_text(val):
+        return str(val or '').strip().lower()
+
+    def to_skill_list(value):
+        if not value:
+            return []
+        if isinstance(value, list):
+            items = []
+            for v in value:
+                if isinstance(v, dict):
+                    v = v.get('name') or v.get('label') or v.get('value')
+                if isinstance(v, str):
+                    items.extend([s.strip().lower() for s in v.split(',') if s.strip()])
+            return items
+        if isinstance(value, str):
+            return [s.strip().lower() for s in value.split(',') if s.strip()]
+        return []
+
     score = 0
     skill_match = 0
     exp_match = 0
@@ -227,18 +244,31 @@ async def get_job_match_score(job_id: str, request: Request):
     matching_skills = []
 
     # 1. Skill Match (40% weight)
-    job_reqs = job.get("requirements", [])
-    profile_skills = profile.get("skills", [])
+    job_reqs = []
+    job_reqs += to_skill_list(job.get("requirements", []))
+    job_reqs += to_skill_list(job.get("skills_required", []))
+    job_reqs += to_skill_list(job.get("skill_tags", []))
+
+    profile_skills = to_skill_list(profile.get("skills", []))
+
+    # If no explicit requirements, treat category/title as a soft requirement
+    if not job_reqs:
+        job_reqs += to_skill_list(job.get("category"))
+        job_reqs += to_skill_list(job.get("title"))
 
     if job_reqs and profile_skills:
-        reqs_lower = [str(r).lower() for r in job_reqs]
-        skills_lower = [str(s).lower() for s in profile_skills]
-        matching_skills = list(set(reqs_lower) & set(skills_lower))
-        skill_match = (len(matching_skills) / len(reqs_lower)) * 100 if reqs_lower else 100
+        for req in set(job_reqs):
+            for sk in profile_skills:
+                if sk == req or sk in req or req in sk:
+                    matching_skills.append(req)
+                    break
+        skill_match = (len(set(matching_skills)) / len(set(job_reqs))) * 100 if job_reqs else 100
         score += skill_match * 0.4
     elif not job_reqs:
-        skill_match = 100
-        score += 40
+        # No requirements: give partial credit if profile has skills
+        if profile_skills:
+            skill_match = 50
+            score += 20
 
     # 2. Experience Match (30% weight)
     profile_exp = profile.get("experience_years", 0)
@@ -248,6 +278,13 @@ async def get_job_match_score(job_id: str, request: Request):
         exp_match = 50
     score += exp_match * 0.3
 
+    # 2b. Category/title bonus
+    worker_cat = normalize_text(profile.get("category"))
+    job_cat = normalize_text(job.get("category"))
+    job_title = normalize_text(job.get("title"))
+    if worker_cat and (worker_cat == job_cat or worker_cat in job_title):
+        score += 15
+
     # 3. Location Proximity (30% weight)
     job_lat, job_lng = job.get("lat"), job.get("lng")
     prof_lat, prof_lng = profile.get("lat"), profile.get("lng")
@@ -256,7 +293,7 @@ async def get_job_match_score(job_id: str, request: Request):
         R = 6371  # km
         dlat = math.radians(job_lat - prof_lat)
         dlng = math.radians(job_lng - prof_lng)
-        a = math.sin(dlat / 2)**2 + math.cos(math.radians(prof_lat)) * \
+        a = math.sin(dlat / 2)**2 + math.cos(math.radians(prof_lat)) * 
             math.cos(math.radians(job_lat)) * math.sin(dlng / 2)**2
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         distance = R * c
@@ -283,8 +320,7 @@ async def get_job_match_score(job_id: str, request: Request):
     ai_client = get_ai_client()
     if ai_client:
         try:
-            prompt = f"Write a 1-sentence tactical mission briefing explanation (e.g. 'Your specialized plumbing skills make you a high-value asset for this operation.') for a worker with {profile_exp} years experience applying for the mission: '{
-                job.get('title')}'. Give no preamble, just the sentence."
+            prompt = f"Write a 1-sentence tactical mission briefing explanation (e.g. 'Your specialized plumbing skills make you a high-value asset for this operation.') for a worker with {profile.get('skills', [])} and {profile.get('experience_years', 0)} years of experience applying to a job titled '{job.get('title')}'. Give no preamble, just the sentence."
             resp = ai_client.models.generate_content(
                 model="gemini-1.5-flash",
                 contents=prompt
