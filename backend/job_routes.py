@@ -38,6 +38,16 @@ def get_ai_client():
     return _ai_client
 
 
+def _to_float(value):
+    """Best-effort conversion to float, returning None for invalid values."""
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 @job_router.post("/draft")
 async def draft_job_ai(payload: dict = Body(...)):
     user_query = payload.get("query")
@@ -293,7 +303,8 @@ async def get_job_match_score(job_id: str, request: Request):
             score += 20
 
     # 2. Experience Match (30% weight)
-    profile_exp = profile.get("experience_years", 0)
+    profile_exp_value = _to_float(profile.get("experience_years"))
+    profile_exp = profile_exp_value if profile_exp_value is not None else 0
     if profile_exp >= 2:
         exp_match = 100
     elif profile_exp > 0:
@@ -308,10 +319,10 @@ async def get_job_match_score(job_id: str, request: Request):
         score += 15
 
     # 3. Location Proximity (30% weight)
-    job_lat, job_lng = job.get("lat"), job.get("lng")
-    prof_lat, prof_lng = profile.get("lat"), profile.get("lng")
+    job_lat, job_lng = _to_float(job.get("lat")), _to_float(job.get("lng"))
+    prof_lat, prof_lng = _to_float(profile.get("lat")), _to_float(profile.get("lng"))
 
-    if job_lat and prof_lat:
+    if job_lat is not None and job_lng is not None and prof_lat is not None and prof_lng is not None:
         R = 6371  # km
         dlat = math.radians(job_lat - prof_lat)
         dlng = math.radians(job_lng - prof_lng)
