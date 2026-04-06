@@ -1,7 +1,7 @@
 import requests
 
 
-def test_rate_limit(url, method="GET", payload=None, limit=5):
+def run_rate_limit_check(url, method="GET", payload=None, limit=5):
     print(f"Testing rate limit on {url}...")
     for i in range(limit + 2):
         if method == "POST":
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     BASE_URL = "http://localhost:8000"
 
     # Test Chatbot (Limit: 5/min)
-    test_rate_limit(f"{BASE_URL}/api/chatbot", "POST", {"query": "Hello"}, limit=5)
+    run_rate_limit_check(f"{BASE_URL}/api/chatbot", "POST", {"query": "Hello"}, limit=5)
 
     # Test OTP (Limit: 5/min)
-    test_rate_limit(f"{BASE_URL}/api/auth/send-otp", "POST", {"phone": "1234567890"}, limit=5)
+    run_rate_limit_check(f"{BASE_URL}/api/auth/send-otp", "POST", {"phone": "1234567890"}, limit=5)
