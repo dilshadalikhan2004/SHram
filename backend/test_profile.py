@@ -1,7 +1,11 @@
 import httpx
 import pytest
 
-from tests.bootstrap import setup_test_imports
+try:
+    from tests.bootstrap import setup_test_imports
+except ModuleNotFoundError:
+    from backend.tests.bootstrap import setup_test_imports
+
 setup_test_imports()
 
 from auth_utils import create_access_token  # noqa: E402
