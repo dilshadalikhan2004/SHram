@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
-from typing import List, Optional
+from fastapi import APIRouter, Request
+from typing import List
 from datetime import datetime
 import uuid
 import os
@@ -18,12 +18,13 @@ VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY")
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY")
 VAPID_CLAIMS = {"sub": "mailto:support@shramsetu.in"}
 
+
 async def send_user_notification(user_id: str, title: str, message: str, action_url: str = None):
     """
     Utility to send both an in-app notification (DB) and a Web Push notification (VAPID).
     """
     db = get_db()
-    
+
     # 1. Store in DB for the 'bell' icon
     new_notif = {
         "id": str(uuid.uuid4()),
@@ -35,7 +36,7 @@ async def send_user_notification(user_id: str, title: str, message: str, action_
         "created_at": datetime.utcnow()
     }
     await db.notifications.insert_one(new_notif)
-    
+
     # 2. Try to send Web Push
     sub_doc = await db.push_subscriptions.find_one({"user_id": user_id})
     if sub_doc and sub_doc.get("subscription") and VAPID_PRIVATE_KEY:
@@ -58,7 +59,6 @@ async def send_user_notification(user_id: str, title: str, message: str, action_
                 await db.push_subscriptions.delete_one({"user_id": user_id})
 
 
-
 @notification_router.post("/subscribe")
 async def subscribe_push(payload: dict, request: Request):
     user_id = await get_current_user_id(request)
@@ -70,6 +70,7 @@ async def subscribe_push(payload: dict, request: Request):
     )
     return {"success": True}
 
+
 @notification_router.get("/", response_model=List[dict])
 async def list_notifications(request: Request):
     user_id = await get_current_user_id(request)
@@ -77,6 +78,7 @@ async def list_notifications(request: Request):
     cursor = db.notifications.find({"user_id": user_id}).sort("created_at", -1)
     notifs = await cursor.to_list(length=50)
     return notifs
+
 
 @notification_router.patch("/read-all")
 async def read_all_notifications(request: Request):

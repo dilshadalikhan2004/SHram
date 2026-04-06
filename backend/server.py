@@ -1,5 +1,33 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query, status, UploadFile, File, Request, Response, Header, Body, BackgroundTasks
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import FileResponse
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.errors import RateLimitExceeded
+from rate_limiter import limiter, _rate_limit_exceeded_handler
+from cloudinary_utils import upload_to_cloudinary
+from subscription_routes import subscription_router
+from reputation_routes import reputation_router
+from offer_routes import offer_router
+from verification_routes import verification_router
+from portfolio_routes import portfolio_router
+from tracking_routes import tracking_router
+from handshake_routes import handshake_router
+from chat_routes import chat_router
+from earnings_routes import earnings_router
+from squad_routes import squad_router
+from payment_routes import payment_api_router
+from notification_routes import notification_router
+from application_routes import app_router
+from profile_routes import profile_router
+from job_routes import job_router
+from auth_routes import auth_router
+from translations import TRANSLATIONS
+from database import get_db
+from typing import Dict
+from datetime import datetime, timezone, timedelta
+import jwt
+import json
+import uuid
+import logging
+from fastapi import FastAPI, APIRouter, HTTPException, WebSocket, status, UploadFile, File, Request, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -9,15 +37,6 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-import logging
-import uuid
-import json
-import jwt
-import asyncio
-import httpx
-import re
-from datetime import datetime, timezone, timedelta
-from typing import List, Optional, Dict, Any
 
 # Internal Imports
 from database import get_db, mongo_url
@@ -50,6 +69,8 @@ logger = logging.getLogger(__name__)
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 # Lazy AI Client
 _ai_client = None
+
+
 def get_ai_client():
     global _ai_client
     if _ai_client is None and GEMINI_KEY:
@@ -61,6 +82,7 @@ def get_ai_client():
             logger.error(f"Failed to initialize Gemini AI Client: {str(e)}")
     return _ai_client
 
+
 # JWT Config
 JWT_SECRET = os.environ.get('JWT_SECRET')
 if not JWT_SECRET:
@@ -71,15 +93,13 @@ if not JWT_SECRET:
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 JWT_EXPIRATION_HOURS = _get_jwt_exp()
 
-from rate_limiter import limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 
 app = FastAPI(title="ShramSetu API", version="2.0.3")
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -117,6 +137,7 @@ app.add_middleware(
 # Create router with /api prefix
 api_router = APIRouter(prefix="/api")
 
+
 @api_router.get("/health")
 async def health_check():
     db = get_db()
@@ -130,13 +151,14 @@ async def health_check():
                 mongo_status = "connected"
         except Exception as e:
             mongo_status = f"error: {str(e)}"
-    
+
     return {
         "status": "online",
         "mongodb": mongo_status,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "2.0.3"
     }
+
 
 @api_router.get("/translations/{lang}")
 async def get_translations(lang: str):
@@ -146,11 +168,12 @@ async def get_translations(lang: str):
     """
     return TRANSLATIONS.get(lang, TRANSLATIONS["en"])
 
+
 @api_router.get("/categories")
 async def get_categories():
     # Return 56 categories from 6 sectors as per PRD
     from database import get_db
-    db = get_db()
+    get_db()
     # Mock some categories for now or fetch from DB
     categories = [
         {"id": "electrician", "name": "Electrician", "name_hi": "इलेक्ट्रीशियन", "name_or": "ଇଲେକ୍ଟ୍ରିସିଆନ୍"},
@@ -160,6 +183,7 @@ async def get_categories():
         {"id": "construction", "name": "Construction", "name_hi": "निर्माण", "name_or": "ନିର୍ମାଣ"},
     ]
     return {"categories": categories}
+
 
 @api_router.post("/upload/video")
 async def upload_video(file: UploadFile = File(...)):
@@ -172,17 +196,18 @@ async def upload_video(file: UploadFile = File(...)):
     contents = await file.read()
     with open(temp_path, "wb") as f:
         f.write(contents)
-    
+
     cloudinary_url = upload_to_cloudinary(str(temp_path), folder="shramsetu/videos")
-    
+
     # Clean up temp file
     if temp_path.exists():
         os.remove(temp_path)
-    
+
     if not cloudinary_url:
         raise HTTPException(status_code=500, detail="Failed to upload to Cloudinary")
-        
+
     return {"video_url": cloudinary_url}
+
 
 @api_router.post("/upload/photo")
 async def upload_photo(file: UploadFile = File(...)):
@@ -194,16 +219,17 @@ async def upload_photo(file: UploadFile = File(...)):
     contents = await file.read()
     with open(temp_path, "wb") as f:
         f.write(contents)
-    
+
     cloudinary_url = upload_to_cloudinary(str(temp_path), folder="shramsetu/photos")
-    
+
     if temp_path.exists():
         os.remove(temp_path)
-        
+
     if not cloudinary_url:
         raise HTTPException(status_code=500, detail="Failed to upload to Cloudinary")
-        
+
     return {"photo_url": cloudinary_url}
+
 
 @api_router.post("/chatbot")
 @limiter.limit("5/minute")
@@ -212,42 +238,40 @@ async def shram_chatbot(request: Request):
     user_query = data.get("query")
     if not user_query:
         raise HTTPException(status_code=400, detail="Query is required")
-        
+
     try:
         cur_ai_client = get_ai_client()
         if not cur_ai_client:
             logger.error("Chatbot failed: Gemini AI Client not initialized")
             return {"response": "AI Configuration Error: Please check server environment variables."}
-            
+
         contexual_prompt = f"""
         You are 'Shram Assistant', an AI helper for the ShramSetu platform.
         ShramSetu connects blue-collar workers (construction, plumbing, etc.) with employers in India.
         Provide helpful, concise, and professional advice in a friendly tone.
         Current User Query: {user_query}
         """
-        
+
         response = cur_ai_client.models.generate_content(
             model="gemini-1.5-flash",
             contents=contexual_prompt
         )
-        
+
         return {"response": response.text}
     except Exception as e:
         err_str = str(e).lower()
         logger.error(f"Gemini API Critical Failure: {type(e).__name__} - {str(e)}")
-        
+
         # Specific friendly messages for common AI service errors
         if "429" in err_str or "quota" in err_str or "exhausted" in err_str:
             return {"response": "The AI Assistant is currently resting due to high demand. Please try again in a minute or two!"}
-        
+
         if "api_key" in err_str or "invalid" in err_str or "permission" in err_str:
             logger.critical("CHECK SYSTEM ENV: GEMINI_API_KEY appears invalid or restricted.")
             return {"response": "I am experiencing some internal configuration issues. Please try again later while I fix them!"}
-            
+
         return {"response": "I'm having trouble connecting to my brain right now. Please try again later!"}
 
-
-from fastapi.responses import FileResponse
 
 @api_router.get("/files/{path:path}")
 async def serve_uploaded_file(path: str):
@@ -256,13 +280,14 @@ async def serve_uploaded_file(path: str):
         file_path = ROOT_DIR / path
     else:
         file_path = ROOT_DIR / "uploads" / path
-    
+
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     # Determine media type
     ext = file_path.name.rsplit(".", 1)[-1].lower()
     media_types = {"webm": "video/webm", "mp4": "video/mp4", "jpg": "image/jpeg", "png": "image/png"}
     return FileResponse(str(file_path), media_type=media_types.get(ext, "application/octet-stream"))
+
 
 @api_router.get("/stats/worker")
 async def get_worker_stats(request: Request):
@@ -273,7 +298,7 @@ async def get_worker_stats(request: Request):
     # Real application counts
     total_applications = await db.applications.count_documents({"worker_id": user_id})
     active_jobs = await db.applications.count_documents({
-        "worker_id": user_id, 
+        "worker_id": user_id,
         "status": {"$in": ["selected", "accepted", "shortlisted"]}
     })
     completed_jobs = await db.applications.count_documents({
@@ -300,12 +325,18 @@ async def get_worker_stats(request: Request):
     # Profile completeness bonus
     profile = await db.worker_profiles.find_one({"user_id": user_id})
     if profile:
-        if profile.get("skills") and len(profile["skills"]) > 0: reliability += 3
-        if profile.get("location"): reliability += 3
-        if profile.get("bio"): reliability += 2
-        if profile.get("phone_verified"): reliability += 3
-        if profile.get("video_intro"): reliability += 2
-        if profile.get("experience_years"): reliability += 2
+        if profile.get("skills") and len(profile["skills"]) > 0:
+            reliability += 3
+        if profile.get("location"):
+            reliability += 3
+        if profile.get("bio"):
+            reliability += 2
+        if profile.get("phone_verified"):
+            reliability += 3
+        if profile.get("video_intro"):
+            reliability += 2
+        if profile.get("experience_years"):
+            reliability += 2
 
     reliability = min(reliability, 99)
 
@@ -346,7 +377,7 @@ async def get_worker_stats(request: Request):
     prev_weekly = 0
     async for app in prev_cursor:
         prev_weekly += app.get("earned_amount", 0)
-    
+
     if prev_weekly > 0:
         growth_pct = round(((weekly_earnings - prev_weekly) / prev_weekly) * 100, 1)
     else:
@@ -362,6 +393,7 @@ async def get_worker_stats(request: Request):
         "earnings_growth_pct": growth_pct
     }
 
+
 @api_router.get("/stats/employer")
 async def get_employer_stats(request: Request):
     from auth_utils import get_current_user_id
@@ -371,14 +403,14 @@ async def get_employer_stats(request: Request):
     # Base Metrics
     total_jobs_posted = await db.jobs.count_documents({"employer_id": user_id})
     active_hiring = await db.jobs.count_documents({"employer_id": user_id, "status": "open"})
-    
+
     # Calculate total hires from employer's jobs
     employer_jobs = await db.jobs.find({"employer_id": user_id}).to_list(None)
     employer_job_ids = [j.get("id") or str(j.get("_id")) for j in employer_jobs]
-    
+
     total_hires = 0
     force_breakdown_raw = {}
-    
+
     if employer_job_ids:
         hires_cursor = db.applications.find({
             "job_id": {"$in": employer_job_ids},
@@ -391,14 +423,14 @@ async def get_employer_stats(request: Request):
             if job:
                 cat = job.get("category", "other").capitalize()
                 force_breakdown_raw[cat] = force_breakdown_raw.get(cat, 0) + 1
-    
+
     # Pending Payments (Escrow simplified calculate: open jobs default required capital)
     pending_payments = 0
     for job in employer_jobs:
         if job.get("status") in ["open", "active"]:
             expected_escrow = ((job.get("salary_paise", 50000)) * (job.get("team_size", 1))) / 100
             pending_payments += expected_escrow
-            
+
     # Recent Activity Feed
     recent_activity = []
     # 1. Recent Applications
@@ -418,7 +450,7 @@ async def get_employer_stats(request: Request):
 
     # Sort activity
     recent_activity.sort(key=lambda x: x.get("original_date", datetime.min), reverse=True)
-    
+
     # Convert force breakdown to sorted array format for UI
     force_breakdown = []
     colors = ['bg-primary', 'bg-orange-400', 'bg-amber-500', 'bg-emerald-500', 'bg-blue-400']
@@ -428,7 +460,7 @@ async def get_employer_stats(request: Request):
             "count": count,
             "color": colors[idx % len(colors)]
         })
-        
+
     # AI Tactical Briefing
     ai_insight = "Operational efficiency targets stabilized across active zones."
     if total_hires > 0 or total_jobs_posted > 0:
@@ -436,15 +468,15 @@ async def get_employer_stats(request: Request):
             cur_ai_client = get_ai_client()
             if cur_ai_client:
                 prompt = f"""
-                You are 'Shram Matrix', an AI logistics advisor. 
+                You are 'Shram Matrix', an AI logistics advisor.
                 The employer currently has {active_hiring} open missions, {total_hires} total deployed personnel, and a pending payroll/escrow balance of ₹{pending_payments}.
                 Provide a single, short, tactical, professional piece of strategic advice (max 20 words) for their dashboard. Provide only the quote. Keep it immersive and slightly industrial/sci-fi themed.
                 """
                 response = cur_ai_client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
                 if response and response.text:
                     ai_insight = response.text.strip().replace('"', '')
-        except Exception as e:
-            pass # Use fallback
+        except Exception:
+            pass  # Use fallback
 
     return {
         "status": "success",
@@ -453,7 +485,7 @@ async def get_employer_stats(request: Request):
             "active_hiring": active_hiring,
             "total_hires": total_hires,
             "pending_payments": pending_payments,
-            "attendance_today": 96, # Placeholder for now as check-in logic isn't fully robust
+            "attendance_today": 96,  # Placeholder for now as check-in logic isn't fully robust
             "force_breakdown": force_breakdown,
             "recent_activity": recent_activity[:4],
             "ai_insight": ai_insight
@@ -479,6 +511,8 @@ api_router.include_router(reputation_router)
 api_router.include_router(subscription_router)
 
 # WebSocket Connection Manager
+
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
@@ -501,7 +535,9 @@ class ConnectionManager:
         for connection in self.active_connections.values():
             await connection.send_json(message)
 
+
 manager = ConnectionManager()
+
 
 @app.websocket("/ws/{token}")
 async def websocket_endpoint(websocket: WebSocket, token: str):
@@ -510,14 +546,14 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
         # Verify token
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("user_id") or payload.get("id")
-        
+
         if not user_id:
             logger.warning("WebSocket connection rejected: Invalid token payload")
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 
         await manager.connect(user_id, websocket)
-        
+
         # Keep connection alive and wait for messages
         while True:
             data = await websocket.receive_text()
@@ -526,7 +562,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                 if message_data.get("type") == "message":
                     receiver_id = message_data.get("receiver_id")
                     content = message_data.get("content")
-                    
+
                     if receiver_id and content:
                         # Save to DB
                         db = get_db()
@@ -539,30 +575,30 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                             "is_read": False
                         }
                         await db.messages.insert_one(new_msg)
-                        
+
                         # Forward as JSON-safe dict
                         safe_msg = new_msg.copy()
                         safe_msg["timestamp"] = safe_msg["timestamp"].isoformat()
-                        
+
                         # Send to receiver if online
                         await manager.send_personal_message({
                             "type": "new_message",
                             "message": safe_msg
                         }, receiver_id)
-                        
+
                         # Send confirmation to sender
                         await manager.send_personal_message({
                             "type": "message_sent",
                             "message": safe_msg
                         }, user_id)
-                
+
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON from {user_id}: {data}")
             except Exception as e:
                 logger.error(f"Error processing socket message: {str(e)}")
-            
+
     except jwt.ExpiredSignatureError:
-        logger.warning(f"WebSocket connection rejected: Token expired")
+        logger.warning("WebSocket connection rejected: Token expired")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
     except Exception as e:
         logger.error(f"WebSocket error for user {user_id}: {str(e)}")
@@ -579,6 +615,7 @@ app.include_router(api_router)
 if __name__ == "__main__":
     import uvicorn
     import os
+
     def _get_port():
         val = os.environ.get("PORT", "8000")
         try:
