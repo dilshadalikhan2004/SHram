@@ -1,16 +1,9 @@
-import os
-import sys
 import uuid
 import asyncio
 import httpx
 
-# Append backend directory so we can import modules
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
-if BACKEND_DIR not in sys.path:
-    sys.path.insert(0, BACKEND_DIR)
-
-# Ensure JWT secret exists before importing auth/server modules.
-os.environ.setdefault("JWT_SECRET", "test_secret_for_ci_only_do_not_use_in_production")
+from tests.bootstrap import setup_test_imports
+setup_test_imports()
 
 from auth_utils import create_access_token  # noqa: E402
 from server import app  # noqa: E402
