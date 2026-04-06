@@ -2,11 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, IndianRupee, MessageSquare, Zap, Sparkles, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
-import { useTranslation } from '../context/TranslationContext';
 import { bidSuggestionApi } from '../lib/api';
 
 const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
-  useTranslation();
   const [bidAmount, setBidAmount] = useState(job?.salary_paise ? job.salary_paise / 100 : job?.pay_amount || '');
   const [proposal, setProposal] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,12 +36,6 @@ const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
     }
     if (!hasApplyHandler && !hasLegacySubmitHandler) {
       console.warn('BiddingModal requires an onApply or onSubmit callback.');
-    }
-    if (onApply && !hasApplyHandler) {
-      console.warn('BiddingModal onApply must be a function.');
-    }
-    if (onSubmit && !hasLegacySubmitHandler) {
-      console.warn('BiddingModal onSubmit must be a function.');
     }
   }, [onApply, onSubmit, hasApplyHandler, hasLegacySubmitHandler]);
 
