@@ -37,19 +37,22 @@ const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
   const submitHandler = applyHandler ?? legacySubmitHandler;
 
   useEffect(() => {
-    if (applyHandler && legacySubmitHandler) {
+    const hasApplyHandler = typeof onApply === 'function';
+    const hasLegacySubmitHandler = typeof onSubmit === 'function';
+
+    if (hasApplyHandler && hasLegacySubmitHandler) {
       console.warn('BiddingModal received both onApply and onSubmit; onApply will be used.');
     }
-    if (!submitHandler) {
+    if (!hasApplyHandler && !hasLegacySubmitHandler) {
       console.warn('BiddingModal requires an onApply or onSubmit callback.');
     }
-    if (onApply && !applyHandler) {
+    if (onApply && !hasApplyHandler) {
       console.warn('BiddingModal onApply must be a function.');
     }
-    if (onSubmit && !legacySubmitHandler) {
+    if (onSubmit && !hasLegacySubmitHandler) {
       console.warn('BiddingModal onSubmit must be a function.');
     }
-  }, [onApply, onSubmit, applyHandler, legacySubmitHandler, submitHandler]);
+  }, [onApply, onSubmit]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
