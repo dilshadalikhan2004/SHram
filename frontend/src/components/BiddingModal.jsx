@@ -32,7 +32,7 @@ const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
     }
   };
 
-  const submitHandler = onApply || onSubmit;
+  const submitHandler = onApply ?? onSubmit;
 
   useEffect(() => {
     if (onApply && onSubmit) {

@@ -36,7 +36,7 @@ jobs:
           else
             RANGE="${{ github.event.before }}...${{ github.sha }}"
           fi
-          FILES=$(git diff --name-only "$RANGE" -- '*.py' | grep '^backend/' | tr '\n' ' ' || true)
+          FILES=$(git diff --name-only --diff-filter=d "$RANGE" -- '*.py' | grep '^backend/' | tr '\n' ' ' || true)
           echo "files=$FILES" >> "$GITHUB_OUTPUT"
 
       - name: Run flake8
@@ -75,7 +75,7 @@ jobs:
           else
             RANGE="${{ github.event.before }}...${{ github.sha }}"
           fi
-          FILES=$(git diff --name-only "$RANGE" -- '*.js' '*.jsx' | grep '^frontend/src/' | tr '\n' ' ' || true)
+          FILES=$(git diff --name-only --diff-filter=d "$RANGE" -- '*.js' '*.jsx' | grep '^frontend/src/' | tr '\n' ' ' || true)
           echo "files=$FILES" >> "$GITHUB_OUTPUT"
 
       - name: Run ESLint
