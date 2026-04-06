@@ -49,7 +49,7 @@ const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
     if (onSubmit && !hasLegacySubmitHandler) {
       console.warn('BiddingModal onSubmit must be a function.');
     }
-  }, [onApply, onSubmit]);
+  }, [onApply, onSubmit, hasApplyHandler, hasLegacySubmitHandler]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
