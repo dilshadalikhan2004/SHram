@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { DetailPageSkeleton } from '../../components/loading/PageSkeletons';
 import { toast } from 'sonner';
+import { jobsApi } from '../../lib/api';
 
 const API_URL = "https://api.shramsetu.in";
 
@@ -85,6 +86,7 @@ const EmployerJobDetail = () => {
   const [job, setJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     fetchJobDetail();
@@ -122,11 +124,27 @@ const EmployerJobDetail = () => {
     }
   };
 
+  const handleCloseJob = async () => {
+    if (!job) return;
+    setIsClosing(true);
+    try {
+      await jobsApi.updateStatus(job.id || id, 'completed');
+      toast.success("Job closed successfully");
+      fetchJobDetail();
+      refreshData();
+    } catch (err) {
+      toast.error("Failed to close job");
+    } finally {
+      setIsClosing(false);
+    }
+  };
+
   if (loading) return <DetailPageSkeleton />;
   if (!job) return <div className="p-20 text-center uppercase tracking-widest text-rose-500 font-black">Mission Data Corrupted or Non-Existent</div>;
 
   const pendingApplicants = applicants.filter(a => a.status === 'pending');
   const acceptedApplicants = applicants.filter(a => a.status === 'accepted');
+  const isClosed = job.status && job.status !== 'open';
 
   return (
     <div className="space-y-12 pb-20">
@@ -152,8 +170,12 @@ const EmployerJobDetail = () => {
               <span className="text-xs text-muted-foreground/40"> / Unit</span>
             </p>
           </div>
-          <Button className="h-14 px-8 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-foreground font-black text-[10px] uppercase tracking-widest">
-            Terminate Mission
+          <Button
+            onClick={handleCloseJob}
+            disabled={isClosed || isClosing}
+            className="h-14 px-8 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-foreground font-black text-[10px] uppercase tracking-widest"
+          >
+            {isClosed ? 'Job Closed' : isClosing ? 'Closing...' : 'Close Job'}
           </Button>
         </div>
       </div>
@@ -203,10 +225,10 @@ const EmployerJobDetail = () => {
           <Tabs defaultValue="pending" className="space-y-8">
             <div className="flex items-center justify-between px-10 py-6 bg-black/20 rounded-[2.5rem] border border-white/5">
               <TabsList className="bg-transparent gap-8 h-auto p-0">
-                <TabsTrigger value="pending" className="bg-transparent border-none p-0 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 data-[state=active]:text-primary transition-all h-10">
+                <TabsTrigger value="pending" className="bg-transparent border-none p-0 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 data-[state=active]:text-primary">
                   Incoming Signals ({pendingApplicants.length})
                 </TabsTrigger>
-                <TabsTrigger value="accepted" className="bg-transparent border-none p-0 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 data-[state=active]:text-emerald-500 transition-all h-10">
+                <TabsTrigger value="accepted" className="bg-transparent border-none p-0 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 data-[state=active]:text-emerald-400">
                   Deployed Personnel ({acceptedApplicants.length})
                 </TabsTrigger>
               </TabsList>
@@ -231,7 +253,7 @@ const EmployerJobDetail = () => {
                   <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                     <div className="flex items-center gap-6">
                       <div className="relative">
-                        <div className="w-20 h-20 rounded-[1.5rem] bg-primary/20 flex items-center justify-center text-primary font-black text-2xl font-['Space_Grotesk'] uppercase border-2 border-primary/20 overflow-hidden">
+                        <div className="w-20 h-20 rounded-[1.5rem] bg-primary/20 flex items-center justify-center text-primary font-black text-2xl font-['Space_Grotesk'] uppercase border-2 border-white/10">
                           {app.worker?.full_name?.charAt(0) || 'U'}
                         </div>
                         <div className="absolute -bottom-2 -right-2 bg-emerald-500 p-1.5 rounded-xl border-4 border-background shadow-lg">
@@ -256,7 +278,7 @@ const EmployerJobDetail = () => {
                         <p className="text-xl font-black text-white font-['Space_Grotesk']">₹{((app.bid_amount || 0) / 100).toLocaleString()}</p>
                       </div>
                       <div className="flex gap-2">
-                        <Button onClick={() => handleApplication(app._id, 'accepted')} className="h-14 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest gap-2 shadow-xl shadow-emerald-500/10">
+                        <Button onClick={() => handleApplication(app._id, 'accepted')} className="h-14 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
                           <UserCheck className="w-4 h-4" /> Recruit
                         </Button>
                         <Button onClick={() => handleApplication(app._id, 'rejected')} variant="ghost" className="h-14 w-14 rounded-2xl border border-white/5 hover:bg-rose-500/10 hover:text-rose-500">
@@ -308,7 +330,7 @@ const EmployerJobDetail = () => {
                   </div>
                   <WorkerTrustMini worker={app.worker || {}} app={app} />
                 </motion.div>
-              ))}
+              ));
               {acceptedApplicants.length === 0 && (
                 <div className="p-16 text-center rounded-[2rem] border border-dashed border-white/10 bg-white/5 text-xs uppercase tracking-[0.2em] text-muted-foreground/40 font-black">
                   No accepted personnel yet
