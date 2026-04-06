@@ -7,6 +7,7 @@ from database import get_db
 from models import UserCreate, LoginSchema, Token, OTPRequest
 from auth_utils import create_access_token, get_password_hash, verify_password, get_current_user_id
 import re
+import logging
 
 logger = logging.getLogger(__name__)
 
