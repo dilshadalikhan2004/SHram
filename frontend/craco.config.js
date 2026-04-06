@@ -1,0 +1,64 @@
+const path = require("path");
+require("dotenv").config();
+
+const config = {
+  enableHealthCheck: process.env.ENABLE_HEALTH_CHECK === "true",
+};
+
+let WebpackHealthPlugin;
+let setupHealthEndpoints;
+let healthPluginInstance;
+
+if (config.enableHealthCheck) {
+  WebpackHealthPlugin = require("./plugins/health-check/webpack-health-plugin");
+  setupHealthEndpoints = require("./plugins/health-check/health-endpoints");
+  healthPluginInstance = new WebpackHealthPlugin();
+}
+
+const webpackConfig = {
+  eslint: {
+    enable: false,
+  },
+  webpack: {
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+    },
+    configure: (cfg) => {
+      cfg.plugins = cfg.plugins.filter(
+        (plugin) => plugin.constructor.name !== "ESLintWebpackPlugin"
+      );
+
+      cfg.watchOptions = {
+        ...cfg.watchOptions,
+        ignored: [
+          "**/node_modules/**",
+          "**/.git/**",
+          "**/build/**",
+          "**/dist/**",
+          "**/coverage/**",
+          "**/public/**",
+        ],
+      };
+
+      if (config.enableHealthCheck && healthPluginInstance) {
+        cfg.plugins.push(healthPluginInstance);
+      }
+
+      return cfg;
+    },
+  },
+};
+
+webpackConfig.devServer = (devServerConfig) => {
+  if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
+    const orig = devServerConfig.setupMiddlewares;
+    devServerConfig.setupMiddlewares = (middlewares, devServer) => {
+      if (orig) middlewares = orig(middlewares, devServer);
+      setupHealthEndpoints(devServer, healthPluginInstance);
+      return middlewares;
+    };
+  }
+  return devServerConfig;
+};
+
+module.exports = webpackConfig;
