@@ -40,7 +40,7 @@ from reputation_routes import reputation_router
 from subscription_routes import subscription_router
 from cloudinary_utils import upload_to_cloudinary
 from google import genai
-import google.generativeai as legacy_genai # Keeping as fallback if needed elsewhere temporarily
+from auth_utils import _get_jwt_exp
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -48,7 +48,6 @@ logger = logging.getLogger(__name__)
 
 # Configure Modern Gemini Client
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
-ai_client = None
 # Lazy AI Client
 _ai_client = None
 def get_ai_client():
@@ -70,11 +69,6 @@ if not JWT_SECRET:
         "Set a strong secret before starting the server."
     )
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
-
-def _get_jwt_exp():
-    val = os.environ.get('JWT_EXPIRATION_HOURS', '24')
-    try: return int(val)
-    except: return 24
 JWT_EXPIRATION_HOURS = _get_jwt_exp()
 
 from rate_limiter import limiter, _rate_limit_exceeded_handler
@@ -172,7 +166,8 @@ async def upload_video(file: UploadFile = File(...)):
     # Save to temp file and upload to Cloudinary
     temp_dir = Path("./tmp")
     temp_dir.mkdir(exist_ok=True)
-    temp_path = temp_dir / file.filename
+    safe_filename = Path(file.filename).name
+    temp_path = temp_dir / safe_filename
     
     contents = await file.read()
     with open(temp_path, "wb") as f:
@@ -193,7 +188,8 @@ async def upload_video(file: UploadFile = File(...)):
 async def upload_photo(file: UploadFile = File(...)):
     temp_dir = Path("./tmp")
     temp_dir.mkdir(exist_ok=True)
-    temp_path = temp_dir / file.filename
+    safe_filename = Path(file.filename).name
+    temp_path = temp_dir / safe_filename
     
     contents = await file.read()
     with open(temp_path, "wb") as f:
@@ -575,21 +571,20 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
         # Check if already closed
         try:
             await websocket.close()
-        except:
+        except Exception:
             pass
 
 app.include_router(api_router)
-
-# Mocked db for global access - removed top-level init
-db = None
 
 if __name__ == "__main__":
     import uvicorn
     import os
     def _get_port():
         val = os.environ.get("PORT", "8000")
-        try: return int(val)
-        except: return 8000
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return 8000
     port = _get_port()
-    print(f"Starting server on 0.0.0.0:{port}...")
+    logger.info(f"Starting server on 0.0.0.0:{port}...")
     uvicorn.run(app, host="0.0.0.0", port=port, access_log=True)

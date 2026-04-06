@@ -4,9 +4,12 @@ from datetime import datetime
 import uuid
 import os
 import json
+import logging
 from database import get_db
 from auth_utils import get_current_user_id
 from pywebpush import webpush, WebPushException
+
+logger = logging.getLogger(__name__)
 
 notification_router = APIRouter(tags=["notifications"])
 
@@ -48,7 +51,7 @@ async def send_user_notification(user_id: str, title: str, message: str, action_
                 vapid_claims=VAPID_CLAIMS
             )
         except WebPushException as ex:
-            print(f"Web Push Error for user {user_id}: {str(ex)}")
+            logger.error(f"Web Push Error for user {user_id}: {str(ex)}")
             # If subscription is expired/invalid, we could remove it
             if ex.response and ex.response.status_code in [404, 410]:
                 await db.push_subscriptions.delete_one({"user_id": user_id})

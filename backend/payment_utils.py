@@ -1,6 +1,9 @@
 import os
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 def get_env_int(key: str, default: int) -> int:
     val = os.environ.get(key)
@@ -9,7 +12,7 @@ def get_env_int(key: str, default: int) -> int:
     try:
         return int(val)
     except ValueError:
-        print(f"WARNING: Environment variable {key} has invalid value '{val}'. Using default: {default}")
+        logger.warning(f"Environment variable {key} has invalid value '{val}'. Using default: {default}")
         return default
 
 PLATFORM_FEE_PCT = float(os.environ.get("PLATFORM_FEE_PCT", 7.5))
