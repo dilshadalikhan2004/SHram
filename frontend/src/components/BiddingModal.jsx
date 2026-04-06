@@ -32,14 +32,11 @@ const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
     }
   };
 
-  const applyHandler = typeof onApply === 'function' ? onApply : null;
-  const legacySubmitHandler = typeof onSubmit === 'function' ? onSubmit : null;
-  const submitHandler = applyHandler ?? legacySubmitHandler;
+  const hasApplyHandler = typeof onApply === 'function';
+  const hasLegacySubmitHandler = typeof onSubmit === 'function';
+  const submitHandler = hasApplyHandler ? onApply : hasLegacySubmitHandler ? onSubmit : null;
 
   useEffect(() => {
-    const hasApplyHandler = typeof onApply === 'function';
-    const hasLegacySubmitHandler = typeof onSubmit === 'function';
-
     if (hasApplyHandler && hasLegacySubmitHandler) {
       console.warn('BiddingModal received both onApply and onSubmit; onApply will be used.');
     }
