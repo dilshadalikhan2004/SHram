@@ -91,11 +91,40 @@ async def get_employer_analytics(request: Request):
 
 @reputation_router.get("/bid-suggestion/{job_id}")
 async def get_bid_suggestion(job_id: str):
-    # Mock logic for suggestion engine
+    db = get_db()
+
+    # Mock logic for suggestion engine (values are in paise internally)
+    recommended_paise = 55000
+    market_avg_paise = 52000
+
+    suggested_rate = round(recommended_paise / 100)
+    market_average = round(market_avg_paise / 100)
+
+    # Guard against divide-by-zero
+    if market_average:
+        market_diff_percentage = round(((suggested_rate - market_average) / market_average) * 100)
+    else:
+        market_diff_percentage = 0
+
+    # Compute a simple market range around the average
+    market_range = {
+        "min": max(0, round(market_average * 0.85)),
+        "max": max(0, round(market_average * 1.25))
+    }
+
+    # Estimate competition count from applications collection
+    competition_count = await db.applications.count_documents({"job_id": job_id})
+
     return {
-        "recommended_paise": 55000,
-        "market_avg_paise": 52000,
-        "reasoning": "High demand for this category in your area."
+        "suggested_rate": suggested_rate,
+        "market_average": market_average,
+        "market_range": market_range,
+        "market_diff_percentage": market_diff_percentage,
+        "competition_count": competition_count,
+        "reasoning": "High demand for this category in your area.",
+        # Backward-compatible fields
+        "recommended_paise": recommended_paise,
+        "market_avg_paise": market_avg_paise
     }
 
 
