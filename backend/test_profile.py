@@ -3,11 +3,13 @@ import pytest
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 os.environ.setdefault("JWT_SECRET", "test_secret_for_ci_only_do_not_use_in_production")
 
-from auth_utils import create_access_token
-from server import app
+from auth_utils import create_access_token  # noqa: E402
+from server import app  # noqa: E402
 
 
 @pytest.mark.anyio

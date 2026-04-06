@@ -5,23 +5,28 @@ import asyncio
 import httpx
 
 # Append backend directory so we can import modules
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 
 # Ensure JWT secret exists before importing auth/server modules.
 os.environ.setdefault("JWT_SECRET", "test_secret_for_ci_only_do_not_use_in_production")
 
-from auth_utils import create_access_token
-from server import app
+from auth_utils import create_access_token  # noqa: E402
+from server import app  # noqa: E402
+
 
 def create_worker_token(user_id=None):
     if not user_id:
         user_id = str(uuid.uuid4())
     return create_access_token({"user_id": user_id}), user_id
 
+
 def create_employer_token(user_id=None):
     if not user_id:
         user_id = str(uuid.uuid4())
     return create_access_token({"user_id": user_id}), user_id
+
 
 async def run_tests():
     print("====================================")
