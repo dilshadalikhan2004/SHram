@@ -11,6 +11,9 @@ on:
       - "backend/**"
       - "pytest.ini"
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

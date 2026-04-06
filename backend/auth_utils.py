@@ -2,7 +2,6 @@ from fastapi import Request, HTTPException, Depends
 from typing import Optional
 from datetime import datetime, timedelta
 import os
-import hmac
 import jwt
 from passlib.context import CryptContext
 from database import get_db
