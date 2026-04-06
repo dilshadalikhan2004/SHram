@@ -330,7 +330,7 @@ const EmployerJobDetail = () => {
                   </div>
                   <WorkerTrustMini worker={app.worker || {}} app={app} />
                 </motion.div>
-              ));
+              ))}
               {acceptedApplicants.length === 0 && (
                 <div className="p-16 text-center rounded-[2rem] border border-dashed border-white/10 bg-white/5 text-xs uppercase tracking-[0.2em] text-muted-foreground/40 font-black">
                   No accepted personnel yet
