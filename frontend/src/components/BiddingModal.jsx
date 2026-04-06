@@ -9,7 +9,7 @@ import { Input } from './ui/input';
 import { useTranslation } from '../context/TranslationContext';
 import { bidSuggestionApi } from '../lib/api';
 
-const BiddingModal = ({ job, isOpen, onClose, onApply }) => {
+const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
   const { t } = useTranslation();
   const [bidAmount, setBidAmount] = useState(job?.salary_paise ? job.salary_paise / 100 : job?.pay_amount || '');
   const [proposal, setProposal] = useState('');
@@ -32,11 +32,14 @@ const BiddingModal = ({ job, isOpen, onClose, onApply }) => {
     }
   };
 
+  const submitHandler = onApply || onSubmit;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!submitHandler) return;
     setLoading(true);
     try {
-      await onApply({
+      await submitHandler({
         job_id: job.id,
         bid_amount_paise: parseInt(bidAmount) * 100,
         proposal_message: proposal,
