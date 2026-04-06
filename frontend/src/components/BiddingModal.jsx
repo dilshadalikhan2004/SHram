@@ -1,16 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, IndianRupee, MessageSquare, Zap, Sparkles, 
-  ChevronRight, AlertCircle, ShieldCheck, ArrowRight
-} from 'lucide-react';
+import { X, IndianRupee, MessageSquare, Zap, Sparkles, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { useTranslation } from '../context/TranslationContext';
 import { bidSuggestionApi } from '../lib/api';
 
 const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
-  const { t } = useTranslation();
+  useTranslation();
   const [bidAmount, setBidAmount] = useState(job?.salary_paise ? job.salary_paise / 100 : job?.pay_amount || '');
   const [proposal, setProposal] = useState('');
   const [loading, setLoading] = useState(false);
