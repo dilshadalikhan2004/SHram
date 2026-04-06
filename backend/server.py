@@ -21,7 +21,7 @@ from job_routes import job_router
 from auth_routes import auth_router
 from translations import TRANSLATIONS
 from database import get_db
-from typing import Dict, Iterable
+from typing import Dict, Iterable, List
 from datetime import datetime, timezone, timedelta
 import jwt
 import json
@@ -125,7 +125,7 @@ def _normalize_origin(origin: str) -> str:
     return cleaned
 
 
-def _expand_shramsetu_variants(origins_list: Iterable[str]) -> list[str]:
+def _expand_shramsetu_variants(origins_list: Iterable[str]) -> List[str]:
     """
     Expand shramsetu origins to include both www and non-www host variants.
 
@@ -135,8 +135,9 @@ def _expand_shramsetu_variants(origins_list: Iterable[str]) -> list[str]:
     Returns:
         Sorted list of origins including inferred shramsetu host variants.
     """
-    expanded = set(origins_list)
+    expanded = set()
     for origin in origins_list:
+        expanded.add(origin)
         parsed = urlparse(origin)
         hostname = parsed.hostname or ""
         scheme = parsed.scheme or "https"
