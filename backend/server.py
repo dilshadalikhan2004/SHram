@@ -32,6 +32,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Load environment variables BEFORE other imports
 ROOT_DIR = Path(__file__).parent
@@ -113,8 +114,28 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # CORS Configuration
 cors_origins_raw = os.environ.get('CORS_ORIGINS', '')
+
+
+def _normalize_origin(origin: str) -> str:
+    return origin.strip().rstrip('/')
+
+
+def _expand_shramsetu_variants(origins_list):
+    expanded = set(origins_list)
+    for origin in list(origins_list):
+        parsed = urlparse(origin)
+        hostname = parsed.hostname or ""
+        scheme = parsed.scheme or "https"
+        if hostname == "shramsetu.in":
+            expanded.add(f"{scheme}://www.shramsetu.in")
+        elif hostname == "www.shramsetu.in":
+            expanded.add(f"{scheme}://shramsetu.in")
+    return sorted(expanded)
+
+
 if cors_origins_raw:
-    origins = [o.strip() for o in cors_origins_raw.split(',') if o.strip()]
+    configured_origins = [_normalize_origin(o) for o in cors_origins_raw.split(',') if o.strip()]
+    origins = _expand_shramsetu_variants(configured_origins)
 else:
     # Safe defaults including localhost and production domains
     origins = [
