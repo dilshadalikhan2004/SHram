@@ -75,7 +75,7 @@ jobs:
           else
             RANGE="${{ github.event.before }}...${{ github.sha }}"
           fi
-          FILES=$(git diff --name-only --diff-filter=d "$RANGE" -- '*.js' '*.jsx' | grep '^frontend/src/' | tr '\n' ' ' || true)
+          FILES=$(git diff --name-only --diff-filter=d "$RANGE" -- '*.js' '*.jsx' | grep '^frontend/src/' | sed 's#^frontend/##' | tr '\n' ' ' || true)
           echo "files=$FILES" >> "$GITHUB_OUTPUT"
 
       - name: Run ESLint
