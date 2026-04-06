@@ -1,16 +1,20 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
 
 # --- AUTH MODELS ---
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
     user: Optional[Dict[str, Any]] = None
 
+
 class TokenData(BaseModel):
     user_id: Optional[str] = None
+
 
 class LoginSchema(BaseModel):
     email: Optional[str] = Field(None)
@@ -18,15 +22,18 @@ class LoginSchema(BaseModel):
     otp: Optional[str] = Field(None)
     password: Optional[str] = Field(None)
 
+
 class UserCreate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     name: Optional[str] = None
     full_name: Optional[str] = None
-    role: str # "worker" or "employer"
+    role: str  # "worker" or "employer"
     password: Optional[str] = None
 
 # --- PROFILE MODELS ---
+
+
 class WorkerProfile(BaseModel):
     user_id: Optional[str] = None
     full_name: str = "Worker"
@@ -53,6 +60,7 @@ class WorkerProfile(BaseModel):
 
     class Config:
         extra = "allow"
+
 
 class EmployerProfile(BaseModel):
     user_id: Optional[str] = None
@@ -84,20 +92,21 @@ class Job(BaseModel):
     lng: Optional[float] = None
     salary_paise: int = 0
     salary_type: str = "daily"
-    status: str = "open" # "open", "matched", "completed", "cancelled"
+    status: str = "open"  # "open", "matched", "completed", "cancelled"
     posted_at: datetime = Field(default_factory=datetime.utcnow)
     requirements: List[str] = []
     is_boosted: bool = False
     is_urgent: bool = False
     team_size: int = 1
-    hire_type: str = "individual" # "individual", "squad", "bulk"
+    hire_type: str = "individual"  # "individual", "squad", "bulk"
     start_date: Optional[datetime] = None
     estimated_duration: str = ""
     escrow_amount_paise: int = 0
-    escrow_status: str = "none" # "none", "locked", "released", "disputed"
+    escrow_status: str = "none"  # "none", "locked", "released", "disputed"
 
     class Config:
         extra = "allow"
+
 
 class JobCreate(BaseModel):
     title: str
@@ -117,11 +126,13 @@ class JobCreate(BaseModel):
     experience_required: Optional[int] = 0
 
 # --- APPLICATION MODELS ---
+
+
 class Application(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     job_id: str
     worker_id: str
-    status: str = "applied" # "applied", "shortlisted", "selected", "rejected"
+    status: str = "applied"  # "applied", "shortlisted", "selected", "rejected"
     applied_at: datetime = Field(default_factory=datetime.utcnow)
     match_score: float = 0.0
     quick_apply: bool = False
@@ -129,7 +140,7 @@ class Application(BaseModel):
     bid_amount_paise: Optional[int] = None
     proposal_message: Optional[str] = None
     counter_offer_paise: Optional[int] = None
-    offer_status: str = "pending" # "pending", "offered", "countered", "accepted", "rejected"
+    offer_status: str = "pending"  # "pending", "offered", "countered", "accepted", "rejected"
     contract_preview_url: Optional[str] = None
     handshake_code: Optional[str] = None
     checkin_time: Optional[datetime] = None
@@ -139,16 +150,19 @@ class Application(BaseModel):
     class Config:
         extra = "allow"
 
+
 class ApplicationUpdate(BaseModel):
     status: str
 
 # --- SOCIAL & TRACKING MODELS ---
+
+
 class ProfileView(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     viewer_id: str
     target_id: str
     viewed_at: datetime = Field(default_factory=datetime.utcnow)
-    viewer_role: str # "employer" or "worker" (though mostly employer)
+    viewer_role: str  # "employer" or "worker" (though mostly employer)
 
 
 # --- CHAT MODELS ---
@@ -161,12 +175,15 @@ class ChatMessage(BaseModel):
     is_read: bool = False
 
 # --- KYC & VERIFICATION MODELS ---
+
+
 class KYCStatus(BaseModel):
     user_id: str
-    status: str = "pending" # "pending", "verified", "failed"
+    status: str = "pending"  # "pending", "verified", "failed"
     document_type: Optional[str] = None
     document_number: Optional[str] = None
     verified_at: Optional[datetime] = None
+
 
 class eshramStatus(BaseModel):
     user_id: str
@@ -175,6 +192,8 @@ class eshramStatus(BaseModel):
     linked_at: Optional[datetime] = None
 
 # --- PORTFOLIO MODELS ---
+
+
 class PortfolioItem(BaseModel):
     id: Optional[str] = None
     user_id: Optional[str] = None
@@ -185,8 +204,11 @@ class PortfolioItem(BaseModel):
     created_at: Optional[datetime] = None
 
 # --- OTHER MODELS ---
+
+
 class OTPRequest(BaseModel):
     phone: str
+
 
 class OTPVerify(BaseModel):
     phone: str

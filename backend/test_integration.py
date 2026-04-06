@@ -1,41 +1,42 @@
+from auth_utils import create_access_token
+from server import app
 import os
 import sys
 import uuid
-import json
 import asyncio
 import httpx
 
 # Append backend directory so we can import modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from server import app
-from auth_utils import create_access_token
 
 def create_worker_token(user_id=None):
     if not user_id:
         user_id = str(uuid.uuid4())
     return create_access_token({"user_id": user_id}), user_id
 
+
 def create_employer_token(user_id=None):
     if not user_id:
         user_id = str(uuid.uuid4())
     return create_access_token({"user_id": user_id}), user_id
 
+
 async def run_tests():
     print("====================================")
     print("🚀 ShramSetu Automated Test Suite 🚀")
     print("====================================")
-    
+
     worker_tok, worker_id = create_worker_token()
     employer_tok, employer_id = create_employer_token()
-    
+
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         # 1. Test AI Drafting System
         print("\n[Test 1] Testing AI Draft Engine... ", end="")
         try:
             res = await client.post(
-                "/api/jobs/draft", 
+                "/api/jobs/draft",
                 json={"query": "Need an electrician to fix a panel"},
                 headers={"Authorization": f"Bearer {employer_tok}"}
             )
@@ -97,7 +98,7 @@ async def run_tests():
                 print(f"FAILED ❌ {res.status_code}: {res.text}")
         except Exception as e:
             print(f"FAILED ❌ {e}")
-            
+
         # 5. Test worker jobs feed - category=all should not filter jobs
         print("[Test 5] Testing worker jobs feed: category=all returns jobs... ", end="")
         try:
@@ -124,7 +125,10 @@ async def run_tests():
                     if isinstance(jobs_list, list) and len(jobs_list) >= 1:
                         print("PASSED ✅ (category=all returns jobs without over-filtering)")
                     else:
-                        print(f"FAILED ❌ (expected >=1 job, got {len(jobs_list) if isinstance(jobs_list, list) else '?'})")
+                        print(
+                            f"FAILED ❌ (expected >=1 job, got {
+                                len(jobs_list) if isinstance(
+                                    jobs_list, list) else '?'})")
                 else:
                     print(f"FAILED ❌ {list_res.status_code}: {list_res.text}")
         except Exception as e:

@@ -14,6 +14,7 @@ db_name = os.environ.get('DB_NAME', 'shramsetu')
 client = None
 db = None
 
+
 def get_db():
     global client, db
     if db is None:
@@ -23,7 +24,7 @@ def get_db():
                 mongo_url,
                 tls=True,
                 tlsCAFile=certifi.where(),
-                serverSelectionTimeoutMS=15000, # Increased timeout for Atlas
+                serverSelectionTimeoutMS=15000,  # Increased timeout for Atlas
                 connectTimeoutMS=15000
             )
             db = client[db_name]
@@ -31,6 +32,7 @@ def get_db():
             logger.error(f"MongoDB Lazy Init Error: {e}")
             return None
     return db
+
 
 def mongo_to_dict(obj):
     if obj is None:
@@ -50,13 +52,14 @@ def mongo_to_dict(obj):
                 new_dict[k] = mongo_to_dict(v)
             else:
                 new_dict[k] = v
-        
+
         # Ensure 'id' exists if '_id' was present
         if "_id" in obj and "id" not in new_dict:
-             new_dict["id"] = str(obj["_id"])
-             
+            new_dict["id"] = str(obj["_id"])
+
         return new_dict
     return obj
+
 
 def mongo_list_to_dict(docs):
     """Sanitizes a list of MongoDB documents."""
