@@ -117,10 +117,15 @@ cors_origins_raw = os.environ.get('CORS_ORIGINS', '')
 
 
 def _normalize_origin(origin: str) -> str:
-    return origin.strip().rstrip('/')
+    """Normalize an origin string by trimming whitespace/slashes and enforcing scheme."""
+    cleaned = origin.strip().rstrip('/')
+    if cleaned and "://" not in cleaned:
+        cleaned = f"https://{cleaned}"
+    return cleaned
 
 
 def _expand_shramsetu_variants(origins_list):
+    """Expand shramsetu origins to include both www and non-www host variants."""
     expanded = set(origins_list)
     for origin in list(origins_list):
         parsed = urlparse(origin)
