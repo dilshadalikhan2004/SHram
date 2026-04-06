@@ -13,6 +13,10 @@
     }
   },
   "extends": ["eslint:recommended"],
+  "plugins": ["react"],
+  "rules": {
+    "react/jsx-uses-vars": "error"
+  },
   "settings": {
     "react": {
       "version": "detect"

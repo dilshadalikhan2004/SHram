@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, IndianRupee, MessageSquare, Zap, Sparkles, 
-  ChevronRight, AlertCircle, ShieldCheck, ArrowRight
-} from 'lucide-react';
+import { X, IndianRupee, MessageSquare, Zap, Sparkles, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { useTranslation } from '../context/TranslationContext';
 import { bidSuggestionApi } from '../lib/api';
 
 const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
-  const { t } = useTranslation();
   const [bidAmount, setBidAmount] = useState(job?.salary_paise ? job.salary_paise / 100 : job?.pay_amount || '');
   const [proposal, setProposal] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,16 +26,18 @@ const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
     }
   };
 
-  const submitHandler = onApply ?? onSubmit;
+  const hasApplyHandler = typeof onApply === 'function';
+  const hasLegacySubmitHandler = typeof onSubmit === 'function';
+  const submitHandler = hasApplyHandler ? onApply : hasLegacySubmitHandler ? onSubmit : null;
 
   useEffect(() => {
-    if (onApply && onSubmit) {
+    if (hasApplyHandler && hasLegacySubmitHandler) {
       console.warn('BiddingModal received both onApply and onSubmit; onApply will be used.');
     }
-    if (!onApply && !onSubmit) {
+    if (!hasApplyHandler && !hasLegacySubmitHandler) {
       console.warn('BiddingModal requires an onApply or onSubmit callback.');
     }
-  }, [onApply, onSubmit]);
+  }, [onApply, onSubmit, hasApplyHandler, hasLegacySubmitHandler]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,7 +50,7 @@ const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
         proposal_message: proposal,
         quick_apply: false
       });
-      onClose();
+      if (typeof onClose === 'function') onClose();
     } catch (err) {
       console.error(err);
     } finally {
