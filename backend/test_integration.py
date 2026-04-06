@@ -1,5 +1,3 @@
-from auth_utils import create_access_token
-from server import app
 import os
 import sys
 import uuid
@@ -8,6 +6,12 @@ import httpx
 
 # Append backend directory so we can import modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Ensure JWT secret exists before importing auth/server modules.
+os.environ.setdefault("JWT_SECRET", "test_secret_for_ci_only_do_not_use_in_production")
+
+from auth_utils import create_access_token
+from server import app
 
 def create_worker_token(user_id=None):
     if not user_id:
