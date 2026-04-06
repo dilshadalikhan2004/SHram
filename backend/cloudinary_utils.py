@@ -1,8 +1,11 @@
 import cloudinary
 import cloudinary.uploader
 import os
+import logging
 from dotenv import load_dotenv
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Load env if not already loaded
 ROOT_DIR = Path(__file__).parent
@@ -33,7 +36,7 @@ def upload_to_cloudinary(file_path, folder="shramsetu"):
         )
         return response.get("secure_url")
     except Exception as e:
-        print(f"Cloudinary Upload Error: {str(e)}")
+        logger.error(f"Cloudinary Upload Error: {str(e)}")
         return None
 
 
@@ -45,5 +48,5 @@ def delete_from_cloudinary(public_id, resource_type="image"):
         cloudinary.uploader.destroy(public_id, resource_type=resource_type)
         return True
     except Exception as e:
-        print(f"Cloudinary Delete Error: {str(e)}")
+        logger.error(f"Cloudinary Delete Error: {str(e)}")
         return False

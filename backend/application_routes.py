@@ -1,10 +1,15 @@
-from fastapi import APIRouter, HTTPException, Request
-from typing import List
-from database import get_db, mongo_list_to_dict
+from fastapi import APIRouter, HTTPException, Depends, Request
+from typing import List, Optional
+from datetime import datetime
+import uuid
+import logging
+from database import get_db, mongo_to_dict, mongo_list_to_dict
 from models import Application, ApplicationUpdate
 
 from auth_utils import get_current_user_id
 from notification_routes import send_user_notification
+
+logger = logging.getLogger(__name__)
 
 app_router = APIRouter(tags=["applications"])
 
@@ -64,7 +69,7 @@ async def create_application(payload: dict, request: Request):
                 match_score = ai_data.get("score", 0.5)
                 ai_insights = ai_data.get("insight", ai_insights)
         except Exception as e:
-            print(f"AI Matching Error: {str(e)}")
+            logger.error(f"AI Matching Error: {str(e)}")
 
     new_app = Application(
         job_id=job_id,

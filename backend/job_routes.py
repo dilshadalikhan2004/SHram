@@ -1,5 +1,8 @@
 from fastapi import APIRouter, HTTPException, Request, Body
 from typing import List, Optional
+from datetime import datetime
+import uuid
+import logging
 from database import get_db, mongo_to_dict, mongo_list_to_dict
 from models import Job, JobCreate
 
@@ -9,6 +12,8 @@ import os
 import json
 import math
 from bson import ObjectId
+
+logger = logging.getLogger(__name__)
 
 job_router = APIRouter(tags=["jobs"])
 
@@ -25,7 +30,7 @@ def get_ai_client():
             from google import genai
             _ai_client = genai.Client(api_key=GEMINI_KEY)
         except Exception as e:
-            print(f"Failed to init AI client in job_routes: {e}")
+            logger.error(f"Failed to init AI client in job_routes: {e}")
     return _ai_client
 
 
@@ -61,7 +66,7 @@ async def draft_job_ai(payload: dict = Body(...)):
 
         return mongo_to_dict(json.loads(clean_text))
     except Exception as e:
-        print(f"Draft AI Error: {str(e)}")
+        logger.error(f"Draft AI Error: {str(e)}")
         # Fallback to empty draft
         return {"title": "", "description": user_query, "category": "other"}
 
@@ -204,7 +209,7 @@ async def get_job_match_score(job_id: str, request: Request):
 
     try:
         job_query = {"_id": ObjectId(job_id)}
-    except BaseException:
+    except (ValueError, TypeError):
         job_query = {"id": job_id}
 
     job = await db.jobs.find_one(job_query)
@@ -286,7 +291,7 @@ async def get_job_match_score(job_id: str, request: Request):
             )
             explanation = resp.text.strip()
         except Exception as e:
-            print(f"Match Briefing AI Error: {e}")
+            logger.error(f"Match Briefing AI Error: {e}")
 
     return {
         "job_id": str(job["_id"]) if "_id" in job else job.get("id"),

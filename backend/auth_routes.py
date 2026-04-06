@@ -8,6 +8,7 @@ from models import UserCreate, LoginSchema, Token, OTPRequest
 from auth_utils import create_access_token, get_password_hash, verify_password, get_current_user_id
 import re
 
+logger = logging.getLogger(__name__)
 
 def normalize_phone(phone: str) -> str:
     if not phone:
@@ -53,11 +54,10 @@ async def send_otp(otp_req: OTPRequest, request: Request):
 
     if twilio_client and TWILIO_VERIFY_SERVICE_SID:
         try:
-            verification = twilio_client.verify.v2.services(
-                TWILIO_VERIFY_SERVICE_SID).verifications.create(to=target_phone, channel='sms')
-            print(f"\n[TWILIO SMS] Verification sent to {target_phone}, status: {verification.status}\n")
+            verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verifications.create(to=target_phone, channel='sms')
+            logger.info(f"[TWILIO SMS] Verification sent to {target_phone}, status: {verification.status}")
         except Exception as e:
-            print(f"\n[TWILIO ERROR] {str(e)}\n")
+            logger.error(f"[TWILIO ERROR] {str(e)}")
             raise HTTPException(status_code=400, detail=f"Failed to send SMS via Twilio: {str(e)}")
     else:
         # Fallback to mock
@@ -67,8 +67,8 @@ async def send_otp(otp_req: OTPRequest, request: Request):
             "code": otp,
             "expires": datetime.utcnow() + timedelta(minutes=5)
         }
-        print(f"\n[MOCK SMS] Signal sent to {target_phone}: {otp}\n")
-
+        logger.info(f"[MOCK SMS] Signal sent to {target_phone}: {otp}")
+    
     return {"message": "OTP sent successfully", "phone": target_phone}
 
 
@@ -100,9 +100,8 @@ async def verify_otp(otp_data: dict, request: Request, user_id: str = Depends(ge
                 TWILIO_VERIFY_SERVICE_SID).verification_checks.create(to=target_phone, code=code)
             is_valid = check.status == "approved"
         except Exception as e:
-            print(f"[TWILIO VERIFY ERROR] {str(e)}")
+            logger.error(f"[TWILIO VERIFY ERROR] {str(e)}")
             is_valid = False
-
     # 3. Check Mock storage
     else:
         if target_phone in mock_otp_storage:
@@ -232,7 +231,7 @@ async def login(user_login: LoginSchema):
                 if verification_check.status != "approved":
                     raise HTTPException(status_code=401, detail="Invalid or expired OTP")
             except Exception as e:
-                print(f"[TWILIO VERIFY ERROR] {str(e)}")
+                logger.error(f"[TWILIO VERIFY ERROR] {str(e)}")
                 raise HTTPException(status_code=401, detail="Invalid OTP")
         else:
             if target_phone not in mock_otp_storage:

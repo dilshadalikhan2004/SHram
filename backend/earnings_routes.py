@@ -42,7 +42,7 @@ async def get_earnings(request: Request, period: str = Query("all")):
         if isinstance(completed_at, str):
             try:
                 completed_at = datetime.fromisoformat(completed_at.replace('Z', '+00:00'))
-            except BaseException:
+            except (ValueError, TypeError):
                 completed_at = now
 
         history_item = {

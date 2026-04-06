@@ -51,7 +51,7 @@ async def create_escrow(req: CreateEscrowRequest, request: Request):
         amount_paise=breakdown["gross_amount_paise"],
         platform_fee_paise=breakdown["platform_fee_paise"],
         net_to_worker_paise=breakdown["net_to_worker_paise"],
-        status="ESCROWED",  # Sandbox bypass: Automatically set to ESCROWED instead of PENDING
+        status="PENDING",
         razorpay_order_id=mock_order_id,
         deposited_at=datetime.utcnow()
     )

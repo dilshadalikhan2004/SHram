@@ -1,10 +1,13 @@
 import os
+import logging
 import stripe
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from database import get_db
 from auth_utils import get_current_user_id
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "sk_test_mock_if_not_provided")
 
@@ -71,7 +74,7 @@ async def create_checkout(req: CheckoutRequest, request: Request):
         )
         return {"url": session.url}
     except Exception as e:
-        print(f"Stripe Checkout Error: {e}")
+        logger.error(f"Stripe Checkout Error: {e}")
         raise HTTPException(status_code=500, detail="Payment gateway initialization failed.")
 
 

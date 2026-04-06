@@ -1,0 +1,46 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "backend/**"
+      - "pytest.ini"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "pytest.ini"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci_test_secret_not_for_production' }}
+      MONGO_URL: mongodb://localhost:27017
+      DB_NAME: shramsetu_test
+
+    services:
+      mongodb:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements-dev.txt
+
+      - name: Run tests
+        working-directory: backend
+        run: pytest --tb=short -q
