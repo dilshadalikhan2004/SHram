@@ -59,9 +59,9 @@ async def draft_job_ai(payload: dict = Body(...)):
         # Extract JSON from potential markdown backticks
         clean_text = response.text.strip()
         if "```json" in clean_text:
-            clean_text = clean_text.split("```json")[1].split("```")[0].strip()
+            clean_text = clean_text.split("```json")[1].split("```\n")[0].strip()
         elif "```" in clean_text:
-            clean_text = clean_text.split("```")[1].split("```")[0].strip()
+            clean_text = clean_text.split("```\n")[1].split("```\n")[0].strip()
 
         return mongo_to_dict(json.loads(clean_text))
     except Exception as e:
@@ -281,7 +281,7 @@ async def get_job_match_score(job_id: str, request: Request):
     # 2b. Category/title bonus
     worker_cat = normalize_text(profile.get("category"))
     job_cat = normalize_text(job.get("category"))
-    job_title = normalize_text(job.get("title"))
+    job_title = normalize_text(profile.get("title"))
     if worker_cat and (worker_cat == job_cat or worker_cat in job_title):
         score += 15
 
@@ -293,8 +293,12 @@ async def get_job_match_score(job_id: str, request: Request):
         R = 6371  # km
         dlat = math.radians(job_lat - prof_lat)
         dlng = math.radians(job_lng - prof_lng)
-        a = math.sin(dlat / 2)**2 + math.cos(math.radians(prof_lat)) * 
-            math.cos(math.radians(job_lat)) * math.sin(dlng / 2)**2
+        a = (
+            math.sin(dlat / 2) ** 2
+            + math.cos(math.radians(prof_lat))
+            * math.cos(math.radians(job_lat))
+            * math.sin(dlng / 2) ** 2
+        )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         distance = R * c
         if distance <= 10:
@@ -305,8 +309,7 @@ async def get_job_match_score(job_id: str, request: Request):
             score += 10
     else:
         if profile.get("location") and job.get("location"):
-            if profile["location"].lower() in job["location"].lower(
-            ) or job["location"].lower() in profile["location"].lower():
+            if profile["location"].lower() in job["location"].lower() or job["location"].lower() in profile["location"].lower():
                 score += 30
                 distance = 5.0
 
@@ -320,7 +323,11 @@ async def get_job_match_score(job_id: str, request: Request):
     ai_client = get_ai_client()
     if ai_client:
         try:
-            prompt = f"Write a 1-sentence tactical mission briefing explanation (e.g. 'Your specialized plumbing skills make you a high-value asset for this operation.') for a worker with {profile.get('skills', [])} and {profile.get('experience_years', 0)} years of experience applying to a job titled '{job.get('title')}'. Give no preamble, just the sentence."
+            prompt = (
+                "Write a 1-sentence tactical mission briefing explanation (e.g. 'Your specialized plumbing skills make you a high-value asset for this operation.') "
+                f"for a worker with {profile.get('skills', [])} and {profile.get('experience_years', 0)} years of experience applying to a job titled '{job.get('title')}'. "
+                "Give no preamble, just the sentence."
+            )
             resp = ai_client.models.generate_content(
                 model="gemini-1.5-flash",
                 contents=prompt
