@@ -303,7 +303,8 @@ async def get_job_match_score(job_id: str, request: Request):
             score += 20
 
     # 2. Experience Match (30% weight)
-    profile_exp = _to_float(profile.get("experience_years")) or 0
+    profile_exp_value = _to_float(profile.get("experience_years"))
+    profile_exp = profile_exp_value if profile_exp_value is not None else 0
     if profile_exp >= 2:
         exp_match = 100
     elif profile_exp > 0:
