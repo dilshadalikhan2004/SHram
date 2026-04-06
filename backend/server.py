@@ -125,9 +125,17 @@ def _normalize_origin(origin: str) -> str:
 
 
 def _expand_shramsetu_variants(origins_list):
-    """Expand shramsetu origins to include both www and non-www host variants."""
+    """
+    Expand shramsetu origins to include both www and non-www host variants.
+
+    Args:
+        origins_list: Iterable of normalized origin URL strings.
+
+    Returns:
+        Sorted list of origins including inferred shramsetu host variants.
+    """
     expanded = set(origins_list)
-    for origin in list(origins_list):
+    for origin in origins_list:
         parsed = urlparse(origin)
         hostname = parsed.hostname or ""
         scheme = parsed.scheme or "https"
