@@ -5,6 +5,7 @@ import uuid
 import logging
 from database import get_db, mongo_to_dict, mongo_list_to_dict
 from models import Job, JobCreate
+from pydantic import BaseModel
 
 from auth_utils import get_current_user_id
 
@@ -21,6 +22,10 @@ job_router = APIRouter(tags=["jobs"])
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 # Lazy AI Client
 _ai_client = None
+
+class JobStatusUpdate(BaseModel):
+    status: str
+
 
 def get_ai_client():
     global _ai_client
@@ -167,6 +172,23 @@ async def create_job(job_in: JobCreate, request: Request):
     return new_job
 
 
+@job_router.patch("/{job_id}/status")
+async def update_job_status(job_id: str, payload: JobStatusUpdate, request: Request):
+    user_id = await get_current_user_id(request)
+    db = get_db()
+
+    job = await db.jobs.find_one({"id": job_id, "employer_id": user_id})
+    if not job:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    allowed = {"open", "matched", "completed", "cancelled", "closed"}
+    if payload.status not in allowed:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    await db.jobs.update_one({"id": job_id}, {"$set": {"status": payload.status}})
+    return {"success": True, "status": payload.status}
+
+
 @job_router.get("/recommended", response_model=List[Job])
 async def get_recommended_jobs(request: Request):
     user_id = await get_current_user_id(request)
@@ -281,7 +303,7 @@ async def get_job_match_score(job_id: str, request: Request):
     # 2b. Category/title bonus
     worker_cat = normalize_text(profile.get("category"))
     job_cat = normalize_text(job.get("category"))
-    job_title = normalize_text(profile.get("title"))
+    job_title = normalize_text(job.get("title"))
     if worker_cat and (worker_cat == job_cat or worker_cat in job_title):
         score += 15
 
@@ -323,11 +345,7 @@ async def get_job_match_score(job_id: str, request: Request):
     ai_client = get_ai_client()
     if ai_client:
         try:
-            prompt = (
-                "Write a 1-sentence tactical mission briefing explanation (e.g. 'Your specialized plumbing skills make you a high-value asset for this operation.') "
-                f"for a worker with {profile.get('skills', [])} and {profile.get('experience_years', 0)} years of experience applying to a job titled '{job.get('title')}'. "
-                "Give no preamble, just the sentence."
-            )
+            prompt = f"Write a 1-sentence tactical mission briefing explanation (e.g. 'Your specialized plumbing skills make you a high-value asset for this operation.') for a worker with {profile.get('skills', [])} and {profile.get('experience_years', 0)} years of experience applying to a job titled '{job.get('title')}'. Give no preamble, just the sentence."
             resp = ai_client.models.generate_content(
                 model="gemini-1.5-flash",
                 contents=prompt
