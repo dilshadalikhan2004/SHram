@@ -21,6 +21,7 @@ from job_routes import job_router
 from auth_routes import auth_router
 from translations import TRANSLATIONS
 from database import get_db
+from auth_utils import _get_jwt_exp
 from typing import Dict, Iterable, List
 from datetime import datetime, timezone, timedelta
 import jwt
@@ -33,34 +34,11 @@ from starlette.middleware.cors import CORSMiddleware
 import os
 from pathlib import Path
 from urllib.parse import urlparse
+from google import genai
 
 # Load environment variables BEFORE other imports
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
-
-
-# Internal Imports
-from database import get_db, mongo_url
-from translations import TRANSLATIONS
-from auth_routes import auth_router
-from job_routes import job_router
-from profile_routes import profile_router
-from application_routes import app_router
-from notification_routes import notification_router
-from payment_routes import payment_api_router
-from squad_routes import squad_router
-from earnings_routes import earnings_router
-from chat_routes import chat_router
-from handshake_routes import handshake_router
-from tracking_routes import tracking_router
-from portfolio_routes import portfolio_router
-from verification_routes import verification_router
-from offer_routes import offer_router
-from reputation_routes import reputation_router
-from subscription_routes import subscription_router
-from cloudinary_utils import upload_to_cloudinary
-from google import genai
-from auth_utils import _get_jwt_exp
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -77,7 +55,6 @@ def get_ai_client():
     global _ai_client
     if _ai_client is None and GEMINI_KEY:
         try:
-            from google import genai
             _ai_client = genai.Client(api_key=GEMINI_KEY)
             logger.info("Gemini AI Client initialized successfully")
         except Exception as e:
@@ -228,7 +205,7 @@ async def upload_video(file: UploadFile = File(...)):
     temp_dir.mkdir(exist_ok=True)
     safe_filename = Path(file.filename).name
     temp_path = temp_dir / safe_filename
-    
+
     contents = await file.read()
     with open(temp_path, "wb") as f:
         f.write(contents)
@@ -251,7 +228,7 @@ async def upload_photo(file: UploadFile = File(...)):
     temp_dir.mkdir(exist_ok=True)
     safe_filename = Path(file.filename).name
     temp_path = temp_dir / safe_filename
-    
+
     contents = await file.read()
     with open(temp_path, "wb") as f:
         f.write(contents)
