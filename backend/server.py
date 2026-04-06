@@ -125,7 +125,7 @@ def _normalize_origin(origin: str) -> str:
     return cleaned
 
 
-def _expand_shramsetu_variants(origins_list: Iterable[str]):
+def _expand_shramsetu_variants(origins_list: Iterable[str]) -> list[str]:
     """
     Expand shramsetu origins to include both www and non-www host variants.
 
