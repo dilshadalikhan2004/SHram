@@ -34,6 +34,15 @@ const BiddingModal = ({ job, isOpen, onClose, onApply, onSubmit }) => {
 
   const submitHandler = onApply || onSubmit;
 
+  useEffect(() => {
+    if (onApply && onSubmit) {
+      console.warn('BiddingModal received both onApply and onSubmit; onApply will be used.');
+    }
+    if (!onApply && !onSubmit) {
+      console.warn('BiddingModal requires an onApply or onSubmit callback.');
+    }
+  }, [onApply, onSubmit]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!submitHandler) return;
