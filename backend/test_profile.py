@@ -25,6 +25,7 @@ async def test_worker_profile_endpoint(monkeypatch):
     monkeypatch.setattr(profile_routes, "get_db", lambda: MockDB())
 
     token = create_access_token({"user_id": "69cf68fbb745ea0114848dbb"})
+    # Keep endpoint-level status assertions stable by returning HTTP responses instead of bubbling app exceptions.
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         res = await client.get(
