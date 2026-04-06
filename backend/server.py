@@ -21,7 +21,7 @@ from job_routes import job_router
 from auth_routes import auth_router
 from translations import TRANSLATIONS
 from database import get_db
-from typing import Dict
+from typing import Dict, Iterable
 from datetime import datetime, timezone, timedelta
 import jwt
 import json
@@ -65,6 +65,7 @@ from auth_utils import _get_jwt_exp
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+SHRAMSETU_DOMAIN = "shramsetu.in"
 
 # Configure Modern Gemini Client
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
@@ -124,7 +125,7 @@ def _normalize_origin(origin: str) -> str:
     return cleaned
 
 
-def _expand_shramsetu_variants(origins_list):
+def _expand_shramsetu_variants(origins_list: Iterable[str]):
     """
     Expand shramsetu origins to include both www and non-www host variants.
 
@@ -139,10 +140,10 @@ def _expand_shramsetu_variants(origins_list):
         parsed = urlparse(origin)
         hostname = parsed.hostname or ""
         scheme = parsed.scheme or "https"
-        if hostname == "shramsetu.in":
-            expanded.add(f"{scheme}://www.shramsetu.in")
-        elif hostname == "www.shramsetu.in":
-            expanded.add(f"{scheme}://shramsetu.in")
+        if hostname == SHRAMSETU_DOMAIN:
+            expanded.add(f"{scheme}://www.{SHRAMSETU_DOMAIN}")
+        elif hostname == f"www.{SHRAMSETU_DOMAIN}":
+            expanded.add(f"{scheme}://{SHRAMSETU_DOMAIN}")
     return sorted(expanded)
 
 
