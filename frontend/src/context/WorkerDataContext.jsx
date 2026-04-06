@@ -135,46 +135,47 @@ export const WorkerDataProvider = ({ children }) => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Helpers ──
- const normalizeText = (v) => String(v || '').trim().toLowerCase();
+  const normalizeText = (v) => String(v || '').trim().toLowerCase();
 
-const toSkillArray = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.map(s => normalizeText(typeof s === 'string' ? s : s?.name)).filter(Boolean);
-  if (typeof value === 'string') return value.split(',').map(s => normalizeText(s)).filter(Boolean);
-  return [];
-};
+  const toSkillArray = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map(s => normalizeText(typeof s === 'string' ? s : s?.name)).filter(Boolean);
+    if (typeof value === 'string') return value.split(',').map(s => normalizeText(s)).filter(Boolean);
+    return [];
+  };
 
-const calculateMatchScore = useCallback((job) => {
-  if (!profile) return 0;
-  let score = 0;
+  const calculateMatchScore = useCallback((job) => {
+    if (!profile) return 0;
+    let score = 0;
 
-  const workerSkills = toSkillArray(profile.skills);
-  const jobReqSkills = [
-    ...toSkillArray(job.requirements),
-    ...toSkillArray(job.skills_required),
-    ...toSkillArray(job.skill_tags),
-  ];
+    const workerSkills = toSkillArray(profile.skills);
+    const jobReqSkills = [
+      ...toSkillArray(job.requirements),
+      ...toSkillArray(job.skills_required),
+      ...toSkillArray(job.skill_tags),
+    ];
 
-  // direct skill match
-  const matched = jobReqSkills.filter(js =>
-    workerSkills.some(ws => ws === js || ws.includes(js) || js.includes(ws))
-  );
-  score += Math.min(matched.length * 20, 60);
+    // direct skill match
+    const matched = jobReqSkills.filter(js =>
+      workerSkills.some(ws => ws === js || ws.includes(js) || js.includes(ws))
+    );
+    score += Math.min(matched.length * 20, 60);
 
-  // trade/category fallback
-  const workerCat = normalizeText(profile.category);
-  const jobCat = normalizeText(job.category);
-  const jobTitle = normalizeText(job.title);
-  if (workerCat && (workerCat === jobCat || jobTitle.includes(workerCat))) score += 25;
+    // trade/category fallback
+    const workerCat = normalizeText(profile.category);
+    const jobCat = normalizeText(job.category);
+    const jobTitle = normalizeText(job.title);
+    if (workerCat && (workerCat === jobCat || jobTitle.includes(workerCat))) score += 25;
 
-  // location boost
-  if (profile.location && job.location && normalizeText(profile.location) === normalizeText(job.location)) score += 10;
+    // location boost
+    if (profile.location && job.location && normalizeText(profile.location) === normalizeText(job.location)) score += 10;
 
-  // urgent slight boost
-  if (job.is_urgent || job.urgency === 'asap') score += 5;
+    // urgent slight boost
+    if (job.is_urgent || job.urgency === 'asap') score += 5;
 
-  return Math.max(5, Math.min(score, 99)); // never 0 for relevant jobs
-}, [profile]);
+    return Math.max(5, Math.min(score, 99)); // never 0 for relevant jobs
+  }, [profile]);
+
   const hasApplied = useCallback((jobId) => applications.some(app => app.job_id === jobId), [applications]);
   const isSaved = useCallback((jobId) => savedJobs.some(j => j.id === jobId), [savedJobs]);
   const unreadNotifications = notifications.filter(n => !n.read).length;
