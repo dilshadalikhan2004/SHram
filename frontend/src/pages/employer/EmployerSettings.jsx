@@ -107,7 +107,7 @@ const EmployerSettings = () => {
                                     value={profile.company_name || ''}
                                     onChange={handleChange}
                                     placeholder="ACME Heavy Industries"
-                                    className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white font-bold px-6"
+                                    className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground font-bold px-6"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -119,7 +119,7 @@ const EmployerSettings = () => {
                                         value={profile.location || ''}
                                         onChange={handleChange}
                                         placeholder="Mumbai, IN (Sector 4)"
-                                        className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white font-bold pl-12 pr-6"
+                                        className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground font-bold pl-12 pr-6"
                                     />
                                 </div>
                             </div>
@@ -145,7 +145,7 @@ const EmployerSettings = () => {
                                         value={profile.email || ''}
                                         onChange={handleChange}
                                         placeholder="ops@acme.com"
-                                        className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white font-bold pl-12 pr-6"
+                                        className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground font-bold pl-12 pr-6"
                                     />
                                 </div>
                             </div>
@@ -158,7 +158,7 @@ const EmployerSettings = () => {
                                         value={profile.phone || ''}
                                         onChange={handleChange}
                                         placeholder="+91 99999 99999"
-                                        className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white font-bold pl-12 pr-6"
+                                        className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground font-bold pl-12 pr-6"
                                     />
                                 </div>
                             </div>
