@@ -138,7 +138,7 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       {/* Left Panel: Brand Narrative */}
-      <div className="lg:w-1/2 bg-background dark:bg-slate-950 p-6 lg:p-16 flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-border min-h-[40vh] lg:min-h-screen">
+      <div className="lg:w-1/2 bg-background dark:bg-slate-950 p-6 lg:p-16 flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-border dark:border-white/5 min-h-[40vh] lg:min-h-screen">
         <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(0,102,255,0.15),transparent_70%)]" />
         
         <div className="relative z-10 py-4 lg:py-0">
