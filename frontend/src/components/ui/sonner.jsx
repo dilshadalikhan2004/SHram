@@ -1,10 +1,10 @@
-import { Toaster as Sonner, toast } from "sonner"
+import { Toaster as Sonner, toast } from "sonner";
+import { useTheme } from "../../context/ThemeContext";
 
 const Toaster = ({
   ...props
 }) => {
-  // Get theme from document class
-  const theme = typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  const { theme } = useTheme();
 
   return (
     <Sonner
@@ -23,6 +23,6 @@ const Toaster = ({
       }}
       {...props} />
   );
-}
+};
 
-export { Toaster, toast }
+export { Toaster, toast };

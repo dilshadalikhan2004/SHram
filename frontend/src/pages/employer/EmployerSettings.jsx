@@ -91,10 +91,10 @@ const EmployerSettings = () => {
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* General Settings */}
-                    <div className="p-10 rounded-[3rem] bg-black/40 border border-white/5 shadow-2xl backdrop-blur-md space-y-8">
-                        <div className="flex items-center gap-4 border-b border-white/5 pb-4">
+                    <div className="p-10 rounded-[3rem] bg-card/80 dark:bg-black/40 border border-border dark:border-white/5 shadow-2xl backdrop-blur-md space-y-8">
+                        <div className="flex items-center gap-4 border-b border-border dark:border-white/5 pb-4">
                             <Building2 className="w-6 h-6 text-orange-500" />
-                            <h2 className="text-xl font-black font-['Space_Grotesk'] uppercase tracking-tight text-white">
+                            <h2 className="text-xl font-black font-['Space_Grotesk'] uppercase tracking-tight text-foreground">
                                 Enterprise Identity
                             </h2>
                         </div>
@@ -107,7 +107,7 @@ const EmployerSettings = () => {
                                     value={profile.company_name || ''}
                                     onChange={handleChange}
                                     placeholder="ACME Heavy Industries"
-                                    className="h-14 bg-white/5 border border-white/10 text-white font-bold px-6"
+                                    className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white font-bold px-6"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -119,7 +119,7 @@ const EmployerSettings = () => {
                                         value={profile.location || ''}
                                         onChange={handleChange}
                                         placeholder="Mumbai, IN (Sector 4)"
-                                        className="h-14 bg-white/5 border border-white/10 text-white font-bold pl-12 pr-6"
+                                        className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white font-bold pl-12 pr-6"
                                     />
                                 </div>
                             </div>
@@ -127,10 +127,10 @@ const EmployerSettings = () => {
                     </div>
 
                     {/* Network Settings */}
-                    <div className="p-10 rounded-[3rem] bg-black/40 border border-white/5 shadow-2xl backdrop-blur-md space-y-8">
-                        <div className="flex items-center gap-4 border-b border-white/5 pb-4">
+                    <div className="p-10 rounded-[3rem] bg-card/80 dark:bg-black/40 border border-border dark:border-white/5 shadow-2xl backdrop-blur-md space-y-8">
+                        <div className="flex items-center gap-4 border-b border-border dark:border-white/5 pb-4">
                             <Database className="w-6 h-6 text-orange-500" />
-                            <h2 className="text-xl font-black font-['Space_Grotesk'] uppercase tracking-tight text-white">
+                            <h2 className="text-xl font-black font-['Space_Grotesk'] uppercase tracking-tight text-foreground">
                                 Encrypted Contact Node
                             </h2>
                         </div>
@@ -145,7 +145,7 @@ const EmployerSettings = () => {
                                         value={profile.email || ''}
                                         onChange={handleChange}
                                         placeholder="ops@acme.com"
-                                        className="h-14 bg-white/5 border border-white/10 text-white font-bold pl-12 pr-6"
+                                        className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white font-bold pl-12 pr-6"
                                     />
                                 </div>
                             </div>
@@ -158,7 +158,7 @@ const EmployerSettings = () => {
                                         value={profile.phone || ''}
                                         onChange={handleChange}
                                         placeholder="+91 99999 99999"
-                                        className="h-14 bg-white/5 border border-white/10 text-white font-bold pl-12 pr-6"
+                                        className="h-14 bg-background/80 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white font-bold pl-12 pr-6"
                                     />
                                 </div>
                             </div>
