@@ -53,13 +53,13 @@ const PublicProfilePage = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0B]">
+    <div className="min-h-screen flex items-center justify-center bg-background dark:bg-[#0A0A0B]">
       <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] text-foreground font-['Manrope'] selection:bg-primary/30">
+    <div className="min-h-screen bg-background dark:bg-[#0A0A0B] text-foreground font-['Manrope'] selection:bg-primary/30">
       {/* Background Effects */}
       <div className="fixed inset-0 pointer-events-none opacity-20">
         <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full" />
