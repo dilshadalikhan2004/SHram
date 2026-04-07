@@ -28,6 +28,7 @@ import jwt
 import json
 import uuid
 import logging
+import traceback
 from fastapi import FastAPI, APIRouter, HTTPException, WebSocket, status, UploadFile, File, Request, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -47,6 +48,11 @@ SHRAMSETU_DOMAIN = "shramsetu.in"
 
 # Configure Modern Gemini Client
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+if not GEMINI_KEY:
+    logger.warning(
+        "GEMINI_API_KEY environment variable is not set. "
+        "The AI chatbot will not function until this is configured."
+    )
 # Lazy AI Client
 _ai_client = None
 
@@ -252,10 +258,15 @@ async def shram_chatbot(request: Request):
     if not user_query:
         raise HTTPException(status_code=400, detail="Query is required")
 
+    logger.info(f"Chatbot request received. Query length: {len(user_query)}")
+
     try:
         cur_ai_client = get_ai_client()
         if not cur_ai_client:
-            logger.error("Chatbot failed: Gemini AI Client not initialized")
+            logger.error(
+                "Chatbot failed: Gemini AI Client not initialized. "
+                "Ensure GEMINI_API_KEY is set in the server environment."
+            )
             return {"response": "AI Configuration Error: Please check server environment variables."}
 
         contexual_prompt = f"""
@@ -270,10 +281,15 @@ async def shram_chatbot(request: Request):
             contents=contexual_prompt
         )
 
+        logger.info("Chatbot response generated successfully.")
         return {"response": response.text}
     except Exception as e:
         err_str = str(e).lower()
-        logger.error(f"Gemini API Critical Failure: {type(e).__name__} - {str(e)}")
+        logger.error(
+            f"Chatbot API failure: {type(e).__name__} - {str(e)}\n"
+            f"Query (first 100 chars): {user_query[:100]}\n"
+            f"Traceback:\n{traceback.format_exc()}"
+        )
 
         # Specific friendly messages for common AI service errors
         if "429" in err_str or "quota" in err_str or "exhausted" in err_str:
@@ -284,6 +300,19 @@ async def shram_chatbot(request: Request):
             return {"response": "I am experiencing some internal configuration issues. Please try again later while I fix them!"}
 
         return {"response": "I'm having trouble connecting to my brain right now. Please try again later!"}
+
+
+@api_router.get("/chatbot/health")
+async def chatbot_health():
+    """Health check endpoint to verify chatbot service availability."""
+    gemini_configured = bool(GEMINI_KEY)
+    client_ready = get_ai_client() is not None
+    status = "ok" if client_ready else ("unconfigured" if not gemini_configured else "degraded")
+    return {
+        "status": status,
+        "gemini_configured": gemini_configured,
+        "client_ready": client_ready,
+    }
 
 
 @api_router.get("/files/{path:path}")

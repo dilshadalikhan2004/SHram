@@ -29,15 +29,34 @@ const AIChatbot = () => {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
-    try {
-      const response = await api.post('/chatbot', { query: userMessage });
-      setMessages(prev => [...prev, { role: 'assistant', content: response.data.response }]);
-    } catch (error) {
-      console.error('Chatbot error:', error);
-      setMessages(prev => [...prev, { role: 'assistant', content: 'I am experiencing connection interference. Please try again in a moment.' }]);
-    } finally {
-      setIsLoading(false);
+    const MAX_RETRIES = 2;
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Exponential backoff: 1s, 2s
+          await new Promise(res => setTimeout(res, 1000 * attempt));
+        }
+        const response = await api.post('/chatbot', { query: userMessage });
+        setMessages(prev => [...prev, { role: 'assistant', content: response.data.response }]);
+        lastError = null;
+        break;
+      } catch (error) {
+        lastError = error;
+        console.error(`Chatbot error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error);
+      }
     }
+
+    if (lastError) {
+      const isServerError = lastError?.response?.status >= 500;
+      const errorMsg = isServerError
+        ? 'The assistant is temporarily unavailable. Please try again in a moment.'
+        : 'I am experiencing connection interference. Please try again in a moment.';
+      setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+    }
+
+    setIsLoading(false);
   };
 
   return (

@@ -3,6 +3,7 @@ from database import get_db, mongo_to_dict
 from models import WorkerProfile, EmployerProfile
 from pydantic import BaseModel
 from datetime import datetime
+from bson import ObjectId
 
 from auth_utils import get_current_user_id
 
@@ -33,7 +34,6 @@ async def update_worker_onboarding_progress(request: Request, update: Onboarding
     )
 
     if update.step == "done":
-        from bson import ObjectId
         await db.users.update_one(
             {"_id": ObjectId(user_id)},
             {"$set": {"onboarding_completed": True}}
@@ -60,7 +60,6 @@ async def update_employer_onboarding_progress(request: Request, update: Onboardi
     )
 
     if update.step == "done":
-        from bson import ObjectId
         await db.users.update_one(
             {"_id": ObjectId(user_id)},
             {"$set": {"onboarding_completed": True}}
@@ -77,7 +76,6 @@ async def get_worker_profile(request: Request):
 
     if not profile:
         # Check if user exists – if so, they might just be missing the profile document
-        from bson import ObjectId
         user = await db.users.find_one({"_id": ObjectId(user_id)})
         if user:
             # Create a basic profile document so the dashboard doesn't hang
@@ -145,8 +143,25 @@ async def get_employer_profile(request: Request):
     user_id = await get_current_user_id(request)
     db = get_db()
     profile = await db.employer_profiles.find_one({"user_id": user_id})
+
     if not profile:
+        # Check if the user exists; if so, create a basic profile to avoid 404 errors
+        user = await db.users.find_one(
+            {"_id": ObjectId(user_id)} if ObjectId.is_valid(user_id) else {"id": user_id}
+        )
+        if user:
+            new_profile = {
+                "user_id": user_id,
+                "company_name": user.get("company_name") or user.get("full_name") or "New Employer",
+                "onboarding_completed": user.get("onboarding_completed", False),
+                "onboarding_step": 1,
+                "verification_status": "pending",
+                "created_at": datetime.utcnow(),
+            }
+            await db.employer_profiles.insert_one(new_profile)
+            return mongo_to_dict(new_profile)
         raise HTTPException(status_code=404, detail="Profile not found")
+
     return mongo_to_dict(profile)
 
 
