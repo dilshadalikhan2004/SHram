@@ -37,6 +37,7 @@ import jwt
 import json
 import uuid
 import logging
+import traceback
 from fastapi import FastAPI, APIRouter, HTTPException, WebSocket, status, UploadFile, File, Request, Response
 from starlette.middleware.cors import CORSMiddleware
 from urllib.parse import urlparse
@@ -49,6 +50,11 @@ SHRAMSETU_DOMAIN = "shramsetu.in"
 
 # Configure Modern Gemini Client
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+if not GEMINI_KEY:
+    logger.warning(
+        "GEMINI_API_KEY environment variable is not set. "
+        "The AI chatbot will not function until this is configured."
+    )
 # Lazy AI Client
 _ai_client = None
 
@@ -266,6 +272,8 @@ async def shram_chatbot(request: Request):
             return {"response": "ନମସ୍କାର! ଆଜି ମୁଁ ଆପଣଙ୍କୁ କିପରି ସାହାଯ୍ୟ କରିପାରିବି?"}
         return {"response": "Hi! How can I help you today?"}
 
+    logger.info(f"Chatbot request received. Query length: {len(user_query)}")
+
     # Mock response system if API key is not set or invalid
     def get_mock_response(query, language):
         if language == 'hi':
@@ -283,14 +291,16 @@ async def shram_chatbot(request: Request):
             return "Hello! I am Shram Assistant. I can help you find jobs, answer platform questions, or optimize your profile. How can I assist?"
         else:
             return "I am currently in demo mode as my AI systems are offline. But I'm still here to help! Ask me about jobs, modifying your profile, or payments."
-
-    # Try to use actual Gemini AI if configured
     try:
         if not GEMINI_KEY or GEMINI_KEY == "your_gemini_api_key_here":
             return {"response": get_mock_response(user_query, lang)}
 
         cur_ai_client = get_ai_client()
         if not cur_ai_client:
+            logger.error(
+                "Chatbot failed: Gemini AI Client not initialized. "
+                "Ensure GEMINI_API_KEY is set in the server environment."
+            )
             return {"response": get_mock_response(user_query, lang)}
 
         language_map = {
@@ -317,12 +327,39 @@ async def shram_chatbot(request: Request):
             contents=contexual_prompt
         )
 
+        logger.info("Chatbot response generated successfully.")
         return {"response": response.text}
     except Exception as e:
         err_str = str(e).lower()
-        logger.error(f"Gemini API Failure: {type(e).__name__} - {str(e)}")
-        # Fall back to mock responses if API fails due to rate limits or invalid key
+        logger.error(
+            f"Chatbot API failure: {type(e).__name__} - {str(e)}\n"
+            f"Query (first 100 chars): {user_query[:100]}\n"
+            f"Traceback:\n{traceback.format_exc()}"
+        )
+
+        # Specific friendly messages for common AI service errors
+        if "429" in err_str or "quota" in err_str or "exhausted" in err_str:
+            return {"response": "The AI Assistant is currently resting due to high demand. Please try again in a minute or two!"}
+
+        if "api_key" in err_str or "invalid" in err_str or "permission" in err_str:
+            logger.critical("CHECK SYSTEM ENV: GEMINI_API_KEY appears invalid or restricted.")
+            return {"response": get_mock_response(user_query, lang)}
+
+        # Fall back to mock responses if API fails due to other reasons
         return {"response": get_mock_response(user_query, lang)}
+
+
+@api_router.get("/chatbot/health")
+async def chatbot_health():
+    """Health check endpoint to verify chatbot service availability."""
+    gemini_configured = bool(GEMINI_KEY)
+    client_ready = get_ai_client() is not None
+    status = "ok" if client_ready else ("unconfigured" if not gemini_configured else "degraded")
+    return {
+        "status": status,
+        "gemini_configured": gemini_configured,
+        "client_ready": client_ready,
+    }
 
 
 @api_router.get("/files/{path:path}")

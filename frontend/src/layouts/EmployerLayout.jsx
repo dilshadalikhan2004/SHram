@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from '../context/TranslationContext';
 import { useEmployerData, EmployerDataProvider } from '../context/EmployerDataContext';
 import { Button } from '../components/ui/button';
@@ -57,7 +56,7 @@ const EmployerLayoutInner = () => {
     }`;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] text-foreground selection:bg-orange-500/30 precision-grid font-['Manrope'] relative employer-theme">
+    <div className="min-h-screen bg-background dark:bg-[#0A0A0B] text-foreground selection:bg-orange-500/30 precision-grid font-['Manrope'] relative employer-theme">
       
       {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20 z-0 overflow-hidden">

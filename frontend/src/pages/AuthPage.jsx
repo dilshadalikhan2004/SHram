@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -17,7 +16,6 @@ import RegistrationSuccess from '../components/RegistrationSuccess';
 const AuthPage = () => {
   const navigate = useNavigate();
   const { login, register, sendOtp, isAuthenticated, user: authUser, logout } = useAuth();
-  const { theme, toggleTheme, isDarkMode } = useTheme();
   
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
@@ -129,7 +127,7 @@ const AuthPage = () => {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-background dark:bg-slate-950 p-6">
         <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/5">
           <RegistrationSuccess role={role} onComplete={() => navigate(role === 'worker' ? '/worker' : '/employer')} />
         </div>
@@ -140,7 +138,7 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       {/* Left Panel: Brand Narrative */}
-      <div className="lg:w-1/2 bg-slate-950 p-6 lg:p-16 flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-white/5 min-h-[40vh] lg:min-h-screen">
+      <div className="lg:w-1/2 bg-background dark:bg-slate-950 p-6 lg:p-16 flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-border dark:border-white/5 min-h-[40vh] lg:min-h-screen">
         <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(0,102,255,0.15),transparent_70%)]" />
         
         <div className="relative z-10 py-4 lg:py-0">
@@ -148,22 +146,22 @@ const AuthPage = () => {
             <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-primary/20 flex items-center justify-center shadow-lg shadow-primary/20">
               <HardHat className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
             </div>
-            <h1 className="text-xl lg:text-2xl font-bold text-white tracking-tight">ShramSetu</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">ShramSetu</h1>
           </motion.div>
           
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <h2 className="text-3xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tighter">
+            <h2 className="text-3xl lg:text-7xl font-bold text-slate-900 dark:text-white leading-[1.1] tracking-tighter">
               India's Digital<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-400">Workforce</span><br />
               Infrastructure.
             </h2>
-            <p className="mt-4 lg:mt-8 text-base lg:text-lg text-slate-400 max-w-sm lg:max-w-md leading-relaxed font-['Space_Grotesk'] opacity-80 lg:opacity-100">
+            <p className="mt-4 lg:mt-8 text-base lg:text-lg text-slate-600 dark:text-slate-400 max-w-sm lg:max-w-md leading-relaxed font-['Space_Grotesk'] opacity-80 lg:opacity-100">
               Connecting high-craft skilled workers with high-speed projects. Verified. Secured. AI-Assisted.
             </p>
           </motion.div>
         </div>
 
-        <div className="hidden lg:flex items-center gap-12 text-white/50 text-xs font-bold uppercase tracking-widest mt-12">
+        <div className="hidden lg:flex items-center gap-12 text-slate-600 dark:text-white/50 text-xs font-bold uppercase tracking-widest mt-12">
           <span>Skilled Workforce</span>
           <span>Escrow Protection</span>
           <span>Live Ops Control</span>
@@ -324,11 +322,19 @@ const AuthPage = () => {
                             <Input 
                               type={showPassword ? 'text' : 'password'} 
                               placeholder="••••••••" 
-                              className="pl-12 h-16 rounded-2xl bg-muted/30 border-0 text-lg" 
+                              className="pl-12 pr-12 h-16 rounded-2xl bg-muted/30 border-0 text-lg" 
                               value={loginData.password}
                               onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                               required 
                             />
+                            <button
+                              type="button"
+                              aria-label={showPassword ? 'Hide password' : 'Show password'}
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+                            >
+                              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
                           </div>
                         </div>
                         <Button type="submit" size="lg" className="w-full h-16 rounded-2xl bg-foreground text-background hover:bg-foreground/90 text-lg font-bold uppercase tracking-widest transition-all active:scale-95" disabled={isLoading}>
@@ -428,7 +434,15 @@ const AuthPage = () => {
                           <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Password</Label>
                           <div className="relative group">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-cyan-500 transition-colors" />
-                            <Input type="password" placeholder="Create Password" className="pl-12 h-14 rounded-xl bg-muted/30 border-0" value={regData.password} onChange={(e) => setRegData({ ...regData, password: e.target.value })} required />
+                            <Input type={showRegPassword ? 'text' : 'password'} placeholder="Create Password" className="pl-12 pr-12 h-14 rounded-xl bg-muted/30 border-0" value={regData.password} onChange={(e) => setRegData({ ...regData, password: e.target.value })} required />
+                            <button
+                              type="button"
+                              aria-label={showRegPassword ? 'Hide password' : 'Show password'}
+                              onClick={() => setShowRegPassword(!showRegPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+                            >
+                              {showRegPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
                           </div>
                         </div>
                         <Button type="submit" size="lg" className="w-full h-16 rounded-2xl bg-foreground text-background hover:bg-foreground/90 text-lg font-bold uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-slate-900/10 mt-2" disabled={isLoading}>
