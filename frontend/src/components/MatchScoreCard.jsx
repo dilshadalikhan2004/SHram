@@ -5,7 +5,7 @@ import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Target, MapPin, Clock, Sparkles } from 'lucide-react';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const MatchScoreCard = ({ jobId }) => {
   const [matchData, setMatchData] = useState(null);

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { parseApiError } from '../utils/errorUtils';
 import { profileApi, applicationsApi, jobsApi } from '../lib/api';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const WorkerDataContext = createContext(null);
 
@@ -145,35 +145,89 @@ export const WorkerDataProvider = ({ children }) => {
   };
 
   const calculateMatchScore = useCallback((job) => {
-    if (!profile) return 0;
-    let score = 0;
+    // If no profile loaded at all, return null (unknown)
+    if (!profile) return null;
 
     const workerSkills = toSkillArray(profile.skills);
+    const workerCat = normalizeText(profile.category);
+    const workerExp = parseFloat(profile.experience_years || 0);
+    const workerLoc = normalizeText(profile.location);
+
+    // Check if the profile has ANY meaningful data for matching
+    const hasProfileData = workerCat || workerSkills.length > 0 || workerExp > 0;
+
+    // If worker profile is completely empty, return null → UI can show "Set up profile" or hide badge
+    if (!hasProfileData) return null;
+
+    let score = 0;
+
     const jobReqSkills = [
       ...toSkillArray(job.requirements),
       ...toSkillArray(job.skills_required),
       ...toSkillArray(job.skill_tags),
     ];
-
-    // direct skill match
-    const matched = jobReqSkills.filter(js =>
-      workerSkills.some(ws => ws === js || ws.includes(js) || js.includes(ws))
-    );
-    score += Math.min(matched.length * 20, 60);
-
-    // trade/category fallback
-    const workerCat = normalizeText(profile.category);
     const jobCat = normalizeText(job.category);
     const jobTitle = normalizeText(job.title);
-    if (workerCat && (workerCat === jobCat || jobTitle.includes(workerCat))) score += 25;
 
-    // location boost
-    if (profile.location && job.location && normalizeText(profile.location) === normalizeText(job.location)) score += 10;
+    // 1. Trade/Category Match (45 pts)
+    let isSameTrade = false;
+    if (workerCat) {
+      if (workerCat === jobCat || jobTitle.includes(workerCat) || jobCat.includes(workerCat)) {
+        score += 45;
+        isSameTrade = true;
+      } else {
+        // Partial category match (e.g. "electrician" matches "electrical")
+        const catWords = workerCat.split(/\s+/);
+        if (catWords.some(w => w.length > 3 && (jobCat.includes(w) || jobTitle.includes(w)))) {
+          score += 30;
+          isSameTrade = true;
+        }
+      }
+    }
 
-    // urgent slight boost
-    if (job.is_urgent || job.urgency === 'asap') score += 5;
+    // 2. Skill Match (40 pts)
+    if (jobReqSkills.length > 0 && workerSkills.length > 0) {
+      const matched = jobReqSkills.filter(js =>
+        workerSkills.some(ws => ws === js || ws.includes(js) || js.includes(ws))
+      );
+      score += (matched.length / jobReqSkills.length) * 40;
+    } else if (workerSkills.length > 0 && isSameTrade) {
+      score += 30; // Same trade, assume skills are relevant
+    } else if (workerSkills.length > 0 && !jobReqSkills.length) {
+      // Job has no explicit requirements — check if worker skills appear in job title/description
+      const jobDesc = normalizeText(job.description);
+      const titleAndDesc = jobTitle + ' ' + jobDesc + ' ' + jobCat;
+      const titleMatches = workerSkills.filter(sk => titleAndDesc.includes(sk));
+      if (titleMatches.length > 0) {
+        score += Math.min(35, titleMatches.length * 15);
+      }
+    }
 
-    return Math.max(5, Math.min(score, 99)); // never 0 for relevant jobs
+    // 3. Experience Match (15 pts)
+    const jobExp = parseFloat(job.experience_required || 0);
+    if (workerExp >= jobExp && jobExp > 0) score += 15;
+    else if (workerExp > 0 && jobExp === 0) score += 10;
+    else if (workerExp > 0) score += Math.min(15, (workerExp / jobExp) * 15);
+
+    // 4. Location Match (10 pts)
+    if (workerLoc && job.location) {
+      const jobLoc = normalizeText(job.location);
+      if (workerLoc === jobLoc) {
+        score += 10;
+      } else if (workerLoc.includes(jobLoc) || jobLoc.includes(workerLoc)) {
+        score += 7;
+      } else {
+        // Check if any word in the location matches (city/district level)
+        const locWords = workerLoc.split(/[,\s]+/).filter(w => w.length > 2);
+        if (locWords.some(w => jobLoc.includes(w))) score += 5;
+      }
+    }
+
+    // Ensure same-trade always looks respectable
+    if (isSameTrade && score < 60) score = 65;
+
+    // Clamp: minimum 20 (since they have SOME profile data), max 99
+    return Math.max(20, Math.min(Math.round(score), 99));
   }, [profile]);
 
   const hasApplied = useCallback((jobId) => applications.some(app => app.job_id === jobId), [applications]);
@@ -244,7 +298,7 @@ export const WorkerDataProvider = ({ children }) => {
         .toLowerCase();
       return keywords.some(kw => searchable.includes(kw));
     })
-    .sort((a, b) => calculateMatchScore(b) - calculateMatchScore(a));
+    .sort((a, b) => (calculateMatchScore(b) || 0) - (calculateMatchScore(a) || 0));
 
   const profileStrength = profile ? [
     profile.skills?.length > 0 ? 20 : 0,

@@ -1,16 +1,75 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Send, User, Loader2, Sparkles } from 'lucide-react';
+import { Bot, X, Send, User, Loader2, Sparkles, Mic } from 'lucide-react';
 import api from '../lib/api';
+import useTTS from '../hooks/useTTS';
+import TTSButton from './TTSButton';
+import { useTranslation } from '../context/TranslationContext';
 
 const AIChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! I am Shram Assistant. I can help you find jobs, optimize your profile, or answer platform questions. How can I assist you today?' }
-  ]);
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('shram_chatbot_messages');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error("Failed to parse chatbot history", e);
+      }
+    }
+    return [
+      { role: 'assistant', content: 'Hello! I am Shram Assistant. I can help you find jobs, optimize your profile, or answer platform questions. How can I assist you today?' }
+    ];
+  });
+  
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+
+  const { language } = useTranslation();
+  const { speak, stop } = useTTS(language);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+  
+  // Track last spoken to prevent replaying old messages on load
+  const lastSpokenMessageIndex = useRef(messages.length > 0 ? messages.length - 1 : 0);
+
+  // Save conversation to local storage
+  useEffect(() => {
+    localStorage.setItem('shram_chatbot_messages', JSON.stringify(messages.slice(-50)));
+  }, [messages]);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = language === 'hi' ? 'hi-IN' : language === 'or' ? 'or-IN' : 'en-IN';
+
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev + (prev.length > 0 ? ' ' : '') + transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = () => setIsListening(false);
+      recognitionRef.current.onend = () => setIsListening(false);
+    }
+  }, [language]);
+
+  const toggleListening = (e) => {
+    e.preventDefault();
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      stop(); // stop any ongoing TTS so mic doesn't hear it
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -18,7 +77,17 @@ const AIChatbot = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading]);
+    // Auto-speak new assistant messages
+    if (messages.length > 0 && isOpen) {
+      const lastIndex = messages.length - 1;
+      const lastMessage = messages[lastIndex];
+      // Only speak if it's an assistant message AND we haven't spoken it yet
+      if (lastMessage.role === 'assistant' && lastIndex > lastSpokenMessageIndex.current) {
+        speak(lastMessage.content);
+        lastSpokenMessageIndex.current = lastIndex;
+      }
+    }
+  }, [messages, isLoading, speak, isOpen]);
 
   const handleSend = async (e) => {
     e?.preventDefault();
@@ -30,7 +99,8 @@ const AIChatbot = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/chatbot', { query: userMessage });
+      stop(); // stop reading current message when asking a new one
+      const response = await api.post('/chatbot', { query: userMessage, language: language });
       setMessages(prev => [...prev, { role: 'assistant', content: response.data.response }]);
     } catch (error) {
       console.error('Chatbot error:', error);
@@ -103,7 +173,7 @@ const AIChatbot = () => {
                     </div>
                   )}
                   
-                  <div className={`p-4 rounded-2xl max-w-[80%] ${
+                  <div className={`p-4 flex flex-col gap-2 rounded-2xl max-w-[80%] ${
                     msg.role === 'user' 
                       ? 'bg-primary text-white rounded-tr-sm shadow-lg shadow-primary/20' 
                       : 'bg-muted/20 border border-white/5 text-foreground rounded-tl-sm'
@@ -111,6 +181,11 @@ const AIChatbot = () => {
                     <p className="text-sm font-medium leading-relaxed font-['Manrope'] whitespace-pre-wrap">
                       {msg.content}
                     </p>
+                    {msg.role === 'assistant' && (
+                      <div className="pt-2 border-t border-white/5 flex">
+                        <TTSButton variant="inline" text={msg.content} />
+                      </div>
+                    )}
                   </div>
 
                   {msg.role === 'user' && (
@@ -143,12 +218,23 @@ const AIChatbot = () => {
             {/* Input Area */}
             <div className="p-4 bg-background/50 border-t border-white/5">
               <form onSubmit={handleSend} className="relative flex items-center">
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  title="Voice Input"
+                  className={`absolute left-3 p-2 rounded-lg transition-colors z-10 ${
+                    isListening ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-muted-foreground/60 hover:bg-white/10 hover:text-primary'
+                  }`}
+                  style={{ display: recognitionRef.current ? 'block' : 'none' }}
+                >
+                  <Mic className="w-5 h-5" />
+                </button>
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask Shram Assistant..."
-                  className="w-full h-12 pl-5 pr-14 rounded-xl bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-sm font-medium transition-all outline-none"
+                  placeholder={isListening ? "Listening..." : "Ask Shram Assistant..."}
+                  className={`w-full h-12 pr-14 rounded-xl bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-sm font-medium transition-all outline-none ${recognitionRef.current ? 'pl-14' : 'pl-5'}`}
                 />
                 <button
                   type="submit"

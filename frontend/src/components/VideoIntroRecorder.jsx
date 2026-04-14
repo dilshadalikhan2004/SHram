@@ -5,7 +5,7 @@ import { Card } from './ui/card';
 import { Video, StopCircle, Play, RefreshCw, Upload, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const VideoIntroRecorder = ({ onComplete }) => {
   const [recording, setRecording] = useState(false);

@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { parseApiError } from '../utils/errorUtils';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const EmployerDataContext = createContext(null);
 

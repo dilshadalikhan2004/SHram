@@ -35,7 +35,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
 } from '../components/ui/dialog';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 // Framer Motion Variants
 const containerVariants = {

@@ -15,7 +15,7 @@ import { DetailPageSkeleton } from '../../components/loading/PageSkeletons';
 import { toast } from 'sonner';
 import { jobsApi } from '../../lib/api';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 // ✅ Normalize applicant payload from different backend shapes
 const normalizeApplicant = (app = {}) => {

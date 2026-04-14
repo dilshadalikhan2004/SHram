@@ -182,6 +182,97 @@ async def create_job(job_in: JobCreate, request: Request):
     return new_job
 
 
+@job_router.get("/recommended")
+async def get_recommended_jobs(request: Request):
+    user_id = await get_current_user_id(request)
+    db = get_db()
+
+    # Simple recommendation based on worker profile skills/location
+    worker = await db.worker_profiles.find_one({"user_id": user_id})
+    if not worker:
+        return await list_jobs()
+
+    query = {"status": "open"}
+    cursor = db.jobs.find(query).sort([("is_boosted", -1), ("posted_at", -1)])
+    jobs = await cursor.to_list(length=20)
+    return mongo_list_to_dict(jobs)
+
+
+@job_router.get("/employer")
+async def get_employer_jobs(request: Request):
+    user_id = await get_current_user_id(request)
+    db = get_db()
+    cursor = db.jobs.find({"employer_id": user_id}).sort("posted_at", -1)
+    jobs = await cursor.to_list(length=50)
+    return mongo_list_to_dict(jobs)
+
+
+@job_router.get("/my-jobs")
+async def get_my_jobs_alias(request: Request):
+    """Backward-compatible alias for GET /employer."""
+    return await get_employer_jobs(request)
+
+
+@job_router.get("/saved")
+async def get_saved_jobs(request: Request):
+    user_id = await get_current_user_id(request)
+    db = get_db()
+    saved = await db.saved_jobs.find_one({"user_id": user_id})
+    if not saved or not saved.get("job_ids"):
+        return []
+
+    cursor = db.jobs.find({"id": {"$in": saved["job_ids"]}})
+    jobs = await cursor.to_list(length=100)
+    return mongo_list_to_dict(jobs)
+
+
+@job_router.post("/save")
+async def save_job(payload: dict, request: Request):
+    user_id = await get_current_user_id(request)
+    job_id = payload.get("job_id")
+    if not job_id:
+        raise HTTPException(status_code=400, detail="job_id required")
+
+    db = get_db()
+    await db.saved_jobs.update_one(
+        {"user_id": user_id},
+        {"$addToSet": {"job_ids": job_id}},
+        upsert=True
+    )
+    return {"success": True}
+
+
+@job_router.delete("/save/{job_id}")
+async def unsave_job(job_id: str, request: Request):
+    user_id = await get_current_user_id(request)
+    db = get_db()
+    await db.saved_jobs.update_one(
+        {"user_id": user_id},
+        {"$pull": {"job_ids": job_id}}
+    )
+    return {"success": True}
+
+
+@job_router.get("/{job_id}")
+async def get_job_detail(job_id: str, request: Request):
+    """Fetches a single job by its business ID or MongoDB ObjectId."""
+    db = get_db()
+    
+    # Try business ID first (UUID string)
+    job = await db.jobs.find_one({"id": job_id})
+    if not job:
+        # Try MongoDB ObjectId if it's a valid hex string
+        try:
+            job = await db.jobs.find_one({"_id": ObjectId(job_id)})
+        except Exception:
+            pass
+            
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+        
+    return mongo_to_dict(job)
+
+
 @job_router.patch("/{job_id}/status")
 async def update_job_status(job_id: str, payload: JobStatusUpdate, request: Request):
     user_id = await get_current_user_id(request)
@@ -199,39 +290,6 @@ async def update_job_status(job_id: str, payload: JobStatusUpdate, request: Requ
     return {"success": True, "status": payload.status}
 
 
-@job_router.get("/recommended", response_model=List[Job])
-async def get_recommended_jobs(request: Request):
-    user_id = await get_current_user_id(request)
-    db = get_db()
-
-    # Simple recommendation based on worker profile skills/location
-    worker = await db.worker_profiles.find_one({"user_id": user_id})
-    if not worker:
-        return await list_jobs()
-
-    query = {"status": "open"}
-    # If worker has skills, boost matching jobs
-    # For now, just listing jobs but we can add complexity later
-    cursor = db.jobs.find(query).sort([("is_boosted", -1), ("posted_at", -1)])
-    jobs = await cursor.to_list(length=20)
-    return mongo_list_to_dict(jobs)
-
-
-@job_router.get("/employer", response_model=List[Job])
-async def get_employer_jobs(request: Request):
-    user_id = await get_current_user_id(request)
-    db = get_db()
-    cursor = db.jobs.find({"employer_id": user_id}).sort("posted_at", -1)
-    jobs = await cursor.to_list(length=50)
-    return mongo_list_to_dict(jobs)
-
-
-@job_router.get("/my-jobs", response_model=List[Job])
-async def get_my_jobs_alias(request: Request):
-    """Backward-compatible alias for GET /employer."""
-    return await get_employer_jobs(request)
-
-
 @job_router.get("/match/{job_id}")
 async def get_job_match_score(job_id: str, request: Request):
     """Calculates AI match score and analysis between current worker and job."""
@@ -245,8 +303,9 @@ async def get_job_match_score(job_id: str, request: Request):
 
     job = await db.jobs.find_one(job_query)
     if not job:
+        # Fallback to secondary ID field search
         job = await db.jobs.find_one({"id": job_id})
-        if not job:  # Still not found
+        if not job:
             raise HTTPException(status_code=404, detail="Job not found")
 
     profile = await db.worker_profiles.find_one({"user_id": user_id}) or {}
@@ -276,146 +335,113 @@ async def get_job_match_score(job_id: str, request: Request):
     matching_skills = []
 
     # 1. Skill Match (40% weight)
-    job_reqs = []
-    job_reqs += to_skill_list(job.get("requirements", []))
+    job_reqs = to_skill_list(job.get("requirements", []))
     job_reqs += to_skill_list(job.get("skills_required", []))
     job_reqs += to_skill_list(job.get("skill_tags", []))
+    
+    # If no explicit requirements, treat category as a requirement
+    if not job_reqs and job.get("category"):
+        job_reqs.append(normalize_text(job.get("category")))
 
     profile_skills = to_skill_list(profile.get("skills", []))
-
-    # If no explicit requirements, treat category/title as a soft requirement
-    if not job_reqs:
-        job_reqs += to_skill_list(job.get("category"))
-        job_reqs += to_skill_list(job.get("title"))
+    worker_category = normalize_text(profile.get("category"))
+    
+    # Add category to profile skills if present
+    if worker_category and worker_category not in profile_skills:
+        profile_skills.append(worker_category)
 
     if job_reqs and profile_skills:
-        for req in set(job_reqs):
+        job_req_set = set(job_reqs)
+        for req in job_req_set:
             for sk in profile_skills:
                 if sk == req or sk in req or req in sk:
                     matching_skills.append(req)
                     break
-        skill_match = (len(set(matching_skills)) / len(set(job_reqs))) * 100 if job_reqs else 100
+        skill_match = (len(set(matching_skills)) / len(job_req_set)) * 100 if job_req_set else 100
         score += skill_match * 0.4
-    elif not job_reqs:
-        # No requirements: give partial credit if profile has skills
-        if profile_skills:
-            skill_match = 50
-            score += 20
+    elif not job_reqs and profile_skills:
+        # No job requirements but profile has skills: Baseline match
+        skill_match = 50
+        score += 20
 
     # 2. Experience Match (30% weight)
     profile_exp_value = _to_float(profile.get("experience_years"))
     profile_exp = profile_exp_value if profile_exp_value is not None else 0
-    if profile_exp >= 2:
+    job_exp_req = _to_float(job.get("experience_required")) or 0
+    
+    if profile_exp >= job_exp_req:
         exp_match = 100
     elif profile_exp > 0:
-        exp_match = 50
+        exp_match = (profile_exp / job_exp_req * 100) if job_exp_req > 0 else 50
     score += exp_match * 0.3
 
-    # 2b. Category/title bonus
-    worker_cat = normalize_text(profile.get("category"))
+    # 2b. Trade/Category Match Bonus (Additional 20% weight equivalent)
     job_cat = normalize_text(job.get("category"))
     job_title = normalize_text(job.get("title"))
-    if worker_cat and (worker_cat == job_cat or worker_cat in job_title):
+    if worker_category and (worker_category == job_cat or worker_category in job_title or job_cat in job_title):
+        score += 20
+    elif worker_category and any(sk in job_title for sk in profile_skills):
         score += 15
 
-    # 3. Location Proximity (30% weight)
+    # 3. Location Proximity (20% weight)
     job_lat, job_lng = _to_float(job.get("lat")), _to_float(job.get("lng"))
     prof_lat, prof_lng = _to_float(profile.get("lat")), _to_float(profile.get("lng"))
 
+    location_score = 0
     if job_lat is not None and job_lng is not None and prof_lat is not None and prof_lng is not None:
         R = 6371  # km
         dlat = math.radians(job_lat - prof_lat)
         dlng = math.radians(job_lng - prof_lng)
-        a = (
-            math.sin(dlat / 2) ** 2
-            + math.cos(math.radians(prof_lat))
-            * math.cos(math.radians(job_lat))
-            * math.sin(dlng / 2) ** 2
-        )
+        a = (math.sin(dlat / 2) ** 2 + 
+             math.cos(math.radians(prof_lat)) * math.cos(math.radians(job_lat)) * 
+             math.sin(dlng / 2) ** 2)
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         distance = R * c
-        if distance <= 10:
-            score += 30
-        elif distance <= 25:
-            score += 20
-        elif distance <= 50:
-            score += 10
+        if distance <= 5: location_score = 100
+        elif distance <= 15: location_score = 75
+        elif distance <= 30: location_score = 50
+        elif distance <= 50: location_score = 25
     else:
-        if profile.get("location") and job.get("location"):
-            if profile["location"].lower() in job["location"].lower() or job["location"].lower() in profile["location"].lower():
-                score += 30
-                distance = 5.0
+        # Fallback to string matching
+        job_loc = normalize_text(job.get("location"))
+        prof_loc = normalize_text(profile.get("location"))
+        if job_loc and prof_loc:
+            if job_loc in prof_loc or prof_loc in job_loc:
+                location_score = 80
+                distance = 10.0
+    
+    score += location_score * 0.1
 
-    if score == 0 and profile:
-        score = 45  # baseline for completed profiles with no exact keyword hits
+    # Apply sanity bounds
+    final_score = min(99, max(15, score))
+    
+    # If it's a perfect category match but no specific skills matched, ensure it's respectable
+    if worker_category == job_cat and final_score < 60:
+        final_score = 65
 
-    final_score = min(100, max(12, score))
-
-    # Optional: Use Gemini for tactical brief
-    explanation = f"Your signature indicates an {int(final_score)}% operational match."
+    # AI Briefing
+    explanation = f"Operational match confirmed at {int(final_score)}% via technical alignment."
     ai_client = get_ai_client()
     if ai_client:
         try:
-            prompt = f"Write a 1-sentence tactical mission briefing explanation (e.g. 'Your specialized plumbing skills make you a high-value asset for this operation.') for a worker with {profile.get('skills', [])} and {profile.get('experience_years', 0)} years of experience applying to a job titled '{job.get('title')}'. Give no preamble, just the sentence."
-            resp = ai_client.models.generate_content(
-                model="gemini-1.5-flash",
-                contents=prompt
-            )
+            prompt = f"Write a 1-sentence tactical briefing for a worker with {profile_skills or 'general labor'} skills and {profile_exp} years experience applying to a '{job.get('title')}' job. Be professional, direct, and mention their specific trade if it matches. No preamble."
+            resp = ai_client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
             explanation = resp.text.strip()
-        except Exception as e:
-            logger.error(f"Match Briefing AI Error: {e}")
+        except Exception: pass
 
     return {
         "job_id": str(job["_id"]) if "_id" in job else job.get("id"),
-        "score": final_score,
+        "score": round(final_score, 1),
         "explanation": explanation,
         "factors": {
-            "skill_match": skill_match,
-            "experience_match": exp_match,
-            "distance_km": distance or 12.5,
+            "skill_match": round(skill_match, 1),
+            "experience_match": round(exp_match, 1),
+            "location_match": round(location_score, 1),
+            "distance_km": round(distance, 1) if distance is not None else None,
             "matching_skills": matching_skills
         }
     }
 
-
-@job_router.post("/save")
-async def save_job(payload: dict, request: Request):
-    user_id = await get_current_user_id(request)
-    job_id = payload.get("job_id")
-    if not job_id:
-        raise HTTPException(status_code=400, detail="job_id required")
-
-    db = get_db()
-    await db.saved_jobs.update_one(
-        {"user_id": user_id},
-        {"$addToSet": {"job_ids": job_id}},
-        upsert=True
-    )
-    return {"success": True}
-
-
-@job_router.get("/saved")
-async def get_saved_jobs(request: Request):
-    user_id = await get_current_user_id(request)
-    db = get_db()
-    saved = await db.saved_jobs.find_one({"user_id": user_id})
-    if not saved or not saved.get("job_ids"):
-        return []
-
-    cursor = db.jobs.find({"id": {"$in": saved["job_ids"]}})
-    jobs = await cursor.to_list(length=100)
-    return mongo_list_to_dict(jobs)
-
-
-@job_router.delete("/save/{job_id}")
-async def unsave_job(job_id: str, request: Request):
-    user_id = await get_current_user_id(request)
-    db = get_db()
-    await db.saved_jobs.update_one(
-        {"user_id": user_id},
-        {"$pull": {"job_ids": job_id}}
-    )
-    return {"success": True}
 
 
 @job_router.post("/migrate/fix-status")

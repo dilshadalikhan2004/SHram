@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import MatchScoreCard from '../../components/MatchScoreCard';
 import BidSuggestion from '../../components/BidSuggestion';
+import TTSButton from '../../components/TTSButton';
 import LiveMissionTracker from '../../components/LiveMissionTracker';
 import BiddingModal from '../../components/BiddingModal';
 import JobMapView from '../../components/JobMapView';
@@ -217,9 +218,18 @@ const WorkerHome = () => {
                           </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end">
-                          <span className={`inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${getMatchBg(calculateMatchScore(job))} ${getMatchColor(calculateMatchScore(job))}`}>
-                            {calculateMatchScore(job)}% Match
-                          </span>
+                          {(() => {
+                            const score = calculateMatchScore(job);
+                            return score !== null ? (
+                              <span className={`inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${getMatchBg(score)} ${getMatchColor(score)}`}>
+                                {score}% Match
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                <Sparkles className="w-3 h-3 mr-1.5" /> NEW
+                              </span>
+                            );
+                          })()}
                           {(job.urgency === 'asap' || job.is_urgent) && (
                             <span className="inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-500 border border-rose-500/20 animate-pulse">
                               <Zap className="w-3 h-3 mr-1.5 fill-current" /> Urgent
@@ -251,7 +261,7 @@ const WorkerHome = () => {
                       </div>
 
                       <div className="relative z-10 flex justify-between items-center pt-2">
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
                             <Users className="w-4 h-4 text-muted-foreground/60" />
                             <span className="text-xs font-black tracking-widest bg-muted/20 px-2 py-1 rounded-md">{job.applicant_count || 0}</span>
@@ -260,6 +270,11 @@ const WorkerHome = () => {
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500/20" />
                             <span className="text-xs font-black tracking-widest text-amber-500">{job.employer_rating || 4.5}</span>
                           </div>
+                          <TTSButton
+                            variant="icon"
+                            size="sm"
+                            text={`${job.title}. Pay: ${job.salary_paise ? job.salary_paise / 100 : job.pay_amount} rupees ${job.salary_type || job.pay_type}. Location: ${job.location}. ${job.description || ''}`}
+                          />
                         </div>
                         <Button variant="default" size="lg" className="rounded-xl font-black uppercase tracking-widest h-12 px-6 shadow-xl shadow-primary/20 hover:scale-105 transition-all text-xs">
                           View Details <ChevronRight className="w-4 h-4 ml-2" />

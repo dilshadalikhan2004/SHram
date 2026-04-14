@@ -7,12 +7,13 @@ import { Button } from '../../components/ui/button';
 import MatchScoreCard from '../../components/MatchScoreCard';
 import BidSuggestion from '../../components/BidSuggestion';
 import BiddingModal from '../../components/BiddingModal';
+import TTSButton from '../../components/TTSButton';
 import { DetailPageSkeleton } from '../../components/loading/PageSkeletons';
 import {
   MapPin, IndianRupee, Building2, Zap, Star, Users, ArrowLeft, Bookmark, BookmarkCheck
 } from 'lucide-react';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const WorkerJobDetail = () => {
   const { id } = useParams();
@@ -129,9 +130,15 @@ const WorkerJobDetail = () => {
                 <Building2 className="w-4 h-4 text-primary" /> {job.company_name || 'Employer'}
               </p>
             </div>
-            <span className={`inline-flex items-center px-5 py-3 rounded-2xl text-sm font-black uppercase tracking-widest ${getMatchBg(matchScore)} ${getMatchColor(matchScore)}`}>
-              {matchScore}% Match
-            </span>
+            {matchScore !== null ? (
+              <span className={`inline-flex items-center px-5 py-3 rounded-2xl text-sm font-black uppercase tracking-widest ${getMatchBg(matchScore)} ${getMatchColor(matchScore)}`}>
+                {matchScore}% Match
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-5 py-3 rounded-2xl text-sm font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                NEW
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -166,6 +173,15 @@ const WorkerJobDetail = () => {
 
       {job.description && (
         <div className="p-10 glass-card rounded-[2.5rem] border-white/5 space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Job Description</p>
+            <TTSButton
+              variant="pill"
+              size="md"
+              text={`${job.title}. ${job.company_name || 'Employer'}. Pay: ${job.pay_amount || (job.salary_paise ? job.salary_paise / 100 : 0)} rupees ${job.pay_type || job.salary_type}. Location: ${job.location}. Experience required: ${job.experience_required || 0} years. ${job.description}`}
+              label="Listen"
+            />
+          </div>
           <p className="text-muted-foreground leading-relaxed font-medium font-['Manrope'] px-2">{job.description}</p>
         </div>
       )}

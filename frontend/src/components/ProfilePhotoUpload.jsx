@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Camera, Loader2, User } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const ProfilePhotoUpload = ({ currentPhoto, onUploadSuccess, size = 'lg' }) => {
   const [uploading, setUploading] = useState(false);

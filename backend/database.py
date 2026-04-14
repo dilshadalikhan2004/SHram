@@ -20,13 +20,16 @@ def get_db():
     if db is None:
         try:
             logger.info("Initializing lazy MongoDB connection...")
-            client = AsyncIOMotorClient(
-                mongo_url,
-                tls=True,
-                tlsCAFile=certifi.where(),
-                serverSelectionTimeoutMS=15000,  # Increased timeout for Atlas
-                connectTimeoutMS=15000
-            )
+            is_local = "localhost" in mongo_url or "127.0.0.1" in mongo_url
+            client_kwargs = {
+                "serverSelectionTimeoutMS": 15000,
+                "connectTimeoutMS": 15000
+            }
+            if not is_local:
+                client_kwargs["tls"] = True
+                client_kwargs["tlsCAFile"] = certifi.where()
+
+            client = AsyncIOMotorClient(mongo_url, **client_kwargs)
             db = client[db_name]
         except Exception as e:
             logger.error(f"MongoDB Lazy Init Error: {e}")

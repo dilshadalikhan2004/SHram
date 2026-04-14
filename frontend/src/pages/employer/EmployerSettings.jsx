@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const EmployerSettings = () => {
     const [profile, setProfile] = useState({

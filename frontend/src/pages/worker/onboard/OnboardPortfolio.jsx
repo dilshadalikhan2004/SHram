@@ -6,7 +6,7 @@ import { portfolioApi } from '../../../lib/api';
 import { toast } from 'sonner';
 import { parseApiError } from '../../../utils/errorUtils';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const OnboardPortfolio = () => {
   const navigate = useNavigate();

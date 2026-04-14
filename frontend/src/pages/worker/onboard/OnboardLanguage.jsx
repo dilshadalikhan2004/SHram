@@ -26,7 +26,7 @@ const OnboardLanguage = () => {
     localStorage.setItem('shram_language', selected);
     try {
       const token = localStorage.getItem('token');
-      await fetch(`https://api.shramsetu.in/api/worker/profile/onboarding-progress`, {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in"}/api/worker/profile/onboarding-progress`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ 

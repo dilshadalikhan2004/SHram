@@ -6,6 +6,7 @@ import { useTranslation } from '../../context/TranslationContext';
 import { Button } from '../../components/ui/button';
 import JobMapView from '../../components/JobMapView';
 import VoiceSearchButton from '../../components/VoiceSearchButton';
+import TTSButton from '../../components/TTSButton';
 import { ListPageSkeleton } from '../../components/loading/PageSkeletons';
 import {
   Search, MapPin, IndianRupee, Briefcase, Building2, Star, Users,
@@ -115,9 +116,18 @@ const WorkerJobs = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${getMatchBg(calculateMatchScore(job))} ${getMatchColor(calculateMatchScore(job))}`}>
-                      {calculateMatchScore(job)}%
-                    </span>
+                    {(() => {
+                      const score = calculateMatchScore(job);
+                      return score !== null ? (
+                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${getMatchBg(score)} ${getMatchColor(score)}`}>
+                          {score}%
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          NEW
+                        </span>
+                      );
+                    })()}
                     <button onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id); }} className="p-2 rounded-xl hover:bg-primary/10 transition-all">
                       {isSaved(job.id) ? <BookmarkCheck className="w-5 h-5 text-primary" /> : <Bookmark className="w-5 h-5 text-muted-foreground/40" />}
                     </button>
@@ -142,6 +152,11 @@ const WorkerJobs = () => {
                       <Zap className="w-3 h-3 fill-current" /> Urgent
                     </span>
                   )}
+                  <TTSButton
+                    variant="icon"
+                    size="sm"
+                    text={`${job.title}. Pay: ${job.salary_paise ? job.salary_paise / 100 : job.pay_amount} rupees ${job.salary_type || job.pay_type}. Location: ${job.location}. ${job.description || ''}`}
+                  />
                 </div>
               </motion.div>
             ))}

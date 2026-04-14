@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Wrench, ArrowRight, CheckCircle } from 'lucide-react';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const SECTORS = [
   { id: 'construction', name: 'Construction', nameHi: 'निर्माण', icon: '🏗️' },

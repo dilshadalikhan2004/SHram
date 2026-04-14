@@ -37,13 +37,14 @@ import JobMapView from '../components/JobMapView';
 import HandshakeControl from '../components/HandshakeControl';
 import LiveMissionTracker from '../components/LiveMissionTracker';
 import BiddingModal from '../components/BiddingModal';
+import TTSButton from '../components/TTSButton';
 import AIChatbot from '../components/AIChatbot';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
 } from '../components/ui/dialog';
 import { profileApi, applicationsApi, jobsApi } from '../lib/api';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 // Framer Motion Variants for Smooth Sequences
 const containerVariants = {
@@ -243,15 +244,34 @@ const WorkerDashboard = () => {
   const handleLogout = () => { logout(); navigate('/auth'); };
 
   const calculateMatchScore = (job) => {
-    if (!profile) return 0;
+    if (!profile) return null;
+    const workerCat = (profile.category || '').toLowerCase().trim();
+    const workerSkills = Array.isArray(profile.skills) ? profile.skills.map(s => typeof s === 'string' ? s.toLowerCase() : (s?.name || '').toLowerCase()).filter(Boolean) : [];
+    const workerExp = parseFloat(profile.experience_years || 0);
+    const hasProfileData = workerCat || workerSkills.length > 0 || workerExp > 0;
+    if (!hasProfileData) return null;
+
     let score = 0;
-    if (profile.skills && job.requirements) {
-      const sk = Array.isArray(profile.skills) ? profile.skills.map(s => typeof s === 'string' ? s : s.name) : [];
-      score += job.requirements.filter(s => sk.includes(s)).length * 12;
+    const jobCat = (job.category || '').toLowerCase().trim();
+    const jobTitle = (job.title || '').toLowerCase();
+    let isSameTrade = false;
+
+    if (workerCat && (workerCat === jobCat || jobTitle.includes(workerCat) || jobCat.includes(workerCat))) {
+      score += 45; isSameTrade = true;
     }
-    if (profile.category && job.category === profile.category) score += 15;
-    if (profile.location && job.location && job.location.toLowerCase() === profile.location.toLowerCase()) score += 10;
-    return Math.min(score, 99);
+    if (workerSkills.length > 0 && job.requirements) {
+      const reqArr = Array.isArray(job.requirements) ? job.requirements.map(s => s.toLowerCase()) : [];
+      const matched = reqArr.filter(s => workerSkills.some(ws => ws.includes(s) || s.includes(ws)));
+      score += reqArr.length > 0 ? (matched.length / reqArr.length) * 40 : 0;
+    } else if (workerSkills.length > 0 && isSameTrade) {
+      score += 30;
+    }
+    if (profile.location && job.location && job.location.toLowerCase().includes((profile.location || '').toLowerCase())) score += 10;
+    const jobExp = parseFloat(job.experience_required || 0);
+    if (workerExp >= jobExp && jobExp > 0) score += 15;
+    else if (workerExp > 0) score += 10;
+    if (isSameTrade && score < 60) score = 65;
+    return Math.max(20, Math.min(Math.round(score), 99));
   };
 
   const filteredJobs = jobs.filter(job => {
@@ -262,7 +282,7 @@ const WorkerDashboard = () => {
       matchesSearch = keywords.some(kw => searchable.includes(kw));
     }
     return matchesSearch;
-  }).sort((a, b) => calculateMatchScore(b) - calculateMatchScore(a));
+  }).sort((a, b) => (calculateMatchScore(b) || 0) - (calculateMatchScore(a) || 0));
 
   const hasApplied = (jobId) => applications.some(app => app.job_id === jobId);
   const isSaved = (jobId) => savedJobs.some(j => j.id === jobId);
@@ -590,9 +610,18 @@ const WorkerDashboard = () => {
                                 </div>
                               </div>
                               <div className="flex flex-col gap-2 items-end">
-                                <span className={`inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${getMatchBg(calculateMatchScore(job))} ${getMatchColor(calculateMatchScore(job))}`}>
-                                  {calculateMatchScore(job)}% Match
-                                </span>
+                                {(() => {
+                                  const score = calculateMatchScore(job);
+                                  return score !== null ? (
+                                    <span className={`inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${getMatchBg(score)} ${getMatchColor(score)}`}>
+                                      {score}% Match
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                      <Sparkles className="w-3 h-3 mr-1.5" /> NEW
+                                    </span>
+                                  );
+                                })()}
                                 {(job.urgency === 'asap' || job.is_urgent) && (
                                   <span className="inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-500 border border-rose-500/20 animate-pulse">
                                     <Zap className="w-3 h-3 mr-1.5 fill-current" /> Urgent
@@ -631,7 +660,7 @@ const WorkerDashboard = () => {
                             </div>
 
                             <div className="relative z-10 flex justify-between items-center pt-2">
-                              <div className="flex items-center gap-6">
+                              <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
                                   <Users className="w-4 h-4 text-muted-foreground/60" /> 
                                   <span className="text-xs font-black tracking-widest bg-muted/20 px-2 py-1 rounded-md">{job.applicant_count || 0}</span>
@@ -640,6 +669,11 @@ const WorkerDashboard = () => {
                                   <Star className="w-4 h-4 text-amber-500 fill-amber-500/20" /> 
                                   <span className="text-xs font-black tracking-widest text-amber-500">{job.employer_rating || 4.5}</span>
                                 </div>
+                                <TTSButton
+                                  variant="icon"
+                                  size="sm"
+                                  text={`${job.title}. Pay: ${job.pay_amount} rupees ${job.pay_type}. Location: ${job.location}. ${job.description || ''}`}
+                                />
                               </div>
                               <Button 
                                 variant="default"

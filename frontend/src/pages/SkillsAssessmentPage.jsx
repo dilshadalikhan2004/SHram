@@ -7,7 +7,7 @@ import { Badge } from '../components/ui/badge';
 import { Loader2, Award, CheckCircle2, XCircle, ChevronRight, Terminal, BookOpen, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const SkillsAssessmentPage = () => {
   const [tests, setTests] = useState([]);

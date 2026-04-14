@@ -18,7 +18,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import LocationPicker from './LocationPicker';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const STEPS = [
   { id: 'ai', title: 'AI Assist', icon: <Sparkles className="w-5 h-5" /> },

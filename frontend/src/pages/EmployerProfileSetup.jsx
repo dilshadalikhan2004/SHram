@@ -19,7 +19,7 @@ import LocationPicker from '../components/LocationPicker';
 import OTPVerification from '../components/OTPVerification';
 import { parseApiError } from '../utils/errorUtils';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const BUSINESS_TYPES = [
   'Construction', 'Real Estate', 'Manufacturing', 'Logistics', 

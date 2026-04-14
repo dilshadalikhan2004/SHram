@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { WorkersGridSkeleton } from '../../components/loading/PageSkeletons';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const EmployerWorkers = () => {
     const [applications, setApplications] = useState([]);

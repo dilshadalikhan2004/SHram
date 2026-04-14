@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useWorkerData } from '../../context/WorkerDataContext';
 import HandshakeControl from '../../components/HandshakeControl';
+import TTSButton from '../../components/TTSButton';
 import {
   Briefcase, Clock, MessageSquare, CheckCircle, Smartphone, Activity, Terminal
 } from 'lucide-react';
@@ -56,9 +57,16 @@ const WorkerBids = () => {
                       <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-[0.2em] border ${getStatusColor(app.status)}`}>{app.status}</span>
                       <span className="text-[10px] font-black text-muted-foreground/40 font-['Space_Grotesk'] uppercase tracking-widest">ID: {app.id.slice(-8).toUpperCase()}</span>
                     </div>
-                    <h3 className="font-black text-2xl text-foreground font-['Space_Grotesk'] tracking-tight group-hover:text-primary transition-colors cursor-pointer" onClick={() => navigate(`/worker/jobs/${app.job_id}`)}>
-                      {app.job?.title || 'Job'}
-                    </h3>
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-black text-2xl text-foreground font-['Space_Grotesk'] tracking-tight group-hover:text-primary transition-colors cursor-pointer" onClick={() => navigate(`/worker/jobs/${app.job_id}`)}>
+                        {app.job?.title || 'Job'}
+                      </h3>
+                      <TTSButton
+                        variant="icon"
+                        size="sm"
+                        text={`${app.job?.title || 'Job'}. Status: ${app.status}`}
+                      />
+                    </div>
                     <div className="flex items-center gap-4 mt-2">
                       <p className="text-xs font-bold text-muted-foreground font-['Space_Grotesk'] uppercase tracking-widest flex items-center gap-1.5">
                         <Clock className="w-3 h-3 text-primary" /> {getTimeAgo(app.created_at)}

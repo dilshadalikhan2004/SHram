@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Phone, Shield, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const PhoneVerification = ({ isVerified, onVerified }) => {
   const [open, setOpen] = useState(false);

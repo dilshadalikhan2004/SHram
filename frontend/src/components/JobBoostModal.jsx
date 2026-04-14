@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Rocket, Zap, Crown, Star, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const PACKAGES = {
   basic: {

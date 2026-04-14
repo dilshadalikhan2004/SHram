@@ -14,7 +14,7 @@ import {
   ChevronRight, Trash2, ShieldCheck, Star, BriefcaseBusiness, BadgeCheck, Image as ImageIcon
 } from 'lucide-react';
 
-const API_URL = "https://api.shramsetu.in";
+const API_URL = process.env.REACT_APP_BACKEND_URL || "https://api.shramsetu.in";
 
 const WorkerProfile = () => {
   const navigate = useNavigate();
