@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Sun, Moon, Briefcase, HardHat, ArrowRight, Mail, Lock, User, Phone, ShieldCheck, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Briefcase, HardHat, ArrowRight, Mail, Lock, User, Phone, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseApiError } from '../utils/errorUtils';
 import RegistrationSuccess from '../components/RegistrationSuccess';
@@ -26,13 +25,12 @@ const AuthPage = () => {
   const [loginData, setLoginData] = useState({ identifier: '', password: '', phone: '' });
   const [loginOtp, setLoginOtp] = useState('');
   const [loginStep, setLoginStep] = useState(1); // 1: Input, 2: OTP (for workers)
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword] = useState(false);
 
   // Register States
   const [regStep, setRegStep] = useState(1); // 1: Info, 2: OTP (for workers)
   const [regData, setRegData] = useState({ name: '', phone: '', email: '', password: '', company: '' });
   const [regOtp, setRegOtp] = useState('');
-  const [showRegPassword, setShowRegPassword] = useState(false);
 
   useEffect(() => {
     document.title = 'Access Portal | ShramSetu';
