@@ -322,11 +322,19 @@ const AuthPage = () => {
                             <Input 
                               type={showPassword ? 'text' : 'password'} 
                               placeholder="••••••••" 
-                              className="pl-12 h-16 rounded-2xl bg-muted/30 border-0 text-lg" 
+                              className="pl-12 pr-12 h-16 rounded-2xl bg-muted/30 border-0 text-lg" 
                               value={loginData.password}
                               onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                               required 
                             />
+                            <button
+                              type="button"
+                              aria-label={showPassword ? 'Hide password' : 'Show password'}
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+                            >
+                              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
                           </div>
                         </div>
                         <Button type="submit" size="lg" className="w-full h-16 rounded-2xl bg-foreground text-background hover:bg-foreground/90 text-lg font-bold uppercase tracking-widest transition-all active:scale-95" disabled={isLoading}>
@@ -426,7 +434,15 @@ const AuthPage = () => {
                           <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Password</Label>
                           <div className="relative group">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-cyan-500 transition-colors" />
-                            <Input type="password" placeholder="Create Password" className="pl-12 h-14 rounded-xl bg-muted/30 border-0" value={regData.password} onChange={(e) => setRegData({ ...regData, password: e.target.value })} required />
+                            <Input type={showRegPassword ? 'text' : 'password'} placeholder="Create Password" className="pl-12 pr-12 h-14 rounded-xl bg-muted/30 border-0" value={regData.password} onChange={(e) => setRegData({ ...regData, password: e.target.value })} required />
+                            <button
+                              type="button"
+                              aria-label={showRegPassword ? 'Hide password' : 'Show password'}
+                              onClick={() => setShowRegPassword(!showRegPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+                            >
+                              {showRegPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
                           </div>
                         </div>
                         <Button type="submit" size="lg" className="w-full h-16 rounded-2xl bg-foreground text-background hover:bg-foreground/90 text-lg font-bold uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-slate-900/10 mt-2" disabled={isLoading}>
