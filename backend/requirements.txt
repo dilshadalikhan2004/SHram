@@ -119,3 +119,4 @@ slowapi==0.1.9
 cloudinary==1.41.0
 pywebpush==1.14.0
 py-vapid==1.9.1
+redis==5.0.1

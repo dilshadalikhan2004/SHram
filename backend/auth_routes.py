@@ -34,25 +34,23 @@ try:
 except ImportError:
     twilio_client = None
 
-# Mock OTP Storage
-# In production, use Redis or a DB collection with TTL
+# Redis Integration for OTP storage
+REDIS_URL = os.environ.get("REDIS_URL")
+redis_client = None
+if REDIS_URL:
+    try:
+        import redis
+        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+        logger.info("Redis connected for OTP storage")
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis: {e}")
+
+# In-memory fallback (not recommended for production)
 mock_otp_storage = {}
 
 
-@auth_router.post("/send-otp")
-@auth_router.post("/otp/send")  # Alias for compatibility
-@limiter.limit("5/minute")
-async def send_otp(otp_req: OTPRequest, request: Request):
-    db = get_db()
-
-    target_phone = normalize_phone(otp_req.phone)
-    if not target_phone or len(target_phone) < 10:
-        raise HTTPException(status_code=400, detail="Invalid phone number format")
-
-    # Allow sending OTP to any number (enables Quick Sign Up)
-    # Check if user exists for internal tracking (optional)
-    await db.users.find_one({"phone": target_phone})
-
+async def _send_otp_internal(target_phone: str):
+    """Internal helper to handle OTP dispatch via Twilio or Mock/Redis."""
     if twilio_client and TWILIO_VERIFY_SERVICE_SID:
         try:
             verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verifications.create(to=target_phone, channel='sms')
@@ -61,16 +59,70 @@ async def send_otp(otp_req: OTPRequest, request: Request):
             logger.error(f"[TWILIO ERROR] {str(e)}")
             raise HTTPException(status_code=400, detail=f"Failed to send SMS via Twilio: {str(e)}")
     else:
-        # Fallback to mock
+        # Fallback to mock/Redis
         import random
         otp = str(random.randint(100000, 999999))
-        mock_otp_storage[target_phone] = {
-            "code": otp,
-            "expires": datetime.utcnow() + timedelta(minutes=5)
-        }
-        logger.info(f"[MOCK SMS] Signal sent to {target_phone}: {otp}")
+        
+        if redis_client:
+            # Store in Redis with 5 min TTL
+            redis_client.setex(f"otp:{target_phone}", 300, otp)
+            logger.info(f"[REDIS SMS] Key set for {target_phone}: {otp}")
+        else:
+            # Fallback to memory
+            mock_otp_storage[target_phone] = {
+                "code": otp,
+                "expires": datetime.utcnow() + timedelta(minutes=5)
+            }
+            logger.info(f"[MOCK SMS] Signal sent to {target_phone}: {otp}")
     
     return {"message": "OTP sent successfully", "phone": target_phone}
+
+
+@auth_router.post("/send-otp")
+@auth_router.post("/otp/send")  # Alias for compatibility
+@limiter.limit("5/minute")
+async def send_otp(otp_req: OTPRequest, request: Request):
+    """
+    Sends a 6-digit verification code to the provided phone number.
+    """
+    target_phone = normalize_phone(otp_req.phone)
+    if not target_phone or len(target_phone) < 10:
+        raise HTTPException(status_code=400, detail="Invalid phone number format")
+
+    return await _send_otp_internal(target_phone)
+
+
+async def _verify_otp_internal(target_phone: str, code: str) -> bool:
+    """Internal helper to verify OTP across different flows."""
+    if not target_phone or not code:
+        return False
+
+    # 1. Check Twilio
+    if twilio_client and TWILIO_VERIFY_SERVICE_SID:
+        try:
+            check = twilio_client.verify.v2.services(
+                TWILIO_VERIFY_SERVICE_SID).verification_checks.create(to=target_phone, code=code)
+            return check.status == "approved"
+        except Exception as e:
+            logger.error(f"[TWILIO VERIFY ERROR] {str(e)}")
+            return False
+
+    # 2. Check Redis
+    if redis_client:
+        stored_otp = redis_client.get(f"otp:{target_phone}")
+        if stored_otp and str(code) == str(stored_otp):
+            redis_client.delete(f"otp:{target_phone}")
+            return True
+        return False
+
+    # 3. Check Mock storage (Memory fallback)
+    if target_phone in mock_otp_storage:
+        stored = mock_otp_storage[target_phone]
+        if datetime.utcnow() <= stored["expires"] and str(code) == str(stored["code"]):
+            del mock_otp_storage[target_phone]
+            return True
+    
+    return False
 
 
 @auth_router.post("/verify-otp")
@@ -82,36 +134,9 @@ async def verify_otp(otp_data: dict, request: Request, user_id: str = Depends(ge
     """
     db = get_db()
     target_phone = normalize_phone(otp_data.get("phone"))
-    code = otp_data.get("code") or otp_data.get("otp")  # Handle both 'code' and 'otp'
+    code = otp_data.get("code") or otp_data.get("otp")
 
-    if not target_phone or not code:
-        raise HTTPException(status_code=400, detail="Phone and code required")
-
-    # Verify logic
-    is_valid = False
-
-    # 1. Check Super-secret test code (always works)
-    if str(code) == "123456":
-        is_valid = True
-
-    # 2. Check Twilio if not already validated
-    elif twilio_client and TWILIO_VERIFY_SERVICE_SID:
-        try:
-            check = twilio_client.verify.v2.services(
-                TWILIO_VERIFY_SERVICE_SID).verification_checks.create(to=target_phone, code=code)
-            is_valid = check.status == "approved"
-        except Exception as e:
-            logger.error(f"[TWILIO VERIFY ERROR] {str(e)}")
-            is_valid = False
-    # 3. Check Mock storage
-    else:
-        if target_phone in mock_otp_storage:
-            stored = mock_otp_storage[target_phone]
-            if datetime.utcnow() <= stored["expires"] and str(code) == str(stored["code"]):
-                is_valid = True
-                del mock_otp_storage[target_phone]
-
-    if not is_valid:
+    if not _verify_otp_internal(target_phone, code):
         raise HTTPException(status_code=401, detail="Invalid or expired OTP")
 
     # Update user
@@ -349,7 +374,7 @@ async def update_role(payload: dict, user_id: str = Depends(get_current_user_id)
     return {"message": "Role updated", "role": new_role}
 
 
-@auth_router.patch("/language")
+@auth_router.post("/language")
 async def update_language(language: str, user_id: str = Depends(get_current_user_id)):
     """
     Updates the user's preferred language for persistent localization.
@@ -363,3 +388,82 @@ async def update_language(language: str, user_id: str = Depends(get_current_user
         {"$set": {"preferred_language": language}}
     )
     return {"message": "Language updated", "language": language}
+
+
+@auth_router.post("/forgot-password")
+async def forgot_password(payload: dict, request: Request):
+    """
+    Initiates the password reset flow by sending an OTP.
+    Expected payload: { "identifier": "email@example.com" or "9999900000" }
+    """
+    db = get_db()
+    identifier = payload.get("identifier")
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Email or phone required")
+
+    # Find user
+    user = await db.users.find_one({
+        "$or": [
+            {"email": identifier},
+            {"phone": normalize_phone(identifier)}
+        ]
+    })
+
+    if not user:
+        # For security, we might return 200 even if user doesn't exist
+        # But for this platform, a 404 is often more helpful to the user
+        raise HTTPException(status_code=404, detail="User not found")
+
+    target_phone = user.get("phone")
+    if not target_phone:
+        # If user only has email, we'd need email OTP logic
+        # For now, ShramSetu is phone-centric
+        raise HTTPException(status_code=400, detail="Account does not have a verified phone number for recovery")
+
+    # Reuse internal send_otp logic
+    await _send_otp_internal(target_phone)
+    
+    return {"message": "Recovery code sent", "phone": target_phone}
+
+
+@auth_router.post("/reset-password")
+async def reset_password(payload: dict):
+    """
+    Verifies OTP and updates password.
+    Expected payload: { "identifier": "...", "otp": "123456", "password": "newpassword" }
+    """
+    db = get_db()
+    identifier = payload.get("identifier")
+    otp = payload.get("otp")
+    new_password = payload.get("password")
+
+    if not all([identifier, otp, new_password]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    # Find user to get their normalized phone
+    user = await db.users.find_one({
+        "$or": [
+            {"email": identifier},
+            {"phone": normalize_phone(identifier)}
+        ]
+    })
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    target_phone = user.get("phone")
+    if not target_phone:
+         raise HTTPException(status_code=400, detail="Recovery failed: No phone associated")
+
+    # Verify OTP
+    if not await _verify_otp_internal(target_phone, otp):
+        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+
+    # Update password
+    hashed_password = get_password_hash(new_password)
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password": hashed_password}}
+    )
+
+    return {"message": "Password reset successfully"}

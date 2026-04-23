@@ -68,7 +68,10 @@ const LandingPage = () => {
             {/* 1. Sticky TopAppBar */}
             <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-[#0A0C0F]/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 flex justify-between items-center px-8 py-4">
                 <div className="flex items-center gap-8">
-                    <span className="text-xl font-extrabold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>ShramSetu | श्रमसेतु</span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl font-extrabold bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] bg-clip-text text-transparent" style={{fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif'}}>ShramSetu | श्रमसेतु</span>
+                        <span className="px-2 py-0.5 bg-[#FF6B2B]/10 text-[#FF6B2B] text-[8px] font-black uppercase tracking-widest rounded border border-[#FF6B2B]/20">Bootstrap Beta</span>
+                    </div>
                     <div className="hidden lg:flex gap-6 items-center">
                         <a className="text-[#FF6B2B] font-bold border-b-2 border-[#FF6B2B] pb-1 text-xs tracking-tight uppercase" href="#problem">Problem</a>
                         <a className="text-[#1A1714]/60 dark:text-gray-400 font-semibold hover:text-[#FF6B2B] transition-colors text-xs tracking-tight uppercase" href="#features">Features</a>
@@ -92,9 +95,12 @@ const LandingPage = () => {
                 <div className="absolute inset-0 bg-dot-grid pointer-events-none"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] hero-glow pointer-events-none opacity-50 md:opacity-100"></div>
                 <div className="max-w-7xl mx-auto relative z-10 w-full">
-                    <p className="font-mono text-[#FF6B2B] mb-4 md:mb-6 tracking-[0.1em] md:tracking-[0.2em] uppercase text-[10px] md:text-xs animate-fade-up" style={{ animationDelay: '0.1s' }}>
-                        // INDIA’S LABOR INTELLIGENCE PLATFORM
-                    </p>
+                    <div className="flex items-center gap-3 mb-4 md:mb-6">
+                        <span className="px-2 py-1 bg-[#38debb]/10 text-[#38debb] text-[10px] font-black uppercase tracking-[0.2em] rounded border border-[#38debb]/20 animate-pulse">Community Trust Phase</span>
+                        <p className="font-mono text-[#FF6B2B] tracking-[0.1em] md:tracking-[0.2em] uppercase text-[10px] md:text-xs">
+                            // INDIA’S LABOR INTELLIGENCE PLATFORM
+                        </p>
+                    </div>
                     <h1 className="text-5xl sm:text-6xl md:text-[96px] lg:text-[110px] leading-[0.95] font-black mb-6 md:mb-8 flex flex-col animate-fade-up" style={{ animationDelay: '0.2s', fontFamily: '"Sora", "Noto Sans Devanagari", sans-serif' }}>
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B2B] to-[#FFB347] block mb-1 md:mb-2">श्रमसेतु</span>
                         <span className="text-[#1A1714] dark:text-[#F0EDE8]">ShramSetu</span>
@@ -557,7 +563,19 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* 12. Final CTA */}
+            {/* 12. Bootstrap Disclaimer */}
+            <section className="px-8 pb-12 reveal">
+                <div className="max-w-4xl mx-auto p-8 rounded-2xl bg-primary/5 border border-primary/20 text-center">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Bootstrap Disclosure</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        ShramSetu is currently in <span className="text-primary font-bold">Community Trust Phase</span>. 
+                        We are a bootstrapped initiative connecting workers directly with employers via <span className="text-primary font-bold">Peer-to-Peer UPI</span>. 
+                        Payments are manual and trust-based. Help us build India's most trusted labor network.
+                    </p>
+                </div>
+            </section>
+
+            {/* 13. Final CTA */}
             <section className="px-8 pb-32 reveal">
                 <div className="max-w-7xl mx-auto">
                     <div className="bg-white dark:bg-[#111318] p-12 md:p-24 rounded-2xl relative overflow-hidden text-center border border-[#1A1714]/5 dark:border-white/5">

@@ -17,6 +17,7 @@ import BoostSuccessPage from './pages/BoostSuccessPage';
 import SkillsAssessmentPage from './pages/SkillsAssessmentPage';
 import PublicProfilePage from './pages/PublicProfilePage';
 import LandingPage from './pages/LandingPage';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Modular Worker Components
 import WorkerLayout from './layouts/WorkerLayout';
@@ -281,6 +282,9 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        {/* Global Admin Portal */}
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
         {/* Global Catch all */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -34,6 +34,8 @@ const OnboardSkills = () => {
   const [primaryTrade, setPrimaryTrade] = useState('');
   const [secondarySkills, setSecondarySkills] = useState([]);
   const [experienceYears, setExperienceYears] = useState('');
+  const [dailyRate, setDailyRate] = useState('');
+  const [upiId, setUpiId] = useState('');
   const [loading, setLoading] = useState(false);
 
   const toggleSecondary = (skill) => {
@@ -53,7 +55,9 @@ const OnboardSkills = () => {
           data: {
             category: primaryTrade,
             skills: [{ name: primaryTrade, years_experience: parseInt(experienceYears) || 1 }, ...secondarySkills.map(s => ({ name: s, years_experience: 0 }))],
-            experience_years: parseInt(experienceYears) || 1
+            experience_years: parseInt(experienceYears) || 1,
+            daily_rate: parseFloat(dailyRate) || 0,
+            upi_id: upiId
           }
         })
       });
@@ -96,18 +100,43 @@ const OnboardSkills = () => {
         </div>
       </div>
 
-      {/* Experience */}
+      {/* Experience & Rate */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Years Exp</label>
+          <input
+            type="number"
+            min="0"
+            value={experienceYears}
+            onChange={(e) => setExperienceYears(e.target.value)}
+            className="w-full px-5 py-4 rounded-2xl bg-muted/20 border border-white/10 text-foreground font-black font-['Space_Grotesk'] focus:outline-none focus:border-primary/30"
+            placeholder="5"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Daily Rate (₹)</label>
+          <input
+            type="number"
+            min="0"
+            value={dailyRate}
+            onChange={(e) => setDailyRate(e.target.value)}
+            className="w-full px-5 py-4 rounded-2xl bg-muted/20 border border-white/10 text-foreground font-black font-['Space_Grotesk'] focus:outline-none focus:border-primary/30"
+            placeholder="800"
+          />
+        </div>
+      </div>
+
+      {/* UPI ID */}
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">Years of Experience</label>
+        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 font-['Space_Grotesk']">UPI ID (For Payments)</label>
         <input
-          type="number"
-          min="0"
-          max="50"
-          value={experienceYears}
-          onChange={(e) => setExperienceYears(e.target.value)}
-          className="w-full px-5 py-4 rounded-2xl bg-muted/20 border border-white/10 text-foreground font-black font-['Space_Grotesk'] text-lg focus:outline-none focus:border-primary/30 placeholder:text-muted-foreground/30"
-          placeholder="e.g. 5"
+          type="text"
+          value={upiId}
+          onChange={(e) => setUpiId(e.target.value)}
+          className="w-full px-5 py-4 rounded-2xl bg-muted/20 border border-white/10 text-foreground font-black font-['Space_Grotesk'] focus:outline-none focus:border-primary/30"
+          placeholder="e.g. 9876543210@ybl"
         />
+        <p className="text-[10px] text-primary/60 font-bold font-['Space_Grotesk'] uppercase tracking-tight">Payments go directly to you!</p>
       </div>
 
       {/* Secondary Skills */}

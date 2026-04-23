@@ -139,6 +139,27 @@ const EmployerJobDetail = () => {
     }
   };
 
+  const [ratingModal, setRatingModal] = useState({ open: false, worker: null, score: 5, comment: '' });
+
+  const handleRateWorker = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/api/ratings/bilateral`, {
+        target_id: ratingModal.worker._id,
+        job_id: id,
+        score: ratingModal.score,
+        comment: ratingModal.comment
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(`Reliability score for ${ratingModal.worker.full_name} updated!`);
+      setRatingModal({ open: false, worker: null, score: 5, comment: '' });
+      fetchJobDetail();
+    } catch (err) {
+      toast.error("Feedback transmission failed.");
+    }
+  };
+
   if (loading) return <DetailPageSkeleton />;
   if (!job) return <div className="p-20 text-center uppercase tracking-widest text-rose-500 font-black">Mission Data Corrupted or Non-Existent</div>;
 
@@ -324,9 +345,17 @@ const EmployerJobDetail = () => {
                       <h4 className="text-lg font-black uppercase">{app.worker?.full_name}</h4>
                       <p className="text-xs text-muted-foreground">{app.worker?.primary_skill || 'Worker'}</p>
                     </div>
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      Accepted
-                    </span>
+                    <div className="flex items-center gap-4">
+                      <Button 
+                        onClick={() => setRatingModal({ open: true, worker: app.worker, score: 5, comment: '' })}
+                        className="h-10 px-4 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20 font-black text-[10px] uppercase tracking-widest"
+                      >
+                        Rate Deployment
+                      </Button>
+                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Accepted
+                      </span>
+                    </div>
                   </div>
                   <WorkerTrustMini worker={app.worker || {}} app={app} />
                 </motion.div>
@@ -340,6 +369,44 @@ const EmployerJobDetail = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* Rating Modal */}
+      {ratingModal.open && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md bg-zinc-900 border border-white/10 p-10 rounded-[2.5rem] space-y-8">
+            <div className="space-y-4">
+              <h3 className="text-xl font-black font-['Space_Grotesk'] uppercase italic">Rate Deployment Performance</h3>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Operator: {ratingModal.worker?.full_name}</p>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="flex justify-center gap-4">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button 
+                    key={star} 
+                    onClick={() => setRatingModal({ ...ratingModal, score: star })}
+                    className={`transition-all ${ratingModal.score >= star ? 'text-amber-400 scale-110' : 'text-white/10'}`}
+                  >
+                    <Star className="w-8 h-8 fill-current" />
+                  </button>
+                ))}
+              </div>
+
+              <textarea 
+                className="w-full h-32 bg-black border border-white/5 rounded-2xl p-6 outline-none focus:border-primary/50 transition-all text-sm font-bold"
+                placeholder="Technical feedback (optional)..."
+                value={ratingModal.comment}
+                onChange={(e) => setRatingModal({ ...ratingModal, comment: e.target.value })}
+              />
+            </div>
+
+            <div className="flex gap-4">
+              <Button onClick={() => setRatingModal({ ...ratingModal, open: false })} variant="ghost" className="flex-1 h-12 rounded-xl border border-white/5 font-black uppercase text-[10px]">Abort</Button>
+              <Button onClick={handleRateWorker} className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90 text-black font-black uppercase text-[10px] tracking-widest">Transmit Rating</Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

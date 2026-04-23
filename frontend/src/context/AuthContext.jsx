@@ -65,6 +65,14 @@ export const AuthProvider = ({ children }) => {
     return newUser;
   };
 
+  const forgotPassword = async (identifier) => {
+    return await axios.post(`${API_URL}/api/auth/forgot-password`, { identifier });
+  };
+
+  const resetPassword = async (payload) => {
+    return await axios.post(`${API_URL}/api/auth/reset-password`, payload);
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     delete axios.defaults.headers.common['Authorization'];
@@ -85,7 +93,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, sendOtp, register, logout, updateUser, switchRole, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ 
+      user, token, loading, login, sendOtp, register, logout, 
+      updateUser, switchRole, forgotPassword, resetPassword,
+      isAuthenticated: !!user 
+    }}>
       {children}
     </AuthContext.Provider>
   );

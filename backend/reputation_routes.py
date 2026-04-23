@@ -40,12 +40,17 @@ async def create_bilateral_rating(request: Request, rating_in: BilateralRatingRe
     all_ratings = await cursor.to_list(length=100)
     if all_ratings:
         avg_score = sum(r["score"] for r in all_ratings) / len(all_ratings)
+        
+        # Reliability Score Formula:
+        # Base: Rating * 20 (e.g., 5.0 -> 100%)
+        # Plus we can factor in job volume here
+        reliability = min(100, avg_score * 20)
 
-        # Determine which profile to update
-        from bson import ObjectId
-        await db.users.find_one({"_id": ObjectId(rating_in.target_id)})  # Fallback logic
         # Update both just in case or check role
-        await db.worker_profiles.update_one({"user_id": rating_in.target_id}, {"$set": {"rating": avg_score}})
+        await db.worker_profiles.update_one(
+            {"user_id": rating_in.target_id}, 
+            {"$set": {"rating": avg_score, "reliability_score": reliability}}
+        )
 
     return new_rating
 

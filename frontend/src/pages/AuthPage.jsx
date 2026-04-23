@@ -15,7 +15,10 @@ import RegistrationSuccess from '../components/RegistrationSuccess';
 
 const AuthPage = () => {
   const navigate = useNavigate();
-  const { login, register, sendOtp, isAuthenticated, user: authUser, logout } = useAuth();
+  const { 
+    login, register, sendOtp, isAuthenticated, 
+    user: authUser, logout, forgotPassword, resetPassword 
+  } = useAuth();
   
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
@@ -33,6 +36,12 @@ const AuthPage = () => {
   const [regData, setRegData] = useState({ name: '', phone: '', email: '', password: '', company: '' });
   const [regOtp, setRegOtp] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
+  
+  // Forgot Password States
+  const [isForgotMode, setIsForgotMode] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1: Identifier, 2: OTP + New Pass
+  const [forgotData, setForgotData] = useState({ identifier: '', otp: '', password: '' });
+  const [resendTimer, setResendTimer] = useState(0);
 
   useEffect(() => {
     document.title = 'Access Portal | ShramSetu';
@@ -42,9 +51,22 @@ const AuthPage = () => {
   useEffect(() => {
     setLoginStep(1);
     setRegStep(1);
+    setForgotStep(1);
+    setIsForgotMode(false);
     setLoginData({ identifier: '', password: '', phone: '' });
     setRegData({ name: '', phone: '', email: '', password: '', company: '' });
   }, [role]);
+
+  // Resend Timer Logic
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const handleWorkerLogin = async (e) => {
     e.preventDefault();
@@ -123,6 +145,44 @@ const AuthPage = () => {
       setIsSuccess(true);
     } catch (err) { toast.error(parseApiError(err, 'Registration failed')); }
     finally { setIsLoading(false); }
+  };
+
+  const handleResendOtp = async (phone) => {
+    if (resendTimer > 0) return;
+    try {
+      await sendOtp(phone);
+      setResendTimer(30);
+      toast.success('Code resent successfully');
+    } catch (err) {
+      toast.error(parseApiError(err, 'Failed to resend code'));
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      if (forgotStep === 1) {
+        await forgotPassword(forgotData.identifier);
+        setForgotStep(2);
+        setResendTimer(30);
+        toast.success('Verification code sent');
+      } else {
+        await resetPassword({
+          identifier: forgotData.identifier,
+          otp: forgotData.otp,
+          password: forgotData.password
+        });
+        toast.success('Password reset successfully. Please log in.');
+        setIsForgotMode(false);
+        setForgotStep(1);
+        setActiveTab('login');
+      }
+    } catch (err) {
+      toast.error(parseApiError(err, 'Operation failed'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSuccess) {
@@ -255,11 +315,100 @@ const AuthPage = () => {
                 {/* ... (existing login content) */}
                 <Card className="border-0 shadow-none bg-transparent">
                   <CardHeader className="text-center pb-8 px-0">
-                    <CardTitle className="text-3xl font-bold tracking-tight">Welcome Back</CardTitle>
-                    <CardDescription className="text-sm">Sign in to your {role} mission control.</CardDescription>
+                    <CardTitle className="text-3xl font-bold tracking-tight">
+                      {isForgotMode ? 'Recover Access' : 'Welcome Back'}
+                    </CardTitle>
+                    <CardDescription className="text-sm">
+                      {isForgotMode 
+                        ? 'Reset your credentials via secure OTP.' 
+                        : `Sign in to your ${role} mission control.`
+                      }
+                    </CardDescription>
                   </CardHeader>
+
                   <CardContent className="px-0">
-                    {role === 'worker' ? (
+                    {isForgotMode ? (
+                      <form onSubmit={handleForgotPassword} className="space-y-6">
+                        {forgotStep === 1 ? (
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Account Identifier</Label>
+                            <div className="relative group">
+                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                              <Input 
+                                placeholder="Email or Phone Number" 
+                                className="pl-12 h-16 rounded-2xl bg-muted/30 border-0 text-lg" 
+                                value={forgotData.identifier} 
+                                onChange={(e) => setForgotData({ ...forgotData, identifier: e.target.value })} 
+                                required 
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center ml-1">
+                                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Verification Code</Label>
+                                <button 
+                                  type="button" 
+                                  disabled={resendTimer > 0}
+                                  onClick={() => handleResendOtp(forgotData.identifier)}
+                                  className={`text-[10px] font-bold uppercase tracking-tighter ${resendTimer > 0 ? 'text-muted-foreground' : 'text-primary hover:underline'}`}
+                                >
+                                  {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+                                </button>
+                              </div>
+                              <div className="relative group">
+                                <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input 
+                                  placeholder="0 0 0 0 0 0" 
+                                  className="pl-12 h-16 rounded-2xl bg-muted/30 border-0 text-lg tracking-[0.5em] font-bold" 
+                                  value={forgotData.otp}
+                                  onChange={(e) => setForgotData({ ...forgotData, otp: e.target.value })}
+                                  maxLength={6}
+                                  required 
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">New Password</Label>
+                              <div className="relative group">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input 
+                                  type="password"
+                                  placeholder="••••••••" 
+                                  className="pl-12 h-16 rounded-2xl bg-muted/30 border-0 text-lg" 
+                                  value={forgotData.password}
+                                  onChange={(e) => setForgotData({ ...forgotData, password: e.target.value })}
+                                  required 
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        
+                        <div className="space-y-4">
+                          <Button 
+                            type="submit" 
+                            size="lg" 
+                            className="w-full h-16 rounded-2xl text-lg font-bold uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-primary/20" 
+                            disabled={isLoading}
+                          >
+                            {isLoading ? 'Processing...' : (forgotStep === 1 ? 'Send Recovery Code' : 'Reset Password')}
+                            <ArrowRight className="ml-3 w-5 h-5" />
+                          </Button>
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setIsForgotMode(false);
+                              setIsLoading(false);
+                            }}
+                            className="w-full text-xs font-bold text-muted-foreground hover:text-foreground uppercase tracking-widest"
+                          >
+                            Back to Sign In
+                          </button>
+                        </div>
+                      </form>
+                    ) : role === 'worker' ? (
                       <form onSubmit={handleWorkerLogin} className="space-y-6">
                         <div className="space-y-2">
                           <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Phone Number</Label>
@@ -277,7 +426,17 @@ const AuthPage = () => {
                         
                         {loginStep === 2 && (
                           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Verification Code</Label>
+                            <div className="flex justify-between items-center ml-1">
+                              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Verification Code</Label>
+                              <button 
+                                type="button" 
+                                disabled={resendTimer > 0}
+                                onClick={() => handleResendOtp(loginData.phone)}
+                                className={`text-[10px] font-bold uppercase tracking-tighter ${resendTimer > 0 ? 'text-muted-foreground' : 'text-primary hover:underline'}`}
+                              >
+                                {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+                              </button>
+                            </div>
                             <div className="relative group">
                               <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                               <Input 
@@ -315,7 +474,17 @@ const AuthPage = () => {
                         <div className="space-y-2">
                           <div className="flex items-center justify-between ml-1">
                             <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Password</Label>
-                            <button type="button" className="text-[10px] font-bold text-primary hover:underline uppercase tracking-tighter">Lost Password?</button>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                setIsForgotMode(true);
+                                setIsLoading(false);
+                                setForgotData({ ...forgotData, identifier: loginData.identifier });
+                              }}
+                              className="text-[10px] font-bold text-primary hover:underline uppercase tracking-tighter"
+                            >
+                              Lost Password?
+                            </button>
                           </div>
                           <div className="relative group">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-cyan-500 transition-colors" />
@@ -387,7 +556,17 @@ const AuthPage = () => {
                           </>
                         ) : (
                           <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Verify Phone (6-Digits)</Label>
+                            <div className="flex justify-between items-center ml-1">
+                              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Verify Phone (6-Digits)</Label>
+                              <button 
+                                type="button" 
+                                disabled={resendTimer > 0}
+                                onClick={() => handleResendOtp(regData.phone)}
+                                className={`text-[10px] font-bold uppercase tracking-tighter ${resendTimer > 0 ? 'text-muted-foreground' : 'text-primary hover:underline'}`}
+                              >
+                                {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+                              </button>
+                            </div>
                             <div className="relative group">
                               <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                               <Input 

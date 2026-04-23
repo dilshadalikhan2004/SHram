@@ -23,7 +23,8 @@ const WorkerEditProfile = () => {
     category: '',
     location: '',
     daily_rate: '',
-    experience_years: ''
+    experience_years: '',
+    upi_id: ''
   });
 
   // keep raw textarea text so user can type spaces/commas naturally
@@ -63,7 +64,8 @@ const WorkerEditProfile = () => {
         experience_years:
           profile.experience_years !== null && profile.experience_years !== undefined
             ? String(profile.experience_years)
-            : ''
+            : '',
+        upi_id: profile.upi_id || ''
       });
 
       setSkillsText(normalizedSkills.join(', '));
@@ -291,20 +293,39 @@ const WorkerEditProfile = () => {
           </div>
 
           <div className="space-y-8">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Target Daily Rate (₹)</label>
-              <div className="relative group w-full md:w-1/2">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">₹</div>
-                <input
-                  type="number"
-                  name="daily_rate"
-                  value={formData.daily_rate}
-                  onChange={handleChange}
-                  className="w-full h-14 pl-10 pr-6 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all outline-none text-sm font-bold font-['Space_Grotesk'] placeholder:text-muted-foreground/20"
-                  placeholder="e.g. 800"
-                  min="0"
-                  step="1"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">Target Daily Rate (₹)</label>
+                <div className="relative group w-full">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">₹</div>
+                  <input
+                    type="number"
+                    name="daily_rate"
+                    value={formData.daily_rate}
+                    onChange={handleChange}
+                    className="w-full h-14 pl-10 pr-6 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all outline-none text-sm font-bold font-['Space_Grotesk'] placeholder:text-muted-foreground/20"
+                    placeholder="e.g. 800"
+                    min="0"
+                    step="1"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-2">UPI ID (For Direct Payments)</label>
+                <div className="relative group w-full">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    name="upi_id"
+                    value={formData.upi_id}
+                    onChange={handleChange}
+                    className="w-full h-14 pl-12 pr-6 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all outline-none text-sm font-bold font-['Space_Grotesk'] placeholder:text-muted-foreground/20"
+                    placeholder="e.g. name@okaxis"
+                  />
+                </div>
               </div>
             </div>
 

@@ -57,6 +57,7 @@ class WorkerProfile(BaseModel):
     languages: List[str] = []
     availability: str = "available"
     category: Optional[str] = None
+    upi_id: Optional[str] = None
 
     class Config:
         extra = "allow"
@@ -179,9 +180,11 @@ class ChatMessage(BaseModel):
 
 class KYCStatus(BaseModel):
     user_id: str
-    status: str = "pending"  # "pending", "verified", "failed"
+    status: str = "pending"  # "pending", "verified", "rejected", "failed"
     document_type: Optional[str] = None
     document_number: Optional[str] = None
+    document_photo_url: Optional[str] = None
+    rejection_reason: Optional[str] = None
     verified_at: Optional[datetime] = None
 
 

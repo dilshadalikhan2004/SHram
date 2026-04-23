@@ -96,9 +96,16 @@ async def global_exception_handler(request: Request, exc: Exception):
     # Extract the origin to explicitly allow it, helping bypass CORS masks on 500 errors
     origin = request.headers.get("origin") or "*"
     
+    is_debug = os.environ.get("DEBUG", "false").lower() == "true"
+    
+    content = {"detail": "Internal Server Error"}
+    if is_debug:
+        content["message"] = str(exc)
+        content["exception"] = type(exc).__name__
+    
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {type(exc).__name__}", "message": str(exc)},
+        content=content,
         headers={"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true"}
     )
 
@@ -157,7 +164,7 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With", "X-Admin-Secret"],
 )
 
 # Create router with /api prefix
@@ -213,13 +220,21 @@ async def get_categories():
 
 @api_router.post("/upload/video")
 async def upload_video(file: UploadFile = File(...)):
-    # Save to temp file and upload to Cloudinary
+    # 1. Validation
+    MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50MB
+    contents = await file.read()
+    if len(contents) > MAX_VIDEO_SIZE:
+        raise HTTPException(status_code=413, detail="Video too large (max 50MB)")
+    
+    if not file.content_type.startswith("video/"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Video expected.")
+
+    # 2. Upload
     temp_dir = Path("./tmp")
     temp_dir.mkdir(exist_ok=True)
     safe_filename = Path(file.filename).name
     temp_path = temp_dir / safe_filename
 
-    contents = await file.read()
     with open(temp_path, "wb") as f:
         f.write(contents)
 
@@ -237,12 +252,21 @@ async def upload_video(file: UploadFile = File(...)):
 
 @api_router.post("/upload/photo")
 async def upload_photo(file: UploadFile = File(...)):
+    # 1. Validation
+    MAX_PHOTO_SIZE = 5 * 1024 * 1024  # 5MB
+    contents = await file.read()
+    if len(contents) > MAX_PHOTO_SIZE:
+        raise HTTPException(status_code=413, detail="Photo too large (max 5MB)")
+    
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Image expected.")
+
+    # 2. Upload
     temp_dir = Path("./tmp")
     temp_dir.mkdir(exist_ok=True)
     safe_filename = Path(file.filename).name
     temp_path = temp_dir / safe_filename
 
-    contents = await file.read()
     with open(temp_path, "wb") as f:
         f.write(contents)
 

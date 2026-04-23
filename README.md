@@ -1,6 +1,9 @@
 # SHram — ShramSetu Worker Marketplace
 
-ShramSetu is a full-stack marketplace connecting blue-collar workers with employers in India. It features job posting, AI-assisted matching, escrow-based payments, KYC verification, OTP authentication, and real-time chat.
+ShramSetu is a full-stack marketplace connecting blue-collar workers with employers in India. It features job posting, AI-assisted matching, manual KYC verification, OTP authentication, and real-time chat.
+
+> [!IMPORTANT]
+> **Bootstrap Beta:** This project is currently in a manual verification phase. Payments are peer-to-peer (UPI) and KYC is verified manually by administrators.
 
 ## Project Structure
 
@@ -16,6 +19,7 @@ SHram/
 - Python 3.11+
 - Node.js 18+ and npm
 - MongoDB (local or Atlas)
+- Redis (Upstash recommended for serverless/bootstrap)
 
 ## Backend Setup
 
@@ -34,6 +38,7 @@ API docs are auto-generated at `http://localhost:8000/docs` (Swagger UI) and `/r
 |---|---|
 | `JWT_SECRET` | **Required.** Long random secret for signing JWT tokens. |
 | `MONGO_URL` | MongoDB connection string (default: `mongodb://localhost:27017`) |
+| `REDIS_URL` | **Required.** Redis URL for persistent OTPs and rate limiting. |
 | `DB_NAME` | Database name (default: `shramsetu`) |
 | `GEMINI_API_KEY` | Google Gemini AI key for AI features |
 | `TWILIO_ACCOUNT_SID` | Twilio Account SID for OTP SMS |
@@ -42,15 +47,21 @@ API docs are auto-generated at `http://localhost:8000/docs` (Swagger UI) and `/r
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name for media uploads |
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret |
-| `STRIPE_SECRET_KEY` | Stripe secret key for subscription payments |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
-| `VAPID_PRIVATE_KEY` | VAPID private key for web push notifications |
-| `VAPID_PUBLIC_KEY` | VAPID public key for web push notifications |
+| `STRIPE_SECRET_KEY` | Stripe secret key (legacy subscriptions) |
+| `ADMIN_SECRET` | Secret key for manual KYC approval (default: `shramsetu_bootstrap_2026`) |
 
 Generate a strong JWT secret with:
 ```bash
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
+
+## Manual KYC Approval Flow
+
+Since the platform is in bootstrap mode, KYC is handled manually:
+1. Workers upload their ID documents during onboarding.
+2. Admins review pending documents at `GET /api/admin/kyc/pending`.
+3. Admins approve a worker by calling `POST /api/admin/kyc/approve/{user_id}`.
+   * **Note:** You must include `X-Admin-Secret: [YOUR_ADMIN_SECRET]` in the request header.
 
 ## Frontend Setup
 
@@ -94,18 +105,18 @@ GitHub Actions workflows are configured in `.github/workflows/`:
 ## Architecture Overview
 
 ```
-Browser ──► React (CRACO) ──► FastAPI ──► MongoDB
-                 │                  │
-                 │              Gemini AI (job matching, chatbot)
-                 │              Twilio (OTP/SMS)
-                 │              Cloudinary (media)
-                 │              Stripe (subscriptions)
-                 └──► WebSocket ──► FastAPI (real-time chat)
+Browser ──► React (Tailwind) ──► FastAPI ──► MongoDB
+                  │                  │
+                  │              Redis (OTP Storage & Rate Limiting)
+                  │              Gemini AI (Matching Engine)
+                  │              Twilio (OTP Infrastructure)
+                  │              Cloudinary (Media Vault)
+                  └──► WebSocket ──► FastAPI (Real-Live Chat)
 ```
 
 ## Security Notes
 
 - **Never commit `.env` files.** Use `.env.example` as a template.
-- The `JWT_SECRET` env var is **required** at startup; the server will refuse to start without it.
-- File uploads are sanitised to prevent path traversal.
-- Passwords are hashed with bcrypt.
+- **Production Errors:** Stack traces are hidden in production to prevent leakage.
+- **Rate Limiting:** IP-based rate limiting is enforced via Redis.
+- **Input Validation:** Strict file size (5MB for images) and type validation on all uploads.
